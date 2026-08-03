@@ -1,0 +1,1936 @@
+import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  AlertCircle,
+  AlertTriangle,
+  Camera,
+  CheckCircle2,
+  ChevronRight,
+  Eye,
+  Gauge,
+  Info,
+  Layers,
+  ShieldCheck,
+  Star,
+  Trash2,
+  Wrench,
+} from "lucide-react";
+import { toast } from "sonner";
+import { AppShell } from "@/components/app-shell";
+import { inspectorNav } from "@/components/nav-config";
+import { Panel } from "@/components/premium";
+import { cn } from "@/lib/utils";
+import {
+  getInspectionDetails,
+  saveInspectionDraft,
+  updateInspectionDraft,
+  uploadInspectionImage,
+  submitInspectionReport,
+  type InspectionDraftRequest,
+} from "@/lib/api/inspector-api";
+
+const steps = [
+  { title: "Vehicle Specs", subtitle: "Basic registration & owner details" },
+  { title: "Exterior Body", subtitle: "32-point panel & side photos" },
+  { title: "Mechanical", subtitle: "Engine, oil & motor bay photos" },
+  { title: "Tyres & Emergency", subtitle: "Tyre tread & wheel photos" },
+  { title: "Interior & Media", subtitle: "Dashboard, odometer & PDF report" },
+];
+
+/* Exact parameters extracted from Car Tattva Used Car Inspection PDF */
+const exteriorPanels = [
+  "Right Side Fender",
+  "Right Side Front Door",
+  "Right Side Rear Door",
+  "Right Side Quarter Panel Window",
+  "Right Side A Pillar",
+  "Right Side B Pillar",
+  "Right Side C Pillar",
+  "Right Side Running Board",
+  "Trunk Door (Dicky)",
+  "Rear Bumper",
+  "Left Side Rear Door",
+  "Left Side Front Door",
+  "Left Side Running Board",
+  "Left Side Quarter Panel",
+  "Left Side A Pillar",
+  "Left Side B Pillar",
+  "Left Side C Pillar",
+  "Left Side Fender",
+  "Right Side Mirror",
+  "Left Side Mirror",
+  "Front Bonnet Hood",
+  "Front Bumper",
+  "Front Wind Shield",
+  "Rear Wind Shield",
+  "Roof Top",
+  "Chassis Embossing",
+  "VIN Plate",
+  "Under Body Damages",
+  "Right Side Quarter Panel",
+  "Right Side Front Window",
+  "Left Side Quarter Panel Window",
+];
+
+const mechanicalItems = [
+  { name: "Engine / Motor Status", type: "status" },
+  {
+    name: "Engine Oil",
+    type: "fluid",
+    options: ["OK", "NOT OK", "NEED CHANGE"],
+  },
+  {
+    name: "Brakes Oil",
+    type: "fluid",
+    options: ["SATISFACTORY", "NEED REPLACEMENT", "NOT OK"],
+  },
+  { name: "Steering Oil", type: "fluid", options: ["OK", "NEED REPLACEMENT"] },
+  {
+    name: "Coolant",
+    type: "fluid",
+    options: ["OK", "NEED TO REPLACED", "LOW"],
+  },
+  { name: "Brakes Booster", type: "status" },
+  { name: "Apron Condition", type: "status" },
+  { name: "Chassis Alignment", type: "status" },
+  { name: "Brakes Working", type: "status" },
+  { name: "Suspension", type: "status" },
+  { name: "Suspension Bushing", type: "status" },
+  { name: "Oil Leakage", type: "status" },
+  { name: "Exhaust Smoke Color", type: "text", default: "COLOURLESS" },
+  { name: "Manual Transmission Fluid Level", type: "status" },
+  { name: "Differential Fluid Level", type: "status" },
+  { name: "Fluid Leakages", type: "text", default: "NO LEAKAGE" },
+  { name: "Steering Gearbox & Linkage", type: "status" },
+  { name: "Driveline / Axle", type: "status" },
+  { name: "Engine / Motor Noise", type: "text", default: "NORMAL" },
+];
+
+const tyrePositions = [
+  {
+    id: "frontRight",
+    label: "Front Right Tyre",
+    defaultBrand: "JK 2019",
+    imgKey: "rfTyreImg",
+  },
+  {
+    id: "rearRight",
+    label: "Rear Right Tyre",
+    defaultBrand: "JK 2019",
+    imgKey: "rrTyreImg",
+  },
+  {
+    id: "rearLeft",
+    label: "Rear Left Tyre",
+    defaultBrand: "JK 2019",
+    imgKey: "lrTyreImg",
+  },
+  {
+    id: "frontLeft",
+    label: "Front Left Tyre",
+    defaultBrand: "JK 2019",
+    imgKey: "lfTyreImg",
+  },
+  {
+    id: "spareWheel",
+    label: "Spare Tyre",
+    defaultBrand: "Bridgestone 2015",
+    imgKey: "spareWheelImg",
+  },
+];
+
+const emergencyItems = [
+  "Jack",
+  "Handle",
+  "Tool Kit",
+  "First Aid Box",
+  "Emergency Triangle",
+];
+
+const electricalItems = [
+  "Right Side Tail Lamp",
+  "Left Side Tail Lamp",
+  "Right Side Head Light",
+  "Left Side Head Light",
+  "Right Indicator",
+  "Left Indicator",
+  "Boot Floor",
+  "Washer Fluid",
+  "Dashboard",
+  "Left Side Fog Lamp",
+  "Right Side Fog Lamp",
+  "Rear Stop Light",
+  "Power Window All Buttons",
+  "Music System",
+  "Adjustable Steering",
+  "Steering Mounted Controls",
+  "Wiper Washer Front",
+  "Rear Defogger",
+  "Rear Wiper Washer",
+  "Instrument Cluster",
+  "Infotainment System",
+  "Central Lock",
+  "Push Start Button",
+  "Sunroof",
+  "All Sensors",
+];
+
+const slotToCategoryMap: Record<string, string> = {
+  frontSide: "Front",
+  rightSide: "Right",
+  rearSide: "Rear",
+  leftSide: "Left",
+  roofTop: "Roof",
+  engineImg: "Engine",
+  batteryImg: "Interior",
+  rfTyreImg: "Front Right",
+  rrTyreImg: "Rear Right",
+  lrTyreImg: "Rear Left",
+  lfTyreImg: "Front Left",
+  spareWheelImg: "Spare",
+  tyresGeneralImg: "Tyres",
+  odometerImg: "Odometer",
+  dashboardImg: "Dashboard",
+  acImg: "AC Control",
+  clusterImg: "Instrument Cluster",
+  musicSystemImg: "Music System",
+};
+
+const mapCondition = (cond: string): string => {
+  if (!cond) return "NA";
+  const c = cond.toUpperCase().trim();
+  if (
+    c === "NO DAMAGES" ||
+    c === "OK" ||
+    c === "OK / WORKING" ||
+    c === "WORKING" ||
+    c === "SATISFACTORY"
+  )
+    return "OK";
+  if (c === "DAMAGED") return "DAMAGED";
+  if (c === "REPAINTED") return "REPAINTED";
+  if (c === "CHANGED") return "CHANGED";
+  if (c === "SCRATCH" || c === "SCRATCHES") return "SCRATCH";
+  if (c === "DENT" || c === "DENTS") return "DENT";
+  if (c === "RUST" || c === "RUSTED") return "RUST";
+  return "NA";
+};
+
+/* Structured Photo Slots matching exact PDF report pages */
+const imageSlotsConfig = [
+  {
+    key: "frontSide",
+    label: "FRONT SIDE IMAGE",
+    step: 1,
+    pdfSection: "EXTERIOR",
+    sample:
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&w=800&q=80",
+  },
+  {
+    key: "rightSide",
+    label: "RIGHT SIDE IMAGE",
+    step: 1,
+    pdfSection: "EXTERIOR",
+    sample:
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=800&q=80",
+  },
+  {
+    key: "rearSide",
+    label: "REAR SIDE IMAGE",
+    step: 1,
+    pdfSection: "EXTERIOR",
+    sample:
+      "https://images.unsplash.com/photo-1555215695-3004980ad54e?auto=format&fit=crop&w=800&q=80",
+  },
+  {
+    key: "leftSide",
+    label: "LEFT SIDE IMAGE",
+    step: 1,
+    pdfSection: "EXTERIOR",
+    sample:
+      "https://images.unsplash.com/photo-1606664515524-ed2f786a0bd6?auto=format&fit=crop&w=800&q=80",
+  },
+  {
+    key: "roofTop",
+    label: "ROOF TOP IMAGE",
+    step: 1,
+    pdfSection: "EXTERIOR",
+    sample:
+      "https://images.unsplash.com/photo-1542282088-72c9c27ed0cd?auto=format&fit=crop&w=800&q=80",
+  },
+
+  {
+    key: "engineImg",
+    label: "ENGINE / MOTOR IMG",
+    step: 2,
+    pdfSection: "MECHANICAL",
+    sample:
+      "https://images.unsplash.com/photo-1486006920555-c77dce18193b?auto=format&fit=crop&w=800&q=80",
+  },
+  {
+    key: "batteryImg",
+    label: "BATTERY IMG",
+    step: 2,
+    pdfSection: "MECHANICAL",
+    sample:
+      "https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80",
+  },
+
+  {
+    key: "rfTyreImg",
+    label: "RIGHT SIDE FRONT TYRE IMG",
+    step: 3,
+    pdfSection: "TYRE",
+    sample:
+      "https://images.unsplash.com/photo-1578844251758-2f71da64c96f?auto=format&fit=crop&w=800&q=80",
+  },
+  {
+    key: "rrTyreImg",
+    label: "RIGHT SIDE REAR TYRE IMG",
+    step: 3,
+    pdfSection: "TYRE",
+    sample:
+      "https://images.unsplash.com/photo-1578844251758-2f71da64c96f?auto=format&fit=crop&w=800&q=80",
+  },
+  {
+    key: "lrTyreImg",
+    label: "LEFT SIDE REAR TYRE IMG",
+    step: 3,
+    pdfSection: "TYRE",
+    sample:
+      "https://images.unsplash.com/photo-1578844251758-2f71da64c96f?auto=format&fit=crop&w=800&q=80",
+  },
+  {
+    key: "lfTyreImg",
+    label: "LEFT SIDE FRONT TYRE IMG",
+    step: 3,
+    pdfSection: "TYRE",
+    sample:
+      "https://images.unsplash.com/photo-1578844251758-2f71da64c96f?auto=format&fit=crop&w=800&q=80",
+  },
+  {
+    key: "spareWheelImg",
+    label: "SPARE WHEEL IMG",
+    step: 3,
+    pdfSection: "TYRE",
+    sample:
+      "https://images.unsplash.com/photo-1578844251758-2f71da64c96f?auto=format&fit=crop&w=800&q=80",
+  },
+  {
+    key: "tyresGeneralImg",
+    label: "TYRES OVERVIEW IMAGE",
+    step: 3,
+    pdfSection: "TYRE",
+    sample:
+      "https://images.unsplash.com/photo-1578844251758-2f71da64c96f?auto=format&fit=crop&w=800&q=80",
+  },
+
+  {
+    key: "odometerImg",
+    label: "ODOMETER IMG",
+    step: 4,
+    pdfSection: "INTERIOR AND ELECTRICAL",
+    sample:
+      "https://images.unsplash.com/photo-1517524008697-84bbe3c3fd98?auto=format&fit=crop&w=800&q=80",
+  },
+  {
+    key: "dashboardImg",
+    label: "DASHBOARD IMG",
+    step: 4,
+    pdfSection: "INTERIOR AND ELECTRICAL",
+    sample:
+      "https://images.unsplash.com/photo-1502877338535-766e1452684a?auto=format&fit=crop&w=800&q=80",
+  },
+  {
+    key: "acImg",
+    label: "AC IMAGE",
+    step: 4,
+    pdfSection: "INTERIOR AND ELECTRICAL",
+    sample:
+      "https://images.unsplash.com/photo-1502877338535-766e1452684a?auto=format&fit=crop&w=800&q=80",
+  },
+  {
+    key: "clusterImg",
+    label: "INSTRUMENT CLUSTER IMG",
+    step: 4,
+    pdfSection: "INTERIOR AND ELECTRICAL",
+    sample:
+      "https://images.unsplash.com/photo-1517524008697-84bbe3c3fd98?auto=format&fit=crop&w=800&q=80",
+  },
+  {
+    key: "musicSystemImg",
+    label: "MUSIC SYSTEM IMG",
+    step: 4,
+    pdfSection: "INTERIOR AND ELECTRICAL",
+    sample:
+      "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?auto=format&fit=crop&w=800&q=80",
+  },
+];
+
+function StarRatingInput({
+  value,
+  onChange,
+}: {
+  value: number;
+  onChange: (v: number) => void;
+}) {
+  return (
+    <div className="flex items-center gap-1.5">
+      {[1, 2, 3, 4, 5].map((star) => (
+        <button
+          key={star}
+          type="button"
+          onClick={() => onChange(star)}
+          className="p-1 transition-transform hover:scale-110 cursor-pointer"
+        >
+          <Star
+            className={cn(
+              "size-5",
+              star <= value
+                ? "fill-[#FFC700] text-[#FFC700]"
+                : "text-border fill-transparent",
+            )}
+          />
+        </button>
+      ))}
+      <span className="ml-2 text-xs font-bold text-foreground">
+        {value} / 5 Stars
+      </span>
+    </div>
+  );
+}
+
+function ImageSlotUploader({
+  label,
+  value,
+  onChange,
+  onRemove,
+}: {
+  label: string;
+  value?: string;
+  onChange: (file: File) => void;
+  onRemove: () => void;
+}) {
+  const handleFile = (files: FileList | null) => {
+    if (!files || !files[0]) return;
+    onChange(files[0]);
+  };
+
+  return (
+    <div className="rounded-2xl border border-border bg-card p-4 shadow-soft transition-all hover:border-[#FFC700]/60 flex flex-col justify-between">
+      <div className="flex items-center justify-between mb-2.5">
+        <span className="text-xs font-extrabold text-foreground tracking-wide uppercase truncate">
+          {label}
+        </span>
+        {value ? (
+          <span className="inline-flex items-center gap-1 text-[10px] font-extrabold text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+            <CheckCircle2 className="size-3" /> Captured
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1 text-[10px] font-extrabold text-amber-600 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+            <AlertCircle className="size-3" /> Required
+          </span>
+        )}
+      </div>
+
+      {value ? (
+        <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl border border-border group bg-secondary">
+          <img
+            src={value}
+            alt={label}
+            className="size-full object-cover transition-transform group-hover:scale-105"
+          />
+          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+            <button
+              onClick={() => window.open(value, "_blank")}
+              className="grid size-8 place-items-center rounded-xl bg-white/20 text-white backdrop-blur-md hover:bg-white/40 cursor-pointer"
+              title="View Image"
+            >
+              <Eye className="size-4" />
+            </button>
+            <button
+              onClick={onRemove}
+              className="grid size-8 place-items-center rounded-xl bg-rose-600/80 text-white backdrop-blur-md hover:bg-rose-600 cursor-pointer"
+              title="Remove Image"
+            >
+              <Trash2 className="size-4" />
+            </button>
+          </div>
+        </div>
+      ) : (
+        <label className="flex aspect-[4/3] w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-secondary/40 p-4 text-center transition-all hover:border-[#FFC700] hover:bg-[#FFC700]/10">
+          <Camera className="size-6 text-[#FFC700]" />
+          <p className="text-xs font-extrabold text-foreground">Upload Photo</p>
+          <p className="text-[10px] font-semibold text-muted-foreground">
+            Click to browse or drop file
+          </p>
+          <input
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => handleFile(e.target.files)}
+          />
+        </label>
+      )}
+    </div>
+  );
+}
+
+export function InspectorAddVehicle() {
+  const navigate = useNavigate();
+  const [step, setStep] = useState(0);
+  const [showPdfPreview, setShowPdfPreview] = useState(false);
+  const [inspectionId, setInspectionId] = useState<number | null>(null);
+
+  const panelFileRef = useRef<HTMLInputElement>(null);
+  const [activeUploadPanel, setActiveUploadPanel] = useState<string | null>(
+    null,
+  );
+
+  const triggerPanelImageUpload = (panelName: string) => {
+    setActiveUploadPanel(panelName);
+    if (panelFileRef.current) {
+      panelFileRef.current.value = "";
+      panelFileRef.current.click();
+    }
+  };
+
+  const handlePanelImageChange = async (files: FileList | null) => {
+    if (!files || !files[0] || !activeUploadPanel) return;
+    const file = files[0];
+    const panelName = activeUploadPanel;
+
+    let currentId = inspectionId;
+    if (!currentId) {
+      if (!basicDetails.regNo) {
+        toast.error("Please enter the vehicle registration number first.");
+        return;
+      }
+      try {
+        const res = await saveDraftApiCall(false);
+        if (res && res.data) {
+          currentId = res.data.inspectionId || res.data.id;
+        }
+      } catch (err: any) {
+        toast.error(err.response?.data?.message || "Failed to initialize draft for image upload.");
+        return;
+      }
+    }
+
+    if (!currentId) return;
+
+    try {
+      toast.info(`Uploading photo for ${panelName}...`);
+      const res = await uploadInspectionImage(currentId, panelName, file);
+      if (res.success && res.data) {
+        setPanelImages((prev) => ({
+          ...prev,
+          [panelName]: res.data,
+        }));
+        toast.success(`Photo uploaded for ${panelName}!`);
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to upload panel image.");
+    }
+  };
+  const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  // Form State matching PDF inputs
+  const [basicDetails, setBasicDetails] = useState({
+    ownerName: "1st Owner",
+    brand: "",
+    model: "",
+    variant: "",
+    fuel: "Petrol",
+    transmission: "Manual (MT)",
+    year: "",
+    regNo: "",
+    odometer: "",
+    insurance: "",
+    evaluator: "",
+    evalDate: new Date().toLocaleDateString("en-US"),
+  });
+
+  const [exteriorState, setExteriorState] = useState<Record<string, string>>(
+    {},
+  );
+  const [panelImages, setPanelImages] = useState<Record<string, string>>({});
+  const [exteriorRating, setExteriorRating] = useState(4);
+
+  const [mechanicalState, setMechanicalState] = useState<
+    Record<string, string>
+  >({});
+  const [mechanicalRating, setMechanicalRating] = useState(5);
+
+  const [tyreState, setTyreState] = useState<
+    Record<string, { condition: number; brand: string }>
+  >({
+    frontRight: { condition: 60, brand: "JK 2019" },
+    rearRight: { condition: 60, brand: "JK 2019" },
+    rearLeft: { condition: 60, brand: "JK 2019" },
+    frontLeft: { condition: 60, brand: "JK 2019" },
+    spareWheel: { condition: 40, brand: "Bridgestone 2015" },
+  });
+  const [tyreRating, setTyreRating] = useState(4);
+
+  const [emergencyState, setEmergencyState] = useState<Record<string, boolean>>(
+    {
+      Jack: true,
+      Handle: true,
+      "Tool Kit": true,
+      "First Aid Box": false,
+      "Emergency Triangle": false,
+    },
+  );
+
+  const [electricalState, setElectricalState] = useState<
+    Record<string, string>
+  >({
+    "Battery Company": "",
+    "Full Battery Number": "",
+    AC: "",
+  });
+  const [electricalRating, setElectricalRating] = useState(4);
+
+  const [comments, setComments] = useState("");
+  const [suggestedPrice, setSuggestedPrice] = useState("");
+
+  const [partImages, setPartImages] = useState<Record<string, string>>({});
+
+  // Parse ID query parameter on mount and load draft if present
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("id");
+    if (id) {
+      setInspectionId(Number(id));
+      loadInspectionData(Number(id));
+    }
+  }, []);
+
+  const loadInspectionData = async (id: number) => {
+    setLoading(true);
+    try {
+      const res = await getInspectionDetails(id);
+      if (res.success && res.data) {
+        const details = res.data;
+        const v = details.vehicleDetails;
+
+        if (v) {
+          setBasicDetails({
+            ownerName: v.ownerName || "1st Owner",
+            brand: v.brand || "",
+            model: v.model || "",
+            variant: v.variant || "",
+            fuel: v.fuelType || "Petrol",
+            transmission: v.transmission || "Manual (MT)",
+            year: v.manufacturingYear ? v.manufacturingYear.toString() : "",
+            regNo: v.vehicleNumber || "",
+            odometer: v.odometerReading ? v.odometerReading.toString() : "",
+            insurance: v.insuranceStatus || "",
+            evaluator: v.inspectorCode || "",
+            evalDate: v.inspectionDate
+              ? new Date(v.inspectionDate).toLocaleDateString("en-US")
+              : new Date().toLocaleDateString("en-US"),
+          });
+          setSuggestedPrice(
+            v.suggestedPrice ? v.suggestedPrice.toLocaleString("en-IN") : "",
+          );
+        }
+
+        if (details.ratings) {
+          setExteriorRating(details.ratings.exteriorRating || 4);
+          setMechanicalRating(details.ratings.mechanicalRating || 5);
+          setTyreRating(details.ratings.tyreRating || 4);
+          setElectricalRating(details.ratings.interiorRating || 4);
+        }
+
+        if (details.exteriorPanelDetails) {
+          const panelMap: Record<string, string> = {};
+          const pImageMap: Record<string, string> = {};
+          details.exteriorPanelDetails.forEach((p: any) => {
+            panelMap[p.panelName] = p.condition;
+            if (p.imageUrl) {
+              pImageMap[p.panelName] = p.imageUrl;
+            }
+          });
+          setExteriorState(panelMap);
+          setPanelImages(pImageMap);
+        }
+
+        if (details.mechanicalDetails) {
+          const mech = details.mechanicalDetails;
+          setMechanicalState({
+            "Engine / Motor Status": mech.engineStatus || "OK",
+            "Engine Oil": mech.engineOil || "OK",
+            "Brakes Oil": mech.brakeOil || "SATISFACTORY",
+            "Steering Oil": mech.steeringOil || "OK",
+            Coolant: mech.coolant || "OK",
+            "Brakes Booster": mech.brakeBooster || "OK",
+            "Brakes Working": mech.brakeWorking || "OK",
+            "Apron Condition": mech.apron || "OK",
+            "Chassis Alignment": mech.chassis || "OK",
+            Suspension: mech.suspension || "OK",
+            "Suspension Bushing": mech.bush || "OK",
+            "Oil Leakage": mech.leakage || "OK",
+            "Exhaust Smoke Color": mech.smoke || "COLOURLESS",
+            "Manual Transmission Fluid Level": mech.transmission || "OK",
+            "Differential Fluid Level": mech.differential || "OK",
+            "Fluid Leakages": mech.fluidLeakage || "NO LEAKAGE",
+            "Steering Gearbox & Linkage": mech.gearbox || "OK",
+            "Driveline / Axle": mech.axle || "OK",
+            "Engine / Motor Noise": mech.engineNoise || "NORMAL",
+          });
+        }
+
+        if (details.tyreDetails) {
+          const t = details.tyreDetails;
+          setTyreState({
+            frontRight: {
+              condition: t.frontRightTread || 60,
+              brand: t.frontRightBrand || "JK 2019",
+            },
+            rearRight: {
+              condition: t.rearRightTread || 60,
+              brand: t.rearRightBrand || "JK 2019",
+            },
+            rearLeft: {
+              condition: t.rearLeftTread || 60,
+              brand: t.rearLeftBrand || "JK 2019",
+            },
+            frontLeft: {
+              condition: t.frontLeftTread || 60,
+              brand: t.frontLeftBrand || "JK 2019",
+            },
+            spareWheel: {
+              condition: t.spareTread || 40,
+              brand: t.spareBrand || "Bridgestone 2015",
+            },
+          });
+          setEmergencyState({
+            Jack: t.hasJack || false,
+            Handle: t.hasHandle || false,
+            "Tool Kit": t.hasToolkit || false,
+            "First Aid Box": t.hasFirstAidBox || false,
+            "Emergency Triangle": t.hasTriangle || false,
+          });
+        }
+
+        if (details.interiorDetails) {
+          const int = details.interiorDetails;
+          setElectricalState({
+            "Battery Company": int.batteryBrand || "",
+            "Full Battery Number": int.batterySerialNumber || "",
+            AC: int.acCooling || "",
+            "Push Start Button": int.pushButton || "OK / WORKING",
+            Sunroof: int.sunroof || "OK / WORKING",
+            "Right Side Tail Lamp": int.rightTailLamp || "OK / WORKING",
+            "Left Side Tail Lamp": int.leftTailLamp || "OK / WORKING",
+            "Right Side Head Light": int.rightHeadLamp || "OK / WORKING",
+            "Left Side Head Light": int.leftHeadLamp || "OK / WORKING",
+            "Right Indicator": int.indicators || "OK / WORKING",
+            "Left Indicator": int.indicators || "OK / WORKING",
+            "Boot Floor": int.bootFloor || "OK / WORKING",
+            Dashboard: int.dashboard || "OK / WORKING",
+            "Left Side Fog Lamp": int.fogLamps || "OK / WORKING",
+            "Right Side Fog Lamp": int.fogLamps || "OK / WORKING",
+            "Power Window All Buttons": int.powerWindows || "OK / WORKING",
+            "Music System": int.musicSystem || "OK / WORKING",
+            "Steering Mounted Controls":
+              int.steeringMountedControls || "OK / WORKING",
+            "Wiper Washer Front": int.wiper || "OK / WORKING",
+            "Rear Defogger": int.rearDefogger || "OK / WORKING",
+            "Rear Wiper Washer": int.rearWasher || "OK / WORKING",
+            "Instrument Cluster": int.instrumentCluster || "OK / WORKING",
+            "Infotainment System": int.infotainment || "OK / WORKING",
+            "Central Lock": int.centralLock || "OK / WORKING",
+            "All Sensors": int.sensors || "OK / WORKING",
+          });
+          setComments(int.remarks || "");
+        }
+
+        if (details.inspectionPhotos) {
+          const imageMap: Record<string, string> = {};
+          const checklistImageMap: Record<string, string> = {};
+          details.inspectionPhotos.forEach((img: any) => {
+            const key = Object.keys(slotToCategoryMap).find(
+              (k) => slotToCategoryMap[k] === img.imageCategory,
+            );
+            if (key) {
+              imageMap[key] = img.imageUrl;
+            } else {
+              // Map custom category images (e.g. electrical/interior items) to checklist images state
+              checklistImageMap[img.imageCategory] = img.imageUrl;
+            }
+          });
+          setPartImages((p) => ({ ...p, ...imageMap }));
+          setPanelImages((p) => ({ ...p, ...checklistImageMap }));
+        }
+      }
+    } catch (err: any) {
+      console.error("Failed to load inspection details", err);
+      toast.error(err.response?.data?.message || "Failed to fetch inspection details from server.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const saveDraftApiCall = async (showToast = true): Promise<any> => {
+    if (!basicDetails.regNo) {
+      toast.error(
+        "Registration Number is mandatory to save inspection drafts.",
+      );
+      throw new Error("Missing registration number");
+    }
+
+    setSaving(true);
+    try {
+      const payload: InspectionDraftRequest = {
+        vehicleDetails: {
+          vehicleNumber: basicDetails.regNo,
+          ownerName: basicDetails.ownerName || "1st Owner",
+          brand: basicDetails.brand,
+          model: basicDetails.model,
+          variant: basicDetails.variant,
+          manufacturingYear: parseInt(basicDetails.year) || undefined,
+          fuelType: basicDetails.fuel,
+          transmission: basicDetails.transmission,
+          odometerReading: parseInt(basicDetails.odometer) || undefined,
+          insuranceStatus: basicDetails.insurance,
+          inspectorCode: basicDetails.evaluator,
+          suggestedPrice:
+            parseFloat(suggestedPrice.replace(/,/g, "")) || undefined,
+        },
+        exteriorPanelDetails: exteriorPanels.map((panelName) => ({
+          panelName,
+          condition: mapCondition(exteriorState[panelName] || "OK") as any,
+          imageUrl: panelImages[panelName] || undefined,
+        })),
+        mechanicalDetails: {
+          engineStatus: mechanicalState["Engine / Motor Status"] || "OK",
+          engineOil: mechanicalState["Engine Oil"] || "OK",
+          brakeOil: mechanicalState["Brakes Oil"] || "SATISFACTORY",
+          steeringOil: mechanicalState["Steering Oil"] || "OK",
+          coolant: mechanicalState["Coolant"] || "OK",
+          brakeBooster: mechanicalState["Brakes Booster"] || "OK",
+          brakeWorking: mechanicalState["Brakes Working"] || "OK",
+          apron: mechanicalState["Apron Condition"] || "OK",
+          chassis: mechanicalState["Chassis Alignment"] || "OK",
+          suspension: mechanicalState["Suspension"] || "OK",
+          bush: mechanicalState["Suspension Bushing"] || "OK",
+          leakage: mechanicalState["Oil Leakage"] || "OK",
+          smoke: mechanicalState["Exhaust Smoke Color"] || "COLOURLESS",
+          transmission:
+            mechanicalState["Manual Transmission Fluid Level"] || "OK",
+          differential: mechanicalState["Differential Fluid Level"] || "OK",
+          fluidLeakage: mechanicalState["Fluid Leakages"] || "NO LEAKAGE",
+          gearbox: mechanicalState["Steering Gearbox & Linkage"] || "OK",
+          axle: mechanicalState["Driveline / Axle"] || "OK",
+          engineNoise: mechanicalState["Engine / Motor Noise"] || "NORMAL",
+        },
+        tyreDetails: {
+          frontLeftBrand: tyreState.frontLeft.brand,
+          frontLeftTread: tyreState.frontLeft.condition,
+          frontLeftYear: 2020,
+          frontRightBrand: tyreState.frontRight.brand,
+          frontRightTread: tyreState.frontRight.condition,
+          frontRightYear: 2020,
+          rearLeftBrand: tyreState.rearLeft.brand,
+          rearLeftTread: tyreState.rearLeft.condition,
+          rearLeftYear: 2020,
+          rearRightBrand: tyreState.rearRight.brand,
+          rearRightTread: tyreState.rearRight.condition,
+          rearRightYear: 2020,
+          spareBrand: tyreState.spareWheel.brand,
+          spareTread: tyreState.spareWheel.condition,
+          spareYear: 2020,
+          hasJack: emergencyState["Jack"] ?? false,
+          hasHandle: emergencyState["Handle"] ?? false,
+          hasToolkit: emergencyState["Tool Kit"] ?? false,
+          hasTriangle: emergencyState["Emergency Triangle"] ?? false,
+          hasFirstAidBox: emergencyState["First Aid Box"] ?? false,
+        },
+        interiorDetails: {
+          batteryBrand: electricalState["Battery Company"] || "",
+          batterySerialNumber: electricalState["Full Battery Number"] || "",
+          acCooling: electricalState["AC"] || "",
+          evaluatorValuation: parseFloat(suggestedPrice.replace(/,/g, "")) || 0,
+          rightTailLamp:
+            electricalState["Right Side Tail Lamp"] || "OK / WORKING",
+          leftTailLamp:
+            electricalState["Left Side Tail Lamp"] || "OK / WORKING",
+          rightHeadLamp:
+            electricalState["Right Side Head Light"] || "OK / WORKING",
+          leftHeadLamp:
+            electricalState["Left Side Head Light"] || "OK / WORKING",
+          indicators: electricalState["Right Indicator"] || "OK / WORKING",
+          bootFloor: electricalState["Boot Floor"] || "OK / WORKING",
+          dashboard: electricalState["Dashboard"] || "OK / WORKING",
+          fogLamps: electricalState["Left Side Fog Lamp"] || "OK / WORKING",
+          powerWindows:
+            electricalState["Power Window All Buttons"] || "OK / WORKING",
+          musicSystem: electricalState["Music System"] || "OK / WORKING",
+          steeringMountedControls:
+            electricalState["Steering Mounted Controls"] || "OK / WORKING",
+          wiper: electricalState["Wiper Washer Front"] || "OK / WORKING",
+          rearDefogger: electricalState["Rear Defogger"] || "OK / WORKING",
+          rearWasher: electricalState["Rear Wiper Washer"] || "OK / WORKING",
+          instrumentCluster:
+            electricalState["Instrument Cluster"] || "OK / WORKING",
+          infotainment:
+            electricalState["Infotainment System"] || "OK / WORKING",
+          centralLock: electricalState["Central Lock"] || "OK / WORKING",
+          pushButton: electricalState["Push Start Button"] || "OK / WORKING",
+          sunroof: electricalState["Sunroof"] || "OK / WORKING",
+          sensors: electricalState["All Sensors"] || "OK / WORKING",
+          remarks: comments,
+        },
+        exteriorRating: exteriorRating,
+        mechanicalRating: mechanicalRating,
+        tyreRating: tyreRating,
+        interiorRating: electricalRating,
+      };
+
+      let res;
+      if (inspectionId) {
+        res = await updateInspectionDraft(inspectionId, payload);
+      } else {
+        res = await saveInspectionDraft(payload);
+      }
+
+      if (res.success && res.data) {
+        const details = res.data;
+        const newId = details.inspectionId || details.id;
+        if (newId && newId !== inspectionId) {
+          setInspectionId(newId);
+          // Set query parameter in URL to avoid duplicate creation
+          const newUrl = `${window.location.pathname}?id=${newId}`;
+          window.history.pushState({ path: newUrl }, "", newUrl);
+        }
+        if (showToast) {
+          toast.success("Draft saved successfully to server.");
+        }
+        return res;
+      }
+    } catch (err: any) {
+      console.error("Autosave draft failed", err);
+      toast.error(err.response?.data?.message || "Failed to save draft.");
+      throw err;
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleImageUpload = async (key: string, file: File) => {
+    let currentId = inspectionId;
+    if (!currentId) {
+      // Create draft first
+      if (!basicDetails.regNo) {
+        toast.error(
+          "Please enter the vehicle registration number first before uploading photos.",
+        );
+        return;
+      }
+      try {
+        const res = await saveDraftApiCall(false);
+        if (res && res.data) {
+          currentId = res.data.inspectionId || res.data.id;
+        }
+      } catch (err: any) {
+        toast.error(err.response?.data?.message || "Failed to initialize draft for image upload.");
+        return;
+      }
+    }
+
+    if (!currentId) return;
+
+    try {
+      const category = slotToCategoryMap[key] || key;
+      toast.info(`Uploading image for ${category}...`);
+      const res = await uploadInspectionImage(currentId, category, file);
+      if (res.success && res.data) {
+        setSlotImg(key, res.data);
+        toast.success(`Image uploaded for ${category}!`);
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to upload image.");
+    }
+  };
+
+  const handleFinalSubmit = async () => {
+    if (!inspectionId) {
+      toast.error("No active draft found. Please fill vehicle specs first.");
+      return;
+    }
+
+    // Validate all required fields
+    const missing: string[] = [];
+
+    // Basic specs validation
+    if (!basicDetails.regNo) missing.push("Registration Number");
+    if (!basicDetails.brand) missing.push("Vehicle Brand / Make");
+    if (!basicDetails.model) missing.push("Model Name");
+    if (!basicDetails.variant) missing.push("Model Variant");
+    if (!basicDetails.year) missing.push("Manufacturing Year");
+    if (!basicDetails.fuel) missing.push("Fuel Type");
+    if (!basicDetails.transmission) missing.push("Transmission");
+    if (!basicDetails.odometer) missing.push("Odometer Reading");
+    if (!basicDetails.ownerName) missing.push("Owner Profile Status");
+    if (!basicDetails.insurance) missing.push("Insurance Validity");
+    if (!basicDetails.evaluator) missing.push("Evaluator Inspector Code");
+    if (!suggestedPrice) missing.push("Evaluator Valuation");
+
+    // Mechanical checklist validation
+    const mechanicalItems = [
+      "Engine / Motor Status",
+      "Engine Oil",
+      "Brakes Oil",
+      "Steering Oil",
+      "Coolant",
+      "Brakes Booster",
+      "Brakes Working",
+      "Apron Condition",
+      "Chassis Alignment",
+      "Suspension",
+      "Suspension Bushing",
+      "Oil Leakage",
+      "Exhaust Smoke Color",
+      "Manual Transmission Fluid Level",
+      "Differential Fluid Level",
+      "Fluid Leakages",
+      "Steering Gearbox & Linkage",
+      "Driveline / Axle",
+      "Engine / Motor Noise"
+    ];
+    mechanicalItems.forEach(item => {
+      if (!mechanicalState[item]) {
+        missing.push(item);
+      }
+    });
+
+    // Interior checklist text fields validation
+    if (!electricalState["Battery Company"]) missing.push("Battery Company");
+    if (!electricalState["Full Battery Number"]) missing.push("Full Battery Number");
+    if (!electricalState["AC"]) missing.push("AC Cooling Performance");
+
+    if (missing.length > 0) {
+      toast.error(
+        `Please complete the following required fields before submitting: ${missing.slice(0, 3).join(", ")}${missing.length > 3 ? ` and ${missing.length - 3} more` : ""}`
+      );
+      return;
+    }
+
+    try {
+      // Save draft once final time
+      await saveDraftApiCall(false);
+      toast.info("Submitting inspection report to administrator...");
+
+      const res = await submitInspectionReport(inspectionId);
+      if (res.success) {
+        toast.success("Inspection submitted successfully! Redirecting...");
+        navigate("/inspector/vehicles");
+      }
+    } catch (err: any) {
+      toast.error(
+        err.response?.data?.message ||
+          "Submission failed. Ensure all mandatory images and sections are completed.",
+      );
+    }
+  };
+
+  const setBasic = (k: string, v: string) =>
+    setBasicDetails((p) => ({ ...p, [k]: v }));
+  const setExt = (panel: string, status: string) =>
+    setExteriorState((p) => ({ ...p, [panel]: status }));
+  const setMech = (item: string, val: string) =>
+    setMechanicalState((p) => ({ ...p, [item]: val }));
+  const setEmerg = (item: string, val: boolean) =>
+    setEmergencyState((p) => ({ ...p, [item]: val }));
+  const setElec = (item: string, val: string) =>
+    setElectricalState((p) => ({ ...p, [item]: val }));
+  const setSlotImg = (key: string, url: string) =>
+    setPartImages((p) => ({ ...p, [key]: url }));
+  const removeSlotImg = (key: string) =>
+    setPartImages((p) => {
+      const copy = { ...p };
+      delete copy[key];
+      return copy;
+    });
+
+  return (
+    <AppShell
+      role="inspector"
+      nav={inspectorNav}
+      title="Perform Evaluation"
+      breadcrumb={["Inspector", "Perform Evaluation"]}
+    >
+      <input
+        type="file"
+        ref={panelFileRef}
+        onChange={(e) => handlePanelImageChange(e.target.files)}
+        accept="image/*"
+        className="hidden"
+      />
+      {/* Step Indicator Header */}
+      <div className="rounded-3xl border border-border bg-card p-6 shadow-soft">
+        <div className="flex items-center justify-between gap-4">
+          <h2 className="text-xl font-extrabold text-foreground tracking-tight">
+            200-Point Inspection Wizard
+          </h2>
+          <span className="rounded-full bg-[#FFC700]/15 px-3.5 py-1.5 text-xs font-extrabold text-[#FFC700] border border-[#FFC700]/30 shadow-sm">
+            Step {step + 1} of {steps.length}
+          </span>
+        </div>
+
+        <div className="mt-6 grid grid-cols-2 gap-3.5 sm:grid-cols-5">
+          {steps.map((s, idx) => {
+            const active = step === idx;
+            const done = idx < step;
+            return (
+              <button
+                key={s.title}
+                onClick={() => {
+                  if (idx <= step || inspectionId) {
+                    setStep(idx);
+                    setShowPdfPreview(false);
+                  } else {
+                    toast.warning(
+                      "Complete the first step to save and navigate further.",
+                    );
+                  }
+                }}
+                className={cn(
+                  "relative rounded-2xl p-4 text-left border transition-all text-xs cursor-pointer",
+                  active
+                    ? "border-[#FFC700] bg-[#FFC700]/5 shadow-[0_4px_16px_rgba(255,199,0,0.1)]"
+                    : done
+                      ? "border-emerald-500/30 bg-emerald-500/5 text-muted-foreground"
+                      : "border-border bg-card text-muted-foreground hover:border-[#FFC700]/40",
+                )}
+              >
+                {done && (
+                  <span className="absolute top-3 right-3 text-emerald-600">
+                    <CheckCircle2 className="size-4" />
+                  </span>
+                )}
+                <span
+                  className={cn(
+                    "block font-extrabold",
+                    active ? "text-foreground" : "",
+                  )}
+                >
+                  {s.title}
+                </span>
+                <span className="mt-1 block text-[10px] text-muted-foreground font-semibold leading-normal">
+                  {s.subtitle}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="flex h-60 items-center justify-center bg-card border border-border rounded-3xl shadow-soft">
+          <span className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        </div>
+      ) : (
+        <>
+          {/* Step 1: Basic specifications */}
+          {step === 0 && (
+            <Panel
+              title="Step 1: Vehicle Specifications"
+              description="Capture legal registration certificate and owner profile credentials."
+            >
+              <div className="grid gap-4.5 sm:grid-cols-2 lg:grid-cols-3">
+                <div>
+                  <label className="block text-xs font-bold text-foreground mb-1.5">
+                    Registration Number <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={basicDetails.regNo}
+                    onChange={(e) =>
+                      setBasic("regNo", e.target.value.toUpperCase())
+                    }
+                    placeholder="e.g. MH12LV2376"
+                    className="w-full rounded-2xl border border-border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all hover:border-[#FFC700]/60 focus:border-[#FFC700] focus:ring-2 focus:ring-[#FFC700]/30 shadow-soft"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-foreground mb-1.5">
+                    Vehicle Brand / Make <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={basicDetails.brand}
+                    onChange={(e) =>
+                      setBasic("brand", e.target.value.toUpperCase())
+                    }
+                    placeholder="e.g. TOYOTA"
+                    className="w-full rounded-2xl border border-border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all hover:border-[#FFC700]/60 focus:border-[#FFC700] focus:ring-2 focus:ring-[#FFC700]/30 shadow-soft"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-foreground mb-1.5">
+                    Model Name <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={basicDetails.model}
+                    onChange={(e) =>
+                      setBasic("model", e.target.value.toUpperCase())
+                    }
+                    placeholder="e.g. ETIOS LIVA"
+                    className="w-full rounded-2xl border border-border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all hover:border-[#FFC700]/60 focus:border-[#FFC700] focus:ring-2 focus:ring-[#FFC700]/30 shadow-soft"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-foreground mb-1.5">
+                    Model Variant <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={basicDetails.variant}
+                    onChange={(e) => setBasic("variant", e.target.value)}
+                    placeholder="e.g. Vx"
+                    className="w-full rounded-2xl border border-border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all hover:border-[#FFC700]/60 focus:border-[#FFC700] focus:ring-2 focus:ring-[#FFC700]/30 shadow-soft"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-foreground mb-1.5">
+                    Manufacturing Year <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    value={basicDetails.year}
+                    onChange={(e) => setBasic("year", e.target.value)}
+                    className="w-full rounded-2xl border border-border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all hover:border-[#FFC700]/60 focus:border-[#FFC700] focus:ring-2 focus:ring-[#FFC700]/30 shadow-soft cursor-pointer"
+                  >
+                    <option value="">Select Year</option>
+                    {Array.from(
+                      { length: 30 },
+                      (_, i) => new Date().getFullYear() - i,
+                    ).map((y) => (
+                      <option key={y} value={y.toString()}>
+                        {y}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-foreground mb-1.5">
+                    Fuel Type <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    value={basicDetails.fuel}
+                    onChange={(e) => setBasic("fuel", e.target.value)}
+                    className="w-full rounded-2xl border border-border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all hover:border-[#FFC700]/60 focus:border-[#FFC700] focus:ring-2 focus:ring-[#FFC700]/30 shadow-soft cursor-pointer"
+                  >
+                    <option value="Petrol">Petrol</option>
+                    <option value="Diesel">Diesel</option>
+                    <option value="CNG">CNG</option>
+                    <option value="LPG">LPG</option>
+                    <option value="Electric">Electric</option>
+                    <option value="Hybrid">Hybrid</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-foreground mb-1.5">
+                    Transmission <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    value={basicDetails.transmission}
+                    onChange={(e) => setBasic("transmission", e.target.value)}
+                    className="w-full rounded-2xl border border-border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all hover:border-[#FFC700]/60 focus:border-[#FFC700] focus:ring-2 focus:ring-[#FFC700]/30 shadow-soft cursor-pointer"
+                  >
+                    <option value="Manual (MT)">Manual (MT)</option>
+                    <option value="Automatic (AT)">Automatic (AT)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-foreground mb-1.5">
+                    Odometer Reading (km) <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    value={basicDetails.odometer}
+                    onChange={(e) => setBasic("odometer", e.target.value)}
+                    placeholder="e.g. 30899"
+                    className="w-full rounded-2xl border border-border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all hover:border-[#FFC700]/60 focus:border-[#FFC700] focus:ring-2 focus:ring-[#FFC700]/30 shadow-soft"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-foreground mb-1.5">
+                    Owner Profile Status <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    value={basicDetails.ownerName}
+                    onChange={(e) => setBasic("ownerName", e.target.value)}
+                    className="w-full rounded-2xl border border-border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all hover:border-[#FFC700]/60 focus:border-[#FFC700] focus:ring-2 focus:ring-[#FFC700]/30 shadow-soft cursor-pointer"
+                  >
+                    <option value="1st Owner">1st Owner</option>
+                    <option value="2nd Owner">2nd Owner</option>
+                    <option value="3rd Owner">3rd Owner</option>
+                    <option value="4th Owner">4th Owner</option>
+                    <option value="5th Owner or More">5th Owner or More</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-foreground mb-1.5">
+                    Insurance Validity <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    value={basicDetails.insurance}
+                    onChange={(e) => setBasic("insurance", e.target.value)}
+                    className="w-full rounded-2xl border border-border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all hover:border-[#FFC700]/60 focus:border-[#FFC700] focus:ring-2 focus:ring-[#FFC700]/30 shadow-soft cursor-pointer"
+                  >
+                    <option value="">Select Insurance Type</option>
+                    <option value="Valid (Comprehensive)">
+                      Valid (Comprehensive)
+                    </option>
+                    <option value="Valid (Third Party)">
+                      Valid (Third Party)
+                    </option>
+                    <option value="Expired">Expired</option>
+                    <option value="No Insurance">No Insurance</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-foreground mb-1.5">
+                    Price (₹) <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={suggestedPrice}
+                    onChange={(e) => setSuggestedPrice(e.target.value)}
+                    placeholder="e.g. 350000"
+                    className="w-full rounded-2xl border border-border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all hover:border-[#FFC700]/60 focus:border-[#FFC700] focus:ring-2 focus:ring-[#FFC700]/30 shadow-soft"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-foreground mb-1.5">
+                    Evaluator Inspector Code <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={basicDetails.evaluator}
+                    onChange={(e) => setBasic("evaluator", e.target.value)}
+                    placeholder="e.g. PRASHANT238"
+                    className="w-full rounded-2xl border border-border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all hover:border-[#FFC700]/60 focus:border-[#FFC700] focus:ring-2 focus:ring-[#FFC700]/30 shadow-soft"
+                  />
+                </div>
+              </div>
+            </Panel>
+          )}
+
+          {/* Step 2: Exterior panels checklist and photo uploads */}
+          {step === 1 && (
+            <div className="space-y-8">
+              <Panel
+                title="Step 2: Exterior Body Checklist"
+                description="State condition and paint parameters of exterior sheet metal panels."
+                action={
+                  <StarRatingInput
+                    value={exteriorRating}
+                    onChange={setExteriorRating}
+                  />
+                }
+              >
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 items-start">
+                  {exteriorPanels.map((panel) => {
+                    const value = exteriorState[panel] ?? "OK";
+                    const hasImg = !!panelImages[panel];
+                    return (
+                      <div
+                        key={panel}
+                        className={cn(
+                          "rounded-2xl border border-border bg-card p-3.5 shadow-soft transition-all duration-200",
+                          hasImg
+                            ? "flex flex-col gap-3"
+                            : "flex items-center justify-between gap-2",
+                        )}
+                      >
+                        {hasImg ? (
+                          <>
+                            {/* Top Info Row */}
+                            <div className="flex items-center justify-between gap-2 w-full">
+                              <span className="text-xs font-extrabold text-foreground truncate min-w-0">
+                                {panel} <span className="text-rose-500">*</span>
+                              </span>
+                              <select
+                                value={value}
+                                onChange={(e) => setExt(panel, e.target.value)}
+                                className="rounded-xl border border-border bg-secondary px-2.5 py-1.5 text-xs font-black outline-none cursor-pointer"
+                              >
+                                <option value="OK">OK</option>
+                                <option value="DAMAGED">DAMAGED</option>
+                                <option value="REPAINTED">REPAINTED</option>
+                                <option value="CHANGED">CHANGED</option>
+                                <option value="SCRATCH">SCRATCH</option>
+                                <option value="DENT">DENT</option>
+                                <option value="RUST">RUST</option>
+                                <option value="NA">NA</option>
+                              </select>
+                            </div>
+
+                            {/* Large Image Preview Card */}
+                            <div className="relative group w-full aspect-[16/10] rounded-xl overflow-hidden border border-border bg-secondary cursor-pointer shadow-inner">
+                              <img
+                                src={panelImages[panel]}
+                                alt={panel}
+                                className="size-full object-cover transition-transform duration-300 group-hover:scale-102"
+                              />
+                              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    window.open(panelImages[panel], "_blank")
+                                  }
+                                  className="grid size-8 place-items-center rounded-xl bg-white/20 text-white backdrop-blur-md hover:bg-white/40 cursor-pointer"
+                                  title="View Fullscreen"
+                                >
+                                  <Eye className="size-4" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setPanelImages((prev) => {
+                                      const copy = { ...prev };
+                                      delete copy[panel];
+                                      return copy;
+                                    });
+                                  }}
+                                  className="grid size-8 place-items-center rounded-xl bg-rose-600/80 text-white backdrop-blur-md hover:bg-rose-600 cursor-pointer"
+                                  title="Remove Photo"
+                                >
+                                  <Trash2 className="size-4" />
+                                </button>
+                              </div>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <span className="text-xs font-bold text-foreground truncate min-w-0">
+                              {panel} <span className="text-rose-500">*</span>
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <select
+                                value={value}
+                                onChange={(e) => setExt(panel, e.target.value)}
+                                className="rounded-xl border border-border bg-secondary px-2.5 py-1 text-xs font-extrabold outline-none cursor-pointer"
+                              >
+                                <option value="OK">OK</option>
+                                <option value="DAMAGED">DAMAGED</option>
+                                <option value="REPAINTED">REPAINTED</option>
+                                <option value="CHANGED">CHANGED</option>
+                                <option value="SCRATCH">SCRATCH</option>
+                                <option value="DENT">DENT</option>
+                                <option value="RUST">RUST</option>
+                                <option value="NA">NA</option>
+                              </select>
+
+                              <button
+                                type="button"
+                                onClick={() => triggerPanelImageUpload(panel)}
+                                className="size-9 rounded-full border border-border hover:border-[#FFC700] hover:bg-[#FFC700]/10 text-muted-foreground hover:text-[#FFC700] transition-all cursor-pointer flex-shrink-0 flex items-center justify-center"
+                                title="Upload Panel Photo"
+                              >
+                                <Camera className="size-3.5" />
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </Panel>
+
+              <Panel
+                title="Mandatory Exterior Images"
+                description="Upload clean, high-resolution photos of five primary panels."
+              >
+                <div className="grid gap-4.5 sm:grid-cols-2 lg:grid-cols-3">
+                  {imageSlotsConfig
+                    .filter((slot) => slot.step === 1)
+                    .map((slot) => (
+                      <ImageSlotUploader
+                        key={slot.key}
+                        label={slot.label}
+                        value={partImages[slot.key]}
+                        onChange={(file) => handleImageUpload(slot.key, file)}
+                        onRemove={() => removeSlotImg(slot.key)}
+                      />
+                    ))}
+                </div>
+              </Panel>
+            </div>
+          )}
+
+          {/* Step 3: Mechanical Checklist */}
+          {step === 2 && (
+            <div className="space-y-8">
+              <Panel
+                title="Step 3: Mechanical Health Diagnostics"
+                description="Check items inside engine compartment, transmission bay and brake assemblies."
+                action={
+                  <StarRatingInput
+                    value={mechanicalRating}
+                    onChange={setMechanicalRating}
+                  />
+                }
+              >
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {mechanicalItems.map((item) => {
+                    const value =
+                      mechanicalState[item.name] ??
+                      (item.type === "fluid"
+                        ? item.options?.[0]
+                        : (item.default ?? "OK"));
+                    return (
+                      <div
+                        key={item.name}
+                        className="flex items-center justify-between gap-2.5 rounded-2xl border border-border bg-card p-3 shadow-soft"
+                      >
+                        <span className="text-xs font-bold text-foreground truncate min-w-0">
+                          {item.name} <span className="text-rose-500">*</span>
+                        </span>
+                        {item.type === "fluid" ? (
+                          <select
+                            value={value}
+                            onChange={(e) => setMech(item.name, e.target.value)}
+                            className="rounded-xl border border-border bg-secondary px-2.5 py-1 text-xs font-extrabold outline-none cursor-pointer"
+                          >
+                            {item.options?.map((opt) => (
+                              <option key={opt} value={opt}>
+                                {opt}
+                              </option>
+                            ))}
+                          </select>
+                        ) : item.type === "text" ? (
+                          <input
+                            type="text"
+                            value={value}
+                            onChange={(e) => setMech(item.name, e.target.value)}
+                            className="max-w-[120px] rounded-xl border border-border bg-secondary px-2.5 py-1 text-xs font-extrabold outline-none text-right"
+                          />
+                        ) : (
+                          <select
+                            value={value}
+                            onChange={(e) => setMech(item.name, e.target.value)}
+                            className="rounded-xl border border-border bg-secondary px-2.5 py-1 text-xs font-extrabold outline-none cursor-pointer"
+                          >
+                            <option value="OK">OK</option>
+                            <option value="NOT OK">NOT OK</option>
+                          </select>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </Panel>
+
+              <Panel
+                title="Under-Bonnet Engine Room Photos"
+                description="Clear views of motor cylinders, fluid caps, and battery mounts."
+              >
+                <div className="grid gap-4.5 sm:grid-cols-2 lg:grid-cols-3">
+                  {imageSlotsConfig
+                    .filter((slot) => slot.step === 2)
+                    .map((slot) => (
+                      <ImageSlotUploader
+                        key={slot.key}
+                        label={slot.label}
+                        value={partImages[slot.key]}
+                        onChange={(file) => handleImageUpload(slot.key, file)}
+                        onRemove={() => removeSlotImg(slot.key)}
+                      />
+                    ))}
+                </div>
+              </Panel>
+            </div>
+          )}
+
+          {/* Step 4: Tyre tread & emergency toolkit */}
+          {step === 3 && (
+            <div className="space-y-8">
+              <Panel
+                title="Step 4: Tyres Specifications"
+                description="Enter remaining tread depth percentage and brand names for all wheels."
+                action={
+                  <StarRatingInput
+                    value={tyreRating}
+                    onChange={setTyreRating}
+                  />
+                }
+              >
+                <div className="grid gap-5 md:grid-cols-2">
+                  {tyrePositions.map((pos) => {
+                    const tyre = tyreState[pos.id] || {
+                      condition: 60,
+                      brand: "JK 2019",
+                    };
+                    return (
+                      <div
+                        key={pos.id}
+                        className="rounded-2xl border border-border bg-card p-5 shadow-soft flex flex-col gap-4"
+                      >
+                        <div className="flex items-center justify-between border-b border-border pb-2.5">
+                          <p className="text-sm font-extrabold text-foreground">
+                            {pos.label} <span className="text-rose-500">*</span>
+                          </p>
+                          <span className="text-xs font-extrabold text-[#FFC700] bg-[#FFC700]/10 px-2.5 py-0.5 rounded-full border border-[#FFC700]/25">
+                            {tyre.condition}% Remaining
+                          </span>
+                        </div>
+
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <div>
+                            <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">
+                              Tread Depth (0-100%) <span className="text-rose-500">*</span>
+                            </label>
+                            <input
+                              type="range"
+                              min="0"
+                              max="100"
+                              value={tyre.condition}
+                              onChange={(e) =>
+                                setTyreState((p) => ({
+                                  ...p,
+                                  [pos.id]: {
+                                    ...tyre,
+                                    condition: parseInt(e.target.value),
+                                  },
+                                }))
+                              }
+                              className="w-full accent-[#FFC700]"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">
+                              Tyre Brand & Batch Code <span className="text-rose-500">*</span>
+                            </label>
+                            <input
+                              type="text"
+                              value={tyre.brand}
+                              onChange={(e) =>
+                                setTyreState((p) => ({
+                                  ...p,
+                                  [pos.id]: { ...tyre, brand: e.target.value },
+                                }))
+                              }
+                              className="w-full rounded-xl border border-border bg-secondary px-3 py-1.5 text-xs font-extrabold text-foreground outline-none"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </Panel>
+
+              <Panel
+                title="Emergency Toolkit Checklist"
+                description="Mark available emergency supplies and tools found inside boot drawer."
+              >
+                <div className="grid gap-4.5 sm:grid-cols-2 lg:grid-cols-3">
+                  {emergencyItems.map((item) => {
+                    const checked = emergencyState[item] ?? false;
+                    return (
+                      <label
+                        key={item}
+                        className={cn(
+                          "flex items-center justify-between rounded-2xl border bg-card p-4 shadow-soft cursor-pointer transition-all hover:border-[#FFC700]/60",
+                          checked
+                            ? "border-[#FFC700] bg-[#FFC700]/5"
+                            : "border-border",
+                        )}
+                      >
+                        <span className="text-xs font-extrabold text-foreground">
+                          {item} <span className="text-rose-500">*</span>
+                        </span>
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(e) => setEmerg(item, e.target.checked)}
+                          className="size-4.5 rounded border-border accent-[#FFC700]"
+                        />
+                      </label>
+                    );
+                  })}
+                </div>
+              </Panel>
+
+              <Panel
+                title="Individual Tyre Profile Images"
+                description="Upload tread close-ups for all 4 positions and spare wheel."
+              >
+                <div className="grid gap-4.5 sm:grid-cols-2 lg:grid-cols-3">
+                  {imageSlotsConfig
+                    .filter((slot) => slot.step === 3)
+                    .map((slot) => (
+                      <ImageSlotUploader
+                        key={slot.key}
+                        label={slot.label}
+                        value={partImages[slot.key]}
+                        onChange={(file) => handleImageUpload(slot.key, file)}
+                        onRemove={() => removeSlotImg(slot.key)}
+                      />
+                    ))}
+                </div>
+              </Panel>
+            </div>
+          )}
+
+          {/* Step 5: Interior diagnostics and final comments */}
+          {step === 4 && (
+            <div className="space-y-8">
+              <Panel
+                title="Dashboard Cabin & Electrical Components"
+                description="Upload cockpit telemetry and instrument console image slots."
+              >
+                <div className="grid gap-4.5 sm:grid-cols-2 lg:grid-cols-3">
+                  {imageSlotsConfig
+                    .filter((slot) => slot.step === 4)
+                    .map((slot) => (
+                      <ImageSlotUploader
+                        key={slot.key}
+                        label={slot.label}
+                        value={partImages[slot.key]}
+                        onChange={(file) => handleImageUpload(slot.key, file)}
+                        onRemove={() => removeSlotImg(slot.key)}
+                      />
+                    ))}
+                </div>
+              </Panel>
+
+              <Panel
+                title="Interior & Electrical Diagnostics"
+                description="Parameters from Electrical & Interior Report."
+                action={
+                  <StarRatingInput
+                    value={electricalRating}
+                    onChange={setElectricalRating}
+                  />
+                }
+              >
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
+                  <div>
+                    <label className="block text-xs font-bold text-foreground mb-1.5">
+                      Battery Brand <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={electricalState["Battery Company"]}
+                      onChange={(e) =>
+                        setElec("Battery Company", e.target.value)
+                      }
+                      className="w-full rounded-2xl border border-border bg-card px-4 py-3 text-sm font-extrabold text-foreground outline-none transition-all hover:border-[#FFC700]/60 focus:border-[#FFC700] focus:ring-2 focus:ring-[#FFC700]/30 shadow-soft"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-foreground mb-1.5">
+                      Battery Serial No. <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={electricalState["Full Battery Number"]}
+                      onChange={(e) =>
+                        setElec("Full Battery Number", e.target.value)
+                      }
+                      className="w-full rounded-2xl border border-border bg-card px-4 py-3 text-sm font-extrabold text-foreground outline-none transition-all hover:border-[#FFC700]/60 focus:border-[#FFC700] focus:ring-2 focus:ring-[#FFC700]/30 shadow-soft"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-foreground mb-1.5">
+                      AC Cooling Performance <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={electricalState["AC"]}
+                      onChange={(e) => setElec("AC", e.target.value)}
+                      className="w-full rounded-2xl border border-border bg-card px-4 py-3 text-sm font-extrabold text-foreground outline-none transition-all hover:border-[#FFC700]/60 focus:border-[#FFC700] focus:ring-2 focus:ring-[#FFC700]/30 shadow-soft"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 items-start">
+                  {electricalItems.map((item) => {
+                    const status = electricalState[item] ?? "OK / WORKING";
+                    const hasImg = !!panelImages[item];
+                    return (
+                      <div
+                        key={item}
+                        className={cn(
+                          "rounded-2xl border border-border bg-card p-3.5 shadow-soft transition-all duration-200",
+                          hasImg
+                            ? "flex flex-col gap-3"
+                            : "flex items-center justify-between gap-2",
+                        )}
+                      >
+                        {hasImg ? (
+                          <>
+                            {/* Top Info Row */}
+                            <div className="flex items-center justify-between gap-2 w-full">
+                              <span className="text-xs font-bold text-foreground truncate min-w-0">
+                                {item} <span className="text-rose-500">*</span>
+                              </span>
+                              <select
+                                value={status}
+                                onChange={(e) => setElec(item, e.target.value)}
+                                className="rounded-xl border border-border bg-secondary px-2.5 py-1.5 text-xs font-black outline-none cursor-pointer"
+                              >
+                                <option value="OK / WORKING">
+                                  OK / WORKING
+                                </option>
+                                <option value="NOT WORKING">NOT WORKING</option>
+                                <option value="N/A">N/A</option>
+                              </select>
+                            </div>
+
+                            {/* Large Image Preview Card */}
+                            <div className="relative group w-full aspect-[16/10] rounded-xl overflow-hidden border border-border bg-secondary cursor-pointer shadow-inner">
+                              <img
+                                src={panelImages[item]}
+                                alt={item}
+                                className="size-full object-cover transition-transform duration-300 group-hover:scale-102"
+                              />
+                              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    window.open(panelImages[item], "_blank")
+                                  }
+                                  className="grid size-8 place-items-center rounded-xl bg-white/20 text-white backdrop-blur-md hover:bg-white/40 cursor-pointer"
+                                  title="View Fullscreen"
+                                >
+                                  <Eye className="size-4" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setPanelImages((prev) => {
+                                      const copy = { ...prev };
+                                      delete copy[item];
+                                      return copy;
+                                    });
+                                  }}
+                                  className="grid size-8 place-items-center rounded-xl bg-rose-600/80 text-white backdrop-blur-md hover:bg-rose-600 cursor-pointer"
+                                  title="Remove Photo"
+                                >
+                                  <Trash2 className="size-4" />
+                                </button>
+                              </div>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <span className="text-xs font-bold text-foreground truncate min-w-0">
+                              {item} <span className="text-rose-500">*</span>
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <select
+                                value={status}
+                                onChange={(e) => setElec(item, e.target.value)}
+                                className="rounded-xl border border-border bg-secondary px-2.5 py-1 text-xs font-extrabold outline-none cursor-pointer"
+                              >
+                                <option value="OK / WORKING">
+                                  OK / WORKING
+                                </option>
+                                <option value="NOT WORKING">NOT WORKING</option>
+                                <option value="N/A">N/A</option>
+                              </select>
+
+                              <button
+                                type="button"
+                                onClick={() => triggerPanelImageUpload(item)}
+                                className="size-9 rounded-full border border-border hover:border-[#FFC700] hover:bg-[#FFC700]/10 text-muted-foreground hover:text-[#FFC700] transition-all cursor-pointer flex-shrink-0 flex items-center justify-center"
+                                title="Upload Panel Photo"
+                              >
+                                <Camera className="size-4" />
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="mt-6">
+                  <div>
+                    <label className="block text-xs font-extrabold text-foreground mb-1.5">
+                      Inspector Remarks & Notes
+                    </label>
+                    <textarea
+                      rows={4}
+                      value={comments}
+                      onChange={(e) => setComments(e.target.value)}
+                      className="w-full rounded-2xl border border-border bg-card p-4 text-sm font-semibold text-foreground outline-none transition-all hover:border-[#FFC700]/60 focus:border-[#FFC700] focus:ring-2 focus:ring-[#FFC700]/30 shadow-soft"
+                    />
+                  </div>
+                </div>
+              </Panel>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Form Action Controls */}
+      <div className="flex flex-wrap justify-between items-center gap-4 border-t border-border pt-6">
+        <button
+          onClick={() => {
+            setStep((s) => Math.max(0, s - 1));
+          }}
+          disabled={step === 0}
+          className="rounded-2xl border border-border bg-card px-6 py-3 text-xs font-extrabold shadow-soft transition-all hover:bg-secondary disabled:opacity-40 cursor-pointer"
+        >
+          Previous Step
+        </button>
+
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => saveDraftApiCall(true)}
+            disabled={saving}
+            className="rounded-2xl border border-border bg-card px-6 py-3 text-xs font-extrabold shadow-soft transition-all hover:border-[#FFC700]/60 hover:bg-secondary disabled:opacity-50 cursor-pointer"
+          >
+            {saving ? "Autosaving..." : "Save Draft"}
+          </button>
+          {step < steps.length - 1 ? (
+            <button
+              onClick={async () => {
+                try {
+                  await saveDraftApiCall(false);
+                  setStep((s) => s + 1);
+                } catch (err) {}
+              }}
+              className="flex items-center gap-2 rounded-2xl bg-[#FFC700] hover:bg-[#FFD633] px-6 py-3 text-xs font-extrabold text-[#0D0E12] shadow-[0_4px_18px_rgba(255,199,0,0.35)] transition-all cursor-pointer"
+            >
+              Continue Next Step <ChevronRight className="size-4" />
+            </button>
+          ) : (
+            <button
+              onClick={handleFinalSubmit}
+              className="flex items-center gap-2 rounded-2xl bg-[#FFC700] hover:bg-[#FFD633] px-6 py-3 text-xs font-extrabold text-[#0D0E12] shadow-[0_4px_18px_rgba(255,199,0,0.4)] transition-all hover:shadow-[0_6px_24px_rgba(255,199,0,0.55)] cursor-pointer"
+            >
+              <ShieldCheck className="size-4" /> Submit Report to Admin
+            </button>
+          )}
+        </div>
+      </div>
+    </AppShell>
+  );
+}
