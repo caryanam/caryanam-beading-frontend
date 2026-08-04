@@ -96,9 +96,17 @@ export function useAuth() {
         throw new Error(apiResponse.message || "Registration failed.");
       }
     } catch (err: any) {
+      const apiErrors = err.response?.data?.errors;
+      if (Array.isArray(apiErrors) && apiErrors.length > 0) {
+        apiErrors.forEach((errorStr: string) => {
+          toast.error(errorStr);
+        });
+      }
       const errMsg = err.response?.data?.message || err.message || "Dealer registration failed.";
       setError(errMsg);
-      toast.error(errMsg);
+      if (!Array.isArray(apiErrors) || apiErrors.length === 0) {
+        toast.error(errMsg);
+      }
       throw err;
     } finally {
       setLoading(false);
@@ -127,9 +135,17 @@ export function useAuth() {
         throw new Error(apiResponse.message || "Registration failed.");
       }
     } catch (err: any) {
+      const apiErrors = err.response?.data?.errors;
+      if (Array.isArray(apiErrors) && apiErrors.length > 0) {
+        apiErrors.forEach((errorStr: string) => {
+          toast.error(errorStr);
+        });
+      }
       const errMsg = err.response?.data?.message || err.message || "Inspector registration failed.";
       setError(errMsg);
-      toast.error(errMsg);
+      if (!Array.isArray(apiErrors) || apiErrors.length === 0) {
+        toast.error(errMsg);
+      }
       throw err;
     } finally {
       setLoading(false);

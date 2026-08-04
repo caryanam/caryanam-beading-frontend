@@ -405,11 +405,13 @@ function ImageSlotUploader({
   value,
   onChange,
   onRemove,
+  error,
 }: {
   label: string;
   value?: string;
   onChange: (file: File) => void;
   onRemove: () => void;
+  error?: string;
 }) {
   const handleFile = (files: FileList | null) => {
     if (!files || !files[0]) return;
@@ -417,60 +419,76 @@ function ImageSlotUploader({
   };
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-4 shadow-soft transition-all hover:border-[#FFC700]/60 flex flex-col justify-between">
-      <div className="flex items-center justify-between mb-2.5">
-        <span className="text-xs font-extrabold text-foreground tracking-wide uppercase truncate">
-          {label}
-        </span>
+    <div className="flex flex-col gap-1 w-full">
+      <div
+        className={cn(
+          "rounded-2xl border p-4 shadow-soft transition-all flex flex-col justify-between min-h-[220px]",
+          error
+            ? "border-red-500 bg-red-50/5 hover:border-red-500"
+            : "border-border bg-card hover:border-[#FFC700]/60",
+        )}
+      >
+        <div className="flex items-center justify-between mb-2.5">
+          <span className="text-xs font-extrabold text-foreground tracking-wide uppercase truncate">
+            {label}
+          </span>
+          {value ? (
+            <span className="inline-flex items-center gap-1 text-[10px] font-extrabold text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+              <CheckCircle2 className="size-3" /> Captured
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 text-[10px] font-extrabold text-amber-600 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+              <AlertCircle className="size-3" /> Required
+            </span>
+          )}
+        </div>
+
         {value ? (
-          <span className="inline-flex items-center gap-1 text-[10px] font-extrabold text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-            <CheckCircle2 className="size-3" /> Captured
-          </span>
+          <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl border border-border group bg-secondary">
+            <img
+              src={value}
+              alt={label}
+              className="size-full object-cover transition-transform group-hover:scale-105"
+            />
+            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => window.open(value, "_blank")}
+                className="grid size-8 place-items-center rounded-xl bg-white/20 text-white backdrop-blur-md hover:bg-white/40 cursor-pointer"
+                title="View Image"
+              >
+                <Eye className="size-4" />
+              </button>
+              <button
+                type="button"
+                onClick={onRemove}
+                className="grid size-8 place-items-center rounded-xl bg-rose-600/80 text-white backdrop-blur-md hover:bg-rose-600 cursor-pointer"
+                title="Remove Image"
+              >
+                <Trash2 className="size-4" />
+              </button>
+            </div>
+          </div>
         ) : (
-          <span className="inline-flex items-center gap-1 text-[10px] font-extrabold text-amber-600 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
-            <AlertCircle className="size-3" /> Required
-          </span>
+          <label className="flex aspect-[4/3] w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-secondary/40 p-4 text-center transition-all hover:border-[#FFC700] hover:bg-[#FFC700]/10">
+            <Camera className="size-6 text-[#FFC700]" />
+            <p className="text-xs font-extrabold text-foreground">Upload Photo</p>
+            <p className="text-[10px] font-semibold text-muted-foreground">
+              Click to browse or drop file
+            </p>
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => handleFile(e.target.files)}
+            />
+          </label>
         )}
       </div>
-
-      {value ? (
-        <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl border border-border group bg-secondary">
-          <img
-            src={value}
-            alt={label}
-            className="size-full object-cover transition-transform group-hover:scale-105"
-          />
-          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-            <button
-              onClick={() => window.open(value, "_blank")}
-              className="grid size-8 place-items-center rounded-xl bg-white/20 text-white backdrop-blur-md hover:bg-white/40 cursor-pointer"
-              title="View Image"
-            >
-              <Eye className="size-4" />
-            </button>
-            <button
-              onClick={onRemove}
-              className="grid size-8 place-items-center rounded-xl bg-rose-600/80 text-white backdrop-blur-md hover:bg-rose-600 cursor-pointer"
-              title="Remove Image"
-            >
-              <Trash2 className="size-4" />
-            </button>
-          </div>
-        </div>
-      ) : (
-        <label className="flex aspect-[4/3] w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-secondary/40 p-4 text-center transition-all hover:border-[#FFC700] hover:bg-[#FFC700]/10">
-          <Camera className="size-6 text-[#FFC700]" />
-          <p className="text-xs font-extrabold text-foreground">Upload Photo</p>
-          <p className="text-[10px] font-semibold text-muted-foreground">
-            Click to browse or drop file
-          </p>
-          <input
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={(e) => handleFile(e.target.files)}
-          />
-        </label>
+      {error && (
+        <span className="text-[10px] font-bold text-red-500 px-2 animate-fade-in">
+          {error}
+        </span>
       )}
     </div>
   );
@@ -597,6 +615,70 @@ export function InspectorAddVehicle() {
   const [suggestedPrice, setSuggestedPrice] = useState("");
 
   const [partImages, setPartImages] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const validateStep = (stepIndex: number): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (stepIndex === 0) {
+      if (!basicDetails.regNo) newErrors.regNo = "Registration Number is required.";
+      if (!basicDetails.brand) newErrors.brand = "Vehicle Brand / Make is required.";
+      if (!basicDetails.model) newErrors.model = "Model Name is required.";
+      if (!basicDetails.variant) newErrors.variant = "Model Variant is required.";
+      if (!basicDetails.year) newErrors.year = "Manufacturing Year is required.";
+      if (!basicDetails.fuel) newErrors.fuel = "Fuel Type is required.";
+      if (!basicDetails.transmission) newErrors.transmission = "Transmission is required.";
+      if (!basicDetails.odometer) newErrors.odometer = "Odometer Reading is required.";
+      if (!basicDetails.ownerName) newErrors.ownerName = "Owner Profile Status is required.";
+      if (!basicDetails.insurance) newErrors.insurance = "Insurance Validity is required.";
+      if (!basicDetails.evaluator) newErrors.evaluator = "Evaluator Inspector Code is required.";
+      if (!suggestedPrice) newErrors.suggestedPrice = "Suggested Price is required.";
+    } else if (stepIndex === 1) {
+      const extSlots = ["frontSide", "rightSide", "rearSide", "leftSide", "roofTop"];
+      extSlots.forEach((slot) => {
+        if (!partImages[slot]) {
+          const config = imageSlotsConfig.find((c) => c.key === slot);
+          newErrors[slot] = `${config ? config.label : slot} photo is required.`;
+        }
+      });
+    } else if (stepIndex === 2) {
+      const mechSlots = ["engineImg", "batteryImg"];
+      mechSlots.forEach((slot) => {
+        if (!partImages[slot]) {
+          const config = imageSlotsConfig.find((c) => c.key === slot);
+          newErrors[slot] = `${config ? config.label : slot} photo is required.`;
+        }
+      });
+    } else if (stepIndex === 3) {
+      const tyreSlots = ["rfTyreImg", "rrTyreImg", "lrTyreImg", "lfTyreImg", "spareWheelImg", "tyresGeneralImg"];
+      tyreSlots.forEach((slot) => {
+        if (!partImages[slot]) {
+          const config = imageSlotsConfig.find((c) => c.key === slot);
+          newErrors[slot] = `${config ? config.label : slot} photo is required.`;
+        }
+      });
+    } else if (stepIndex === 4) {
+      if (!electricalState["Battery Company"]) newErrors["Battery Company"] = "Battery Company is required.";
+      if (!electricalState["Full Battery Number"]) newErrors["Full Battery Number"] = "Full Battery Number is required.";
+      if (!electricalState["AC"]) newErrors["AC"] = "AC Cooling Performance is required.";
+
+      const intSlots = ["odometerImg", "dashboardImg", "acImg", "clusterImg", "musicSystemImg"];
+      intSlots.forEach((slot) => {
+        if (!partImages[slot]) {
+          const config = imageSlotsConfig.find((c) => c.key === slot);
+          newErrors[slot] = `${config ? config.label : slot} photo is required.`;
+        }
+      });
+    }
+
+    setErrors(newErrors);
+
+    const isValid = Object.keys(newErrors).length === 0;
+    if (!isValid) {
+      toast.error("Please complete all required fields on the current step.");
+    }
+    return isValid;
+  };
 
   // Parse ID query parameter on mount and load draft if present
   useEffect(() => {
@@ -1037,24 +1119,58 @@ export function InspectorAddVehicle() {
     }
   };
 
-  const setBasic = (k: string, v: string) =>
+  const setBasic = (k: string, v: string) => {
     setBasicDetails((p) => ({ ...p, [k]: v }));
+    if (errors[k]) {
+      setErrors((prev) => {
+        const copy = { ...prev };
+        delete copy[k];
+        return copy;
+      });
+    }
+  };
   const setExt = (panel: string, status: string) =>
     setExteriorState((p) => ({ ...p, [panel]: status }));
   const setMech = (item: string, val: string) =>
     setMechanicalState((p) => ({ ...p, [item]: val }));
   const setEmerg = (item: string, val: boolean) =>
     setEmergencyState((p) => ({ ...p, [item]: val }));
-  const setElec = (item: string, val: string) =>
+  const setElec = (item: string, val: string) => {
     setElectricalState((p) => ({ ...p, [item]: val }));
-  const setSlotImg = (key: string, url: string) =>
+    if (errors[item]) {
+      setErrors((prev) => {
+        const copy = { ...prev };
+        delete copy[item];
+        return copy;
+      });
+    }
+  };
+  const setSlotImg = (key: string, url: string) => {
     setPartImages((p) => ({ ...p, [key]: url }));
+    if (errors[key]) {
+      setErrors((prev) => {
+        const copy = { ...prev };
+        delete copy[key];
+        return copy;
+      });
+    }
+  };
   const removeSlotImg = (key: string) =>
     setPartImages((p) => {
       const copy = { ...p };
       delete copy[key];
       return copy;
     });
+  const handleSuggestedPriceChange = (val: string) => {
+    setSuggestedPrice(val);
+    if (errors.suggestedPrice) {
+      setErrors((prev) => {
+        const copy = { ...prev };
+        delete copy.suggestedPrice;
+        return copy;
+      });
+    }
+  };
 
   return (
     <AppShell
@@ -1089,13 +1205,17 @@ export function InspectorAddVehicle() {
               <button
                 key={s.title}
                 onClick={() => {
-                  if (idx <= step || inspectionId) {
+                  if (idx < step) {
                     setStep(idx);
                     setShowPdfPreview(false);
-                  } else {
-                    toast.warning(
-                      "Complete the first step to save and navigate further.",
-                    );
+                  } else if (idx > step) {
+                    for (let i = step; i < idx; i++) {
+                      if (!validateStep(i)) {
+                        return;
+                      }
+                    }
+                    setStep(idx);
+                    setShowPdfPreview(false);
                   }
                 }}
                 className={cn(
@@ -1153,8 +1273,16 @@ export function InspectorAddVehicle() {
                       setBasic("regNo", e.target.value.toUpperCase())
                     }
                     placeholder="e.g. MH12LV2376"
-                    className="w-full rounded-2xl border border-border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all hover:border-[#FFC700]/60 focus:border-[#FFC700] focus:ring-2 focus:ring-[#FFC700]/30 shadow-soft"
+                    className={cn(
+                      "w-full rounded-2xl border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all focus:ring-2 shadow-soft",
+                      errors.regNo
+                        ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
+                        : "border-border hover:border-[#FFC700]/60 focus:border-[#FFC700] focus:ring-[#FFC700]/30",
+                    )}
                   />
+                  {errors.regNo && (
+                    <span className="mt-1 block text-xs font-bold text-red-500 px-1">{errors.regNo}</span>
+                  )}
                 </div>
 
                 <div>
@@ -1168,8 +1296,16 @@ export function InspectorAddVehicle() {
                       setBasic("brand", e.target.value.toUpperCase())
                     }
                     placeholder="e.g. TOYOTA"
-                    className="w-full rounded-2xl border border-border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all hover:border-[#FFC700]/60 focus:border-[#FFC700] focus:ring-2 focus:ring-[#FFC700]/30 shadow-soft"
+                    className={cn(
+                      "w-full rounded-2xl border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all focus:ring-2 shadow-soft",
+                      errors.brand
+                        ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
+                        : "border-border hover:border-[#FFC700]/60 focus:border-[#FFC700] focus:ring-[#FFC700]/30",
+                    )}
                   />
+                  {errors.brand && (
+                    <span className="mt-1 block text-xs font-bold text-red-500 px-1">{errors.brand}</span>
+                  )}
                 </div>
 
                 <div>
@@ -1183,8 +1319,16 @@ export function InspectorAddVehicle() {
                       setBasic("model", e.target.value.toUpperCase())
                     }
                     placeholder="e.g. ETIOS LIVA"
-                    className="w-full rounded-2xl border border-border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all hover:border-[#FFC700]/60 focus:border-[#FFC700] focus:ring-2 focus:ring-[#FFC700]/30 shadow-soft"
+                    className={cn(
+                      "w-full rounded-2xl border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all focus:ring-2 shadow-soft",
+                      errors.model
+                        ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
+                        : "border-border hover:border-[#FFC700]/60 focus:border-[#FFC700] focus:ring-[#FFC700]/30",
+                    )}
                   />
+                  {errors.model && (
+                    <span className="mt-1 block text-xs font-bold text-red-500 px-1">{errors.model}</span>
+                  )}
                 </div>
 
                 <div>
@@ -1196,8 +1340,16 @@ export function InspectorAddVehicle() {
                     value={basicDetails.variant}
                     onChange={(e) => setBasic("variant", e.target.value)}
                     placeholder="e.g. Vx"
-                    className="w-full rounded-2xl border border-border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all hover:border-[#FFC700]/60 focus:border-[#FFC700] focus:ring-2 focus:ring-[#FFC700]/30 shadow-soft"
+                    className={cn(
+                      "w-full rounded-2xl border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all focus:ring-2 shadow-soft",
+                      errors.variant
+                        ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
+                        : "border-border hover:border-[#FFC700]/60 focus:border-[#FFC700] focus:ring-[#FFC700]/30",
+                    )}
                   />
+                  {errors.variant && (
+                    <span className="mt-1 block text-xs font-bold text-red-500 px-1">{errors.variant}</span>
+                  )}
                 </div>
 
                 <div>
@@ -1207,7 +1359,12 @@ export function InspectorAddVehicle() {
                   <select
                     value={basicDetails.year}
                     onChange={(e) => setBasic("year", e.target.value)}
-                    className="w-full rounded-2xl border border-border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all hover:border-[#FFC700]/60 focus:border-[#FFC700] focus:ring-2 focus:ring-[#FFC700]/30 shadow-soft cursor-pointer"
+                    className={cn(
+                      "w-full rounded-2xl border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all focus:ring-2 shadow-soft cursor-pointer",
+                      errors.year
+                        ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
+                        : "border-border hover:border-[#FFC700]/60 focus:border-[#FFC700] focus:ring-[#FFC700]/30",
+                    )}
                   >
                     <option value="">Select Year</option>
                     {Array.from(
@@ -1219,6 +1376,9 @@ export function InspectorAddVehicle() {
                       </option>
                     ))}
                   </select>
+                  {errors.year && (
+                    <span className="mt-1 block text-xs font-bold text-red-500 px-1">{errors.year}</span>
+                  )}
                 </div>
 
                 <div>
@@ -1228,7 +1388,12 @@ export function InspectorAddVehicle() {
                   <select
                     value={basicDetails.fuel}
                     onChange={(e) => setBasic("fuel", e.target.value)}
-                    className="w-full rounded-2xl border border-border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all hover:border-[#FFC700]/60 focus:border-[#FFC700] focus:ring-2 focus:ring-[#FFC700]/30 shadow-soft cursor-pointer"
+                    className={cn(
+                      "w-full rounded-2xl border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all focus:ring-2 shadow-soft cursor-pointer",
+                      errors.fuel
+                        ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
+                        : "border-border hover:border-[#FFC700]/60 focus:border-[#FFC700] focus:ring-[#FFC700]/30",
+                    )}
                   >
                     <option value="Petrol">Petrol</option>
                     <option value="Diesel">Diesel</option>
@@ -1237,6 +1402,9 @@ export function InspectorAddVehicle() {
                     <option value="Electric">Electric</option>
                     <option value="Hybrid">Hybrid</option>
                   </select>
+                  {errors.fuel && (
+                    <span className="mt-1 block text-xs font-bold text-red-500 px-1">{errors.fuel}</span>
+                  )}
                 </div>
 
                 <div>
@@ -1246,11 +1414,19 @@ export function InspectorAddVehicle() {
                   <select
                     value={basicDetails.transmission}
                     onChange={(e) => setBasic("transmission", e.target.value)}
-                    className="w-full rounded-2xl border border-border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all hover:border-[#FFC700]/60 focus:border-[#FFC700] focus:ring-2 focus:ring-[#FFC700]/30 shadow-soft cursor-pointer"
+                    className={cn(
+                      "w-full rounded-2xl border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all focus:ring-2 shadow-soft cursor-pointer",
+                      errors.transmission
+                        ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
+                        : "border-border hover:border-[#FFC700]/60 focus:border-[#FFC700] focus:ring-[#FFC700]/30",
+                    )}
                   >
                     <option value="Manual (MT)">Manual (MT)</option>
                     <option value="Automatic (AT)">Automatic (AT)</option>
                   </select>
+                  {errors.transmission && (
+                    <span className="mt-1 block text-xs font-bold text-red-500 px-1">{errors.transmission}</span>
+                  )}
                 </div>
 
                 <div>
@@ -1262,8 +1438,16 @@ export function InspectorAddVehicle() {
                     value={basicDetails.odometer}
                     onChange={(e) => setBasic("odometer", e.target.value)}
                     placeholder="e.g. 30899"
-                    className="w-full rounded-2xl border border-border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all hover:border-[#FFC700]/60 focus:border-[#FFC700] focus:ring-2 focus:ring-[#FFC700]/30 shadow-soft"
+                    className={cn(
+                      "w-full rounded-2xl border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all focus:ring-2 shadow-soft",
+                      errors.odometer
+                        ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
+                        : "border-border hover:border-[#FFC700]/60 focus:border-[#FFC700] focus:ring-[#FFC700]/30",
+                    )}
                   />
+                  {errors.odometer && (
+                    <span className="mt-1 block text-xs font-bold text-red-500 px-1">{errors.odometer}</span>
+                  )}
                 </div>
 
                 <div>
@@ -1273,7 +1457,12 @@ export function InspectorAddVehicle() {
                   <select
                     value={basicDetails.ownerName}
                     onChange={(e) => setBasic("ownerName", e.target.value)}
-                    className="w-full rounded-2xl border border-border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all hover:border-[#FFC700]/60 focus:border-[#FFC700] focus:ring-2 focus:ring-[#FFC700]/30 shadow-soft cursor-pointer"
+                    className={cn(
+                      "w-full rounded-2xl border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all focus:ring-2 shadow-soft cursor-pointer",
+                      errors.ownerName
+                        ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
+                        : "border-border hover:border-[#FFC700]/60 focus:border-[#FFC700] focus:ring-[#FFC700]/30",
+                    )}
                   >
                     <option value="1st Owner">1st Owner</option>
                     <option value="2nd Owner">2nd Owner</option>
@@ -1281,6 +1470,9 @@ export function InspectorAddVehicle() {
                     <option value="4th Owner">4th Owner</option>
                     <option value="5th Owner or More">5th Owner or More</option>
                   </select>
+                  {errors.ownerName && (
+                    <span className="mt-1 block text-xs font-bold text-red-500 px-1">{errors.ownerName}</span>
+                  )}
                 </div>
 
                 <div>
@@ -1290,7 +1482,12 @@ export function InspectorAddVehicle() {
                   <select
                     value={basicDetails.insurance}
                     onChange={(e) => setBasic("insurance", e.target.value)}
-                    className="w-full rounded-2xl border border-border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all hover:border-[#FFC700]/60 focus:border-[#FFC700] focus:ring-2 focus:ring-[#FFC700]/30 shadow-soft cursor-pointer"
+                    className={cn(
+                      "w-full rounded-2xl border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all focus:ring-2 shadow-soft cursor-pointer",
+                      errors.insurance
+                        ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
+                        : "border-border hover:border-[#FFC700]/60 focus:border-[#FFC700] focus:ring-[#FFC700]/30",
+                    )}
                   >
                     <option value="">Select Insurance Type</option>
                     <option value="Valid (Comprehensive)">
@@ -1302,6 +1499,9 @@ export function InspectorAddVehicle() {
                     <option value="Expired">Expired</option>
                     <option value="No Insurance">No Insurance</option>
                   </select>
+                  {errors.insurance && (
+                    <span className="mt-1 block text-xs font-bold text-red-500 px-1">{errors.insurance}</span>
+                  )}
                 </div>
 
                 <div>
@@ -1311,10 +1511,18 @@ export function InspectorAddVehicle() {
                   <input
                     type="text"
                     value={suggestedPrice}
-                    onChange={(e) => setSuggestedPrice(e.target.value)}
+                    onChange={(e) => handleSuggestedPriceChange(e.target.value)}
                     placeholder="e.g. 350000"
-                    className="w-full rounded-2xl border border-border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all hover:border-[#FFC700]/60 focus:border-[#FFC700] focus:ring-2 focus:ring-[#FFC700]/30 shadow-soft"
+                    className={cn(
+                      "w-full rounded-2xl border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all focus:ring-2 shadow-soft",
+                      errors.suggestedPrice
+                        ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
+                        : "border-border hover:border-[#FFC700]/60 focus:border-[#FFC700] focus:ring-[#FFC700]/30",
+                    )}
                   />
+                  {errors.suggestedPrice && (
+                    <span className="mt-1 block text-xs font-bold text-red-500 px-1">{errors.suggestedPrice}</span>
+                  )}
                 </div>
 
                 <div>
@@ -1326,8 +1534,16 @@ export function InspectorAddVehicle() {
                     value={basicDetails.evaluator}
                     onChange={(e) => setBasic("evaluator", e.target.value)}
                     placeholder="e.g. PRASHANT238"
-                    className="w-full rounded-2xl border border-border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all hover:border-[#FFC700]/60 focus:border-[#FFC700] focus:ring-2 focus:ring-[#FFC700]/30 shadow-soft"
+                    className={cn(
+                      "w-full rounded-2xl border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all focus:ring-2 shadow-soft",
+                      errors.evaluator
+                        ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
+                        : "border-border hover:border-[#FFC700]/60 focus:border-[#FFC700] focus:ring-[#FFC700]/30",
+                    )}
                   />
+                  {errors.evaluator && (
+                    <span className="mt-1 block text-xs font-bold text-red-500 px-1">{errors.evaluator}</span>
+                  )}
                 </div>
               </div>
             </Panel>
@@ -1470,6 +1686,7 @@ export function InspectorAddVehicle() {
                         value={partImages[slot.key]}
                         onChange={(file) => handleImageUpload(slot.key, file)}
                         onRemove={() => removeSlotImg(slot.key)}
+                        error={errors[slot.key]}
                       />
                     ))}
                 </div>
@@ -1554,6 +1771,7 @@ export function InspectorAddVehicle() {
                         value={partImages[slot.key]}
                         onChange={(file) => handleImageUpload(slot.key, file)}
                         onRemove={() => removeSlotImg(slot.key)}
+                        error={errors[slot.key]}
                       />
                     ))}
                 </div>
@@ -1686,6 +1904,7 @@ export function InspectorAddVehicle() {
                         value={partImages[slot.key]}
                         onChange={(file) => handleImageUpload(slot.key, file)}
                         onRemove={() => removeSlotImg(slot.key)}
+                        error={errors[slot.key]}
                       />
                     ))}
                 </div>
@@ -1710,6 +1929,7 @@ export function InspectorAddVehicle() {
                         value={partImages[slot.key]}
                         onChange={(file) => handleImageUpload(slot.key, file)}
                         onRemove={() => removeSlotImg(slot.key)}
+                        error={errors[slot.key]}
                       />
                     ))}
                 </div>
@@ -1736,8 +1956,16 @@ export function InspectorAddVehicle() {
                       onChange={(e) =>
                         setElec("Battery Company", e.target.value)
                       }
-                      className="w-full rounded-2xl border border-border bg-card px-4 py-3 text-sm font-extrabold text-foreground outline-none transition-all hover:border-[#FFC700]/60 focus:border-[#FFC700] focus:ring-2 focus:ring-[#FFC700]/30 shadow-soft"
+                      className={cn(
+                        "w-full rounded-2xl border bg-card px-4 py-3 text-sm font-extrabold text-foreground outline-none transition-all focus:ring-2 shadow-soft",
+                        errors["Battery Company"]
+                          ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
+                          : "border-border hover:border-[#FFC700]/60 focus:border-[#FFC700] focus:ring-[#FFC700]/30",
+                      )}
                     />
+                    {errors["Battery Company"] && (
+                      <span className="mt-1 block text-xs font-bold text-red-500 px-1">{errors["Battery Company"]}</span>
+                    )}
                   </div>
 
                   <div>
@@ -1750,8 +1978,16 @@ export function InspectorAddVehicle() {
                       onChange={(e) =>
                         setElec("Full Battery Number", e.target.value)
                       }
-                      className="w-full rounded-2xl border border-border bg-card px-4 py-3 text-sm font-extrabold text-foreground outline-none transition-all hover:border-[#FFC700]/60 focus:border-[#FFC700] focus:ring-2 focus:ring-[#FFC700]/30 shadow-soft"
+                      className={cn(
+                        "w-full rounded-2xl border bg-card px-4 py-3 text-sm font-extrabold text-foreground outline-none transition-all focus:ring-2 shadow-soft",
+                        errors["Full Battery Number"]
+                          ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
+                          : "border-border hover:border-[#FFC700]/60 focus:border-[#FFC700] focus:ring-[#FFC700]/30",
+                      )}
                     />
+                    {errors["Full Battery Number"] && (
+                      <span className="mt-1 block text-xs font-bold text-red-500 px-1">{errors["Full Battery Number"]}</span>
+                    )}
                   </div>
 
                   <div>
@@ -1762,8 +1998,16 @@ export function InspectorAddVehicle() {
                       type="text"
                       value={electricalState["AC"]}
                       onChange={(e) => setElec("AC", e.target.value)}
-                      className="w-full rounded-2xl border border-border bg-card px-4 py-3 text-sm font-extrabold text-foreground outline-none transition-all hover:border-[#FFC700]/60 focus:border-[#FFC700] focus:ring-2 focus:ring-[#FFC700]/30 shadow-soft"
+                      className={cn(
+                        "w-full rounded-2xl border bg-card px-4 py-3 text-sm font-extrabold text-foreground outline-none transition-all focus:ring-2 shadow-soft",
+                        errors["AC"]
+                          ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
+                          : "border-border hover:border-[#FFC700]/60 focus:border-[#FFC700] focus:ring-[#FFC700]/30",
+                      )}
                     />
+                    {errors["AC"] && (
+                      <span className="mt-1 block text-xs font-bold text-red-500 px-1">{errors["AC"]}</span>
+                    )}
                   </div>
                 </div>
 
@@ -1912,6 +2156,9 @@ export function InspectorAddVehicle() {
           {step < steps.length - 1 ? (
             <button
               onClick={async () => {
+                if (!validateStep(step)) {
+                  return;
+                }
                 try {
                   await saveDraftApiCall(false);
                   setStep((s) => s + 1);

@@ -1,4 +1,5 @@
-import { Routes, Route } from "react-router-dom";
+import { useEffect } from "react";
+import { Routes, Route, useLocation } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
 
 import { LandingPage } from "@/pages/LandingPage";
@@ -33,9 +34,20 @@ import { InspectorVehicles } from "@/pages/inspector/Vehicles";
 import { InspectorNotifications } from "@/pages/inspector/Notifications";
 import { InspectorProfile } from "@/pages/inspector/Profile";
 
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  return null;
+}
+
 export function App() {
   return (
     <>
+      <ScrollToTop />
       <Routes>
         <Route path="/" element={<LandingPage />} />
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Zap, Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Role } from "@/lib/mock-data";
@@ -16,6 +16,10 @@ export function LandingPage() {
   const [activeTab, setActiveTab] = useState<
     "home" | "about" | "why" | "contact" | "privacy" | "terms" | "auth"
   >("home");
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [activeTab]);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [authConfig, setAuthConfig] = useState<{
     mode: "login" | "signup";
