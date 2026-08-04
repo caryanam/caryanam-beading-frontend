@@ -57,6 +57,11 @@ export const getSubmittedInspections = async () => {
   return res.data;
 };
 
+export const getInspectionById = async (id: number) => {
+  const res = await adminApiClient.get<any>(`/api/admin/inspection/${id}`);
+  return res.data;
+};
+
 export const approveInspection = async (id: number) => {
   const res = await adminApiClient.put<any>(`/api/admin/inspection/${id}/approve`);
   return res.data;
@@ -66,6 +71,16 @@ export const rejectInspection = async (id: number, reason: string) => {
   const res = await adminApiClient.put<any>(`/api/admin/inspection/${id}/reject`, { reason });
   return res.data;
 };
+
+export interface DealerWonBid {
+  vehicleId: number;
+  vehicleNumber: string;
+  brand: string;
+  model: string;
+  variant: string;
+  winningBidAmount: number;
+  status: string;
+}
 
 export interface AdminDealer {
   id: number;
@@ -77,10 +92,23 @@ export interface AdminDealer {
   address?: string;
   area?: string;
   city?: string;
+  totalBids?: number;
+  wonBidsCount?: number;
+  wonBids?: DealerWonBid[];
 }
 
 export const getRegisteredDealers = async (): Promise<{ success: boolean; data: AdminDealer[] }> => {
   const res = await adminApiClient.get("/api/admin/dealers");
+  return res.data;
+};
+
+export const updateAdminDealer = async (id: number, data: Partial<AdminDealer>): Promise<{ success: boolean; data?: AdminDealer; message?: string }> => {
+  const res = await adminApiClient.put(`/api/admin/dealer/${id}`, data);
+  return res.data;
+};
+
+export const deleteAdminDealer = async (id: number): Promise<{ success: boolean; message?: string }> => {
+  const res = await adminApiClient.delete(`/api/admin/dealer/${id}`);
   return res.data;
 };
 
@@ -98,6 +126,16 @@ export const importDealersExcel = async (file: File): Promise<{ success: boolean
 export const startLiveAuction = async (id: number): Promise<{ success: boolean }> => {
   const res = await adminApiClient.put(`/api/admin/inspection/${id}/go-live`);
   return res.data;
+};
+
+export const stopLiveAuction = async (id: number): Promise<{ success: boolean }> => {
+  try {
+    const res = await adminApiClient.put(`/api/admin/inspection/${id}/stop-auction`);
+    return res.data;
+  } catch (err) {
+    const res = await adminApiClient.put(`/api/admin/inspection/${id}/stop`);
+    return res.data;
+  }
 };
 
 export const getAdminBidHistory = async (id: number): Promise<{ success: boolean; data: { dealer: string; amount: number; time: string }[] }> => {

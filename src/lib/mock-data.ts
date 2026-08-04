@@ -17,7 +17,7 @@ export interface Vehicle {
   highestBid: number;
   bids: number;
   status: VehicleStatus;
-  auction: "live" | "scheduled" | "completed";
+  auction: "live" | "scheduled" | "completed" | "sold out" | "sold" | "ended";
   endsAt: number;
   inspector: string;
   image: string;

@@ -137,8 +137,8 @@ export function AppShell({
             className="flex items-center gap-3 min-w-0 group"
             title="Caryanam Enterprise"
           >
-            <div className="grid size-11 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-[#FFC700] to-[#E6B200] text-[#0D0E12] shadow-[0_4px_16px_rgba(255,199,0,0.4)] transition-transform group-hover:scale-105">
-              <Zap className="size-6 fill-current" />
+            <div className="relative grid size-11 shrink-0 place-items-center rounded-2xl overflow-hidden shadow-[0_4px_16px_rgba(255,199,0,0.3)] transition-transform group-hover:scale-105 bg-[#0D0E12] border border-[#FFC700]/40">
+              <img src="/logo.png" alt="Caryanam Bidding" className="size-full object-cover" />
             </div>
             <div className="min-w-0 lg:hidden">
               <p className="truncate text-sm font-extrabold tracking-[0.2em] text-white uppercase">

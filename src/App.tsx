@@ -10,6 +10,7 @@ import { AdminLayout } from "@/pages/admin/AdminLayout";
 import { AdminDashboard } from "@/pages/admin/Dashboard";
 import { AdminAnalytics } from "@/pages/admin/Analytics";
 import { AdminAuctions } from "@/pages/admin/Auctions";
+import { AdminAuctionDetail } from "@/pages/admin/AuctionDetail";
 import { AdminLiveBidding } from "@/pages/admin/LiveBidding";
 import { AdminDealers } from "@/pages/admin/Dealers";
 import { AdminInspectors } from "@/pages/admin/Inspectors";
@@ -49,13 +50,24 @@ export function App() {
     <>
       <ScrollToTop />
       <Routes>
-        <Route path="/" element={<LandingPage />} />
+        {/* Public Named Routes */}
+        <Route path="/" element={<LandingPage page="home" />} />
+        <Route path="/about" element={<LandingPage page="about" />} />
+        <Route path="/why-choose-us" element={<LandingPage page="why" />} />
+        <Route path="/why" element={<LandingPage page="why" />} />
+        <Route path="/contact" element={<LandingPage page="contact" />} />
+        <Route path="/privacy" element={<LandingPage page="privacy" />} />
+        <Route path="/terms" element={<LandingPage page="terms" />} />
+        <Route path="/login" element={<LandingPage page="auth" initialMode="login" />} />
+        <Route path="/register" element={<LandingPage page="auth" initialMode="signup" />} />
+        <Route path="/signup" element={<LandingPage page="auth" initialMode="signup" />} />
 
         {/* Admin Routes */}
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<AdminDashboard />} />
           <Route path="analytics" element={<AdminAnalytics />} />
           <Route path="auctions" element={<AdminAuctions />} />
+          <Route path="auctions/:id" element={<AdminAuctionDetail />} />
           <Route path="live-bidding" element={<AdminLiveBidding />} />
           <Route path="dealers" element={<AdminDealers />} />
           <Route path="inspectors" element={<AdminInspectors />} />

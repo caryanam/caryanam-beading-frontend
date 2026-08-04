@@ -122,6 +122,8 @@ export function DealerDashboard() {
         auction:
           v.vehicleStatus === "LIVE"
             ? ("live" as const)
+            : (v.vehicleStatus === "SOLD OUT" || v.vehicleStatus === "SOLD_OUT" || v.vehicleStatus === "SOLD" || v.vehicleStatus === "ENDED")
+            ? ("sold out" as const)
             : ("scheduled" as const),
         image:
           v.vehicleImage ||

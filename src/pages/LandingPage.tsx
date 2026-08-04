@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Zap, Menu, X } from "lucide-react";
+import { useNavigate, useLocation, Link } from "react-router-dom";
+import { Menu, X, ShieldCheck, User, LogIn, UserPlus, MapPin, Phone, Mail } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Role } from "@/lib/mock-data";
 
@@ -12,102 +13,113 @@ import { Privacy } from "./landingpage/Privacy";
 import { Terms } from "./landingpage/Terms";
 import { Login } from "./landingpage/Login";
 
-export function LandingPage() {
-  const [activeTab, setActiveTab] = useState<
-    "home" | "about" | "why" | "contact" | "privacy" | "terms" | "auth"
-  >("home");
+interface LandingPageProps {
+  page?: "home" | "about" | "why" | "contact" | "privacy" | "terms" | "auth";
+  initialMode?: "login" | "signup";
+}
+
+export function LandingPage({ page = "home", initialMode = "login" }: LandingPageProps) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
-  }, [activeTab]);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [authConfig, setAuthConfig] = useState<{
-    mode: "login" | "signup";
-    role: Role | null;
-  }>({
-    mode: "login",
-    role: null,
-  });
+  }, [location.pathname]);
+
+  const isAuth = page === "auth" || location.pathname === "/login" || location.pathname === "/register" || location.pathname === "/signup";
+
+  const navLinks = [
+    { id: "home", label: "Home", path: "/" },
+    { id: "about", label: "About Us", path: "/about" },
+    { id: "why", label: "Why Choose Us", path: "/why-choose-us" },
+    { id: "contact", label: "Contact Us", path: "/contact" },
+  ] as const;
 
   const navigateToAuth = (
     mode: "login" | "signup",
     role: Role | null = null,
   ) => {
-    setAuthConfig({ mode, role });
-    setActiveTab("auth");
     setMobileMenuOpen(false);
+    if (mode === "login") {
+      navigate("/login");
+    } else {
+      navigate("/register");
+    }
   };
-
-  const isAuth = activeTab === "auth";
 
   return (
     <div className="flex flex-col min-h-screen bg-background font-sans antialiased text-foreground">
-      {/* Premium Sticky Navigation Header */}
+      {/* Premium Glassmorphic Sticky Navigation Header */}
       {!isAuth && (
-        <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-md">
-          <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6 lg:px-8">
-            <button
-              onClick={() => setActiveTab("home")}
-              className="flex items-center gap-2 cursor-pointer focus:outline-none"
+        <header className="sticky top-0 z-50 w-full border-b border-border/50 bg-background/85 backdrop-blur-xl shadow-sm">
+          <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-6 lg:px-8">
+
+            {/* Brand Logo & Badging */}
+            <Link
+              to="/"
+              className="flex items-center gap-3 cursor-pointer focus:outline-none group"
             >
-              <span className="grid size-9 place-items-center rounded-xl bg-gradient-to-br from-[#FFC700] to-[#E6B200] text-[#0D0E12] font-black shadow-[0_4px_12px_rgba(255,199,0,0.3)]">
-                <Zap className="size-4.5 fill-current" />
-              </span>
-              <div className="text-left">
-                <span className="text-sm font-black tracking-wider uppercase text-foreground">
-                  Caryanam
-                </span>
-                <span className="block text-[8px] font-black tracking-[0.2em] text-[#FFC700] uppercase">
-                  Remarketing
+              <div className="relative grid size-11 place-items-center rounded-2xl overflow-hidden shadow-[0_4px_16px_rgba(255,199,0,0.35)] bg-[#0D0E12] border border-[#FFC700]/50 transition-transform group-hover:scale-105 shrink-0">
+                <img src="/logo.png" alt="Caryanam Bidding" className="size-full object-cover" />
+              </div>
+              <div className="text-left flex flex-col justify-center">
+                <div className="flex items-center gap-2">
+                  <span className="text-base font-black tracking-wider uppercase text-foreground">
+                    Caryanam
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-[#FFC700]/15 text-[#FFC700] border border-[#FFC700]/30 hidden sm:inline-block">
+                    B2B Auctions
+                  </span>
+                </div>
+                <span className="text-xs font-bold tracking-wider text-muted-foreground uppercase">
+                  Used Car Inspection & Bidding
                 </span>
               </div>
-            </button>
+            </Link>
 
-            {/* Desktop Nav Links */}
-            <nav className="hidden md:flex items-center gap-7">
-              {(
-                [
-                  { id: "home", label: "Home" },
-                  { id: "about", label: "About Us" },
-                  { id: "why", label: "Why Choose Us" },
-                  { id: "contact", label: "Contact" },
-                ] as const
-              ).map((link) => (
-                <button
-                  key={link.id}
-                  onClick={() => setActiveTab(link.id)}
-                  className={cn(
-                    "text-xs font-bold transition-colors hover:text-[#FFC700] cursor-pointer",
-                    activeTab === link.id
-                      ? "text-[#FFC700]"
-                      : "text-muted-foreground",
-                  )}
-                >
-                  {link.label}
-                </button>
-              ))}
+            {/* Desktop Nav Links Pill Bar */}
+            <nav className="hidden md:flex items-center gap-1.5 rounded-full border border-border/80 bg-secondary/40 p-1.5 backdrop-blur-md">
+              {navLinks.map((link) => {
+                const isActive = location.pathname === link.path || (link.path === "/" && location.pathname === "");
+                return (
+                  <Link
+                    key={link.id}
+                    to={link.path}
+                    className={cn(
+                      "px-4 py-2 rounded-full text-sm font-bold transition-all cursor-pointer",
+                      isActive
+                        ? "bg-[#FFC700] text-[#0D0E12] shadow-sm font-black"
+                        : "text-muted-foreground hover:text-foreground hover:bg-secondary/80",
+                    )}
+                  >
+                    {link.label}
+                  </Link>
+                );
+              })}
             </nav>
 
-            {/* Desktop Actions */}
+            {/* Desktop Action Buttons */}
             <div className="hidden md:flex items-center gap-3">
-              <button
-                onClick={() => navigateToAuth("login")}
-                className="text-xs font-extrabold text-foreground hover:text-[#FFC700] transition-colors px-4 py-2 cursor-pointer"
+              <Link
+                to="/login"
+                className="inline-flex items-center gap-2 rounded-2xl border border-border px-4.5 py-2.5 text-sm font-extrabold text-foreground hover:bg-secondary hover:border-[#FFC700]/50 transition-all cursor-pointer shadow-sm"
               >
-                Sign In
-              </button>
-              <button
-                onClick={() => navigateToAuth("signup", "dealer")}
-                className="rounded-xl bg-[#FFC700] hover:bg-[#FFD633] text-[#0D0E12] px-4.5 py-2 text-xs font-black shadow-sm transition-all cursor-pointer"
+                <LogIn className="size-4 text-[#FFC700]" /> Sign In
+              </Link>
+
+              <Link
+                to="/register"
+                className="inline-flex items-center gap-2 rounded-2xl bg-[#FFC700] hover:bg-[#FFD633] text-[#0D0E12] px-5 py-2.5 text-sm font-black shadow-[0_4px_16px_rgba(255,199,0,0.3)] hover:shadow-[0_6px_20px_rgba(255,199,0,0.45)] transition-all cursor-pointer"
               >
-                Join Platform
-              </button>
+                <UserPlus className="size-4" /> Register Dealer
+              </Link>
             </div>
 
-            {/* Mobile Menu Icon */}
+            {/* Mobile Menu Toggle Icon */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 md:hidden text-foreground hover:text-[#FFC700]"
+              className="p-2.5 md:hidden text-foreground hover:text-[#FFC700] rounded-2xl border border-border bg-secondary/50"
               aria-label="Toggle menu"
             >
               {mobileMenuOpen ? (
@@ -122,65 +134,58 @@ export function LandingPage() {
 
       {/* Mobile Drawer Menu */}
       {!isAuth && mobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 top-16 z-40 bg-background flex flex-col p-6 border-t border-border animate-fade-in">
-          <nav className="flex flex-col gap-5 mb-8">
-            {(
-              [
-                { id: "home", label: "Home" },
-                { id: "about", label: "About Us" },
-                { id: "why", label: "Why Choose Us" },
-                { id: "contact", label: "Contact" },
-              ] as const
-            ).map((link) => (
-              <button
+        <div className="md:hidden fixed inset-0 top-20 z-40 bg-background/95 backdrop-blur-2xl flex flex-col p-6 border-t border-border animate-fade-in">
+          <nav className="flex flex-col gap-4 mb-8">
+            {navLinks.map((link) => (
+              <Link
                 key={link.id}
-                onClick={() => {
-                  setActiveTab(link.id);
-                  setMobileMenuOpen(false);
-                }}
+                to={link.path}
+                onClick={() => setMobileMenuOpen(false)}
                 className={cn(
-                  "text-left text-sm font-bold tracking-tight py-1 transition-colors",
-                  activeTab === link.id
-                    ? "text-[#FFC700]"
-                    : "text-muted-foreground",
+                  "text-base font-extrabold text-left p-3 rounded-2xl transition-all",
+                  location.pathname === link.path
+                    ? "bg-[#FFC700]/15 text-[#FFC700] border border-[#FFC700]/30"
+                    : "text-foreground hover:bg-secondary",
                 )}
               >
                 {link.label}
-              </button>
+              </Link>
             ))}
           </nav>
-          <div className="flex flex-col gap-3">
-            <button
-              onClick={() => navigateToAuth("login")}
-              className="w-full text-center py-3.5 border border-border rounded-xl text-xs font-bold text-foreground"
+          <div className="flex flex-col gap-3 mt-auto pt-4 border-t border-border">
+            <Link
+              to="/login"
+              onClick={() => setMobileMenuOpen(false)}
+              className="w-full text-center rounded-2xl border border-border py-3.5 text-sm font-extrabold text-foreground hover:bg-secondary transition-colors"
             >
               Sign In
-            </button>
-            <button
-              onClick={() => navigateToAuth("signup", "dealer")}
-              className="w-full text-center py-3.5 bg-[#FFC700] text-[#0D0E12] rounded-xl text-xs font-black"
+            </Link>
+            <Link
+              to="/register"
+              onClick={() => setMobileMenuOpen(false)}
+              className="w-full text-center rounded-2xl bg-[#FFC700] hover:bg-[#FFD633] text-[#0D0E12] py-3.5 text-sm font-black shadow-md transition-all"
             >
-              Join Platform
-            </button>
+              Register Dealer Account
+            </Link>
           </div>
         </div>
       )}
 
-      {/* Main Content Sections */}
+      {/* Main Dynamic View Content */}
       <main className="flex-1">
-        {activeTab === "home" && (
+        {page === "home" && (
           <Home
             onNavigateToAuth={navigateToAuth}
-            onNavigateToWhy={() => setActiveTab("why")}
+            onNavigateToWhy={() => navigate("/why-choose-us")}
           />
         )}
-        {activeTab === "about" && <About />}
-        {activeTab === "why" && <WhyChoose />}
-        {activeTab === "contact" && <Contact />}
-        {activeTab === "privacy" && <Privacy />}
-        {activeTab === "terms" && <Terms />}
-        {activeTab === "auth" && (
-          <Login initialMode={authConfig.mode} initialRole={authConfig.role} />
+        {page === "about" && <About />}
+        {page === "why" && <WhyChoose />}
+        {page === "contact" && <Contact />}
+        {page === "privacy" && <Privacy />}
+        {page === "terms" && <Terms />}
+        {page === "auth" && (
+          <Login initialMode={initialMode} />
         )}
       </main>
 
@@ -190,15 +195,15 @@ export function LandingPage() {
           <div className="mx-auto max-w-7xl px-6 lg:px-8">
             <div className="grid gap-8 md:grid-cols-4">
               <div className="flex flex-col gap-3">
-                <div className="flex items-center gap-2">
-                  <span className="grid size-8 place-items-center rounded-xl bg-[#FFC700] text-[#0D0E12] font-black">
-                    <Zap className="size-4 fill-current" />
+                <div className="flex items-center gap-2.5">
+                  <span className="relative grid size-9 place-items-center rounded-xl overflow-hidden bg-[#0D0E12] border border-[#FFC700]/40 shadow-md">
+                    <img src="/logo.png" alt="Caryanam Bidding" className="size-full object-cover" />
                   </span>
-                  <span className="text-sm font-black tracking-wider uppercase text-white">
-                    Caryanam
+                  <span className="text-base font-black tracking-wider uppercase text-white">
+                    Caryanam Bidding
                   </span>
                 </div>
-                <p className="text-[11px] leading-relaxed text-zinc-500">
+                <p className="text-xs sm:text-sm leading-relaxed text-zinc-400">
                   Verifiable auto-remarketing telemetry and digital bidding
                   platform. Dedicated to absolute auction transparency and
                   structural inspection compliance.
@@ -206,91 +211,81 @@ export function LandingPage() {
               </div>
 
               <div>
-                <h4 className="text-xs font-black text-white uppercase tracking-wider mb-4">
+                <h4 className="text-sm font-black text-white uppercase tracking-wider mb-4">
                   Platform Pages
                 </h4>
-                <ul className="space-y-2.5 text-[11px]">
+                <ul className="space-y-2.5 text-xs sm:text-sm">
                   <li>
-                    <button
-                      onClick={() => setActiveTab("home")}
-                      className="hover:text-white transition-colors cursor-pointer"
-                    >
-                      Home Workspace
-                    </button>
+                    <Link to="/" className="hover:text-white transition-colors">
+                      Home
+                    </Link>
                   </li>
                   <li>
-                    <button
-                      onClick={() => setActiveTab("about")}
-                      className="hover:text-white transition-colors cursor-pointer"
-                    >
-                      About Caryanam
-                    </button>
+                    <Link to="/about" className="hover:text-white transition-colors">
+                      About Us
+                    </Link>
                   </li>
                   <li>
-                    <button
-                      onClick={() => setActiveTab("why")}
-                      className="hover:text-white transition-colors cursor-pointer"
-                    >
+                    <Link to="/why-choose-us" className="hover:text-white transition-colors">
                       Why Choose Us
-                    </button>
+                    </Link>
                   </li>
                   <li>
-                    <button
-                      onClick={() => setActiveTab("contact")}
-                      className="hover:text-white transition-colors cursor-pointer"
-                    >
-                      Contact Office
-                    </button>
+                    <Link to="/contact" className="hover:text-white transition-colors">
+                      Contact Us
+                    </Link>
                   </li>
                 </ul>
               </div>
 
               <div>
-                <h4 className="text-xs font-black text-white uppercase tracking-wider mb-4">
-                  Regulatory & Legal
+                <h4 className="text-sm font-black text-white uppercase tracking-wider mb-4">
+                  Contact Information
                 </h4>
-                <ul className="space-y-2.5 text-[11px]">
+                <ul className="space-y-2.5 text-xs sm:text-sm">
+                  <li className="flex items-center gap-2 text-zinc-300">
+                    <Mail className="size-4 text-[#FFC700] shrink-0" />
+                    <span>support@caryanam.com</span>
+                  </li>
+                  <li className="flex items-center gap-2 text-zinc-300">
+                    <Phone className="size-4 text-[#FFC700] shrink-0" />
+                    <span className="font-mono">+91 22 4900 1200</span>
+                  </li>
+                  <li className="flex items-start gap-2 text-zinc-300">
+                    <MapPin className="size-4 text-[#FFC700] shrink-0 mt-0.5" />
+                    <span>BKC, Mumbai, Maharashtra 400051</span>
+                  </li>
+                </ul>
+              </div>
+
+              <div>
+                <h4 className="text-sm font-black text-white uppercase tracking-wider mb-4">
+                  Legal Compliance
+                </h4>
+                <ul className="space-y-2.5 text-xs sm:text-sm">
                   <li>
-                    <button
-                      onClick={() => setActiveTab("privacy")}
-                      className="hover:text-white transition-colors cursor-pointer"
-                    >
+                    <Link to="/privacy" className="hover:text-white transition-colors">
                       Privacy Policy
-                    </button>
+                    </Link>
                   </li>
                   <li>
-                    <button
-                      onClick={() => setActiveTab("terms")}
-                      className="hover:text-white transition-colors cursor-pointer"
-                    >
-                      Terms & Conditions
-                    </button>
+                    <Link to="/terms" className="hover:text-white transition-colors">
+                      Terms of Service
+                    </Link>
                   </li>
                 </ul>
-              </div>
-
-              <div>
-                <h4 className="text-xs font-black text-white uppercase tracking-wider mb-4">
-                  Bidding Support
-                </h4>
-                <p className="text-[11px] leading-relaxed text-zinc-500 mb-2">
-                  Questions about bulk upload validation or bid history audits?
-                </p>
-                <button
-                  onClick={() => setActiveTab("contact")}
-                  className="text-[11px] font-black text-[#FFC700] hover:underline"
-                >
-                  Submit Support Ticket
-                </button>
               </div>
             </div>
 
-            <div className="mt-10 border-t border-zinc-800 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-[10px] text-zinc-600 font-semibold">
+            <div className="mt-12 border-t border-zinc-800 pt-8 flex flex-col md:flex-row items-center justify-between text-xs sm:text-sm text-zinc-400">
               <p>
-                © {new Date().getFullYear()} Caryanam Enterprise (Remarketing
-                Platforms). All Rights Reserved.
+                Developed by Caryanamindia Pvt Ltd
               </p>
-              <p>ISO 27001 Certified · Verified Bid Telemetry</p>
+              <p className="mt-2 md:mt-0 font-medium">
+                © 2026 Caryanam Bidding. All rights reserved by Caryanamindia Pvt Ltd
+
+
+              </p>
             </div>
           </div>
         </footer>

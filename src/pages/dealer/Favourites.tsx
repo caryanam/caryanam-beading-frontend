@@ -46,7 +46,7 @@ export function DealerFavourites() {
               highestBid,
               bids: bidCount,
               status: "approved" as const,
-              auction: item.vehicleStatus === "LIVE" ? ("live" as const) : ("scheduled" as const),
+              auction: item.vehicleStatus === "LIVE" ? ("live" as const) : (item.vehicleStatus === "SOLD OUT" || item.vehicleStatus === "SOLD_OUT" || item.vehicleStatus === "SOLD" || item.vehicleStatus === "ENDED") ? ("sold out" as const) : ("scheduled" as const),
               image: item.vehicleImage || "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=400&q=80",
               endsAt: item.auctionEndTime || (Date.now() + 1000 * 60 * 60 * 24),
             };

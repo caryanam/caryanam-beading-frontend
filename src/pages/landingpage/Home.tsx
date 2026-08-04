@@ -1,4 +1,4 @@
-import { ArrowRight, Zap, ClipboardCheck, Award } from "lucide-react";
+import { ArrowRight, Zap, ClipboardCheck, Award, ShieldCheck } from "lucide-react";
 import authImage from "@/assets/auth-inspection.jpg";
 
 interface HomeProps {
@@ -9,66 +9,64 @@ interface HomeProps {
 export function Home({ onNavigateToAuth, onNavigateToWhy }: HomeProps) {
   return (
     <div className="flex flex-col animate-rise">
-      {/* Hero Section */}
-      <section className="relative overflow-hidden bg-[#0D0E12] text-white py-24 sm:py-32">
+      {/* Hero Banner Section */}
+      <section className="relative overflow-hidden bg-[#0D0E12] text-white py-16 sm:py-24">
         <div className="absolute inset-0 z-0">
           <img
             src={authImage}
-            alt="High value car inspection bay overview"
-            className="w-full h-full object-cover opacity-20"
+            alt="Vehicle Inspection & Bidding Bay"
+            className="w-full h-full object-cover opacity-25"
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#0D0E12] via-[#0D0E12]/80 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#0D0E12] via-[#0D0E12]/85 to-transparent" />
         </div>
 
         <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-8">
-          <div className="max-w-2xl text-left">
-            <div className="inline-flex items-center gap-2 rounded-full border border-[#FFC700]/30 bg-[#FFC700]/10 px-4 py-1.5 text-xs font-extrabold text-[#FFC700] mb-6 shadow-sm">
-              Verified Vehicle Auction & Bidding
+          <div className="max-w-3xl text-left">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[#FFC700]/40 bg-[#FFC700]/15 px-4 py-1.5 text-sm font-black text-[#FFC700] mb-5 shadow-sm">
+              <ShieldCheck className="size-4.5" /> India's Premier B2B Car Bidding Platform
             </div>
-            <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-none text-white">
-              Corporate Vehicle Remarketing{" "}
-              <span className="text-[#FFC700] block mt-2">
-                Perfected at Scale.
+            <h1 className="text-4xl sm:text-5xl font-black tracking-tight leading-tight text-white">
+              Certified Used Car Auctions{" "}
+              <span className="text-[#FFC700] block mt-1.5">
+                Built For Dealer Growth.
               </span>
             </h1>
-            <p className="mt-6 text-sm sm:text-base leading-relaxed text-zinc-300 font-medium max-w-lg">
-              Real-time WebSocket bidding engine, 200-point certifiable digital
-              inspections, and verified buyer authentication for dealers and
-              aggregators.
+            <p className="mt-5 text-base sm:text-lg leading-relaxed text-zinc-300 font-medium max-w-2xl">
+              Access 140+ point digital inspection reports, participate in real-time 10-minute live auctions, and acquire pre-owned vehicles with complete transparency.
             </p>
-            <div className="mt-10 flex flex-wrap items-center gap-4">
+            <div className="mt-8 flex flex-wrap items-center gap-4">
               <button
                 onClick={() => onNavigateToAuth("login")}
-                className="rounded-xl bg-[#FFC700] hover:bg-[#FFD633] text-[#0D0E12] px-6 py-3.5 text-xs font-black shadow-[0_4px_20px_rgba(255,199,0,0.35)] transition-all flex items-center gap-2 cursor-pointer"
+                className="rounded-2xl bg-[#FFC700] hover:bg-[#FFD633] text-[#0D0E12] px-6 py-4 text-sm font-black shadow-[0_4px_20px_rgba(255,199,0,0.35)] transition-all flex items-center gap-2.5 cursor-pointer"
               >
-                Bidding Workspace <ArrowRight className="size-4" />
+                Enter Bidding Portal <ArrowRight className="size-4.5" />
               </button>
               <button
                 onClick={onNavigateToWhy}
-                className="rounded-xl border border-zinc-700 bg-zinc-900/50 hover:bg-zinc-800 text-white px-6 py-3.5 text-xs font-bold transition-all cursor-pointer"
+                className="rounded-2xl border border-zinc-700 bg-zinc-900/60 hover:bg-zinc-800 text-white px-6 py-4 text-sm font-extrabold transition-all cursor-pointer"
               >
-                How Bidding Works
+                Why Caryanam Bidding
               </button>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Quick Metrics */}
-      <section className="bg-secondary/30 border-y border-border/60 py-10">
+      {/* Metrics Telemetry Bar */}
+      <section className="bg-secondary/30 border-y border-border/60 py-8">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             {[
-              { val: "18,400+", label: "Verified Vehicles" },
-              { val: "1,260", label: "Registered Dealerships" },
-              { val: "₹840Cr", label: "Total Valuation Traded" },
-              { val: "99.8%", label: "Inspection Authenticity" },
+              { val: "25,000+", label: "Inspected Vehicles" },
+              { val: "1,500+", label: "Verified Dealers" },
+              { val: "10-Min", label: "Live Auction Windows" },
+              { val: "100%", label: "Inspection Authenticity" },
             ].map((stat, i) => (
               <div key={i} className="flex flex-col gap-1.5">
-                <p className="text-2xl sm:text-3xl font-black text-[#FFC700] tracking-tight">
+                <p className="text-3xl sm:text-4xl font-black text-[#FFC700] tracking-tight">
                   {stat.val}
                 </p>
-                <p className="text-[10px] sm:text-xs font-extrabold text-muted-foreground uppercase tracking-widest">
+                <p className="text-xs sm:text-sm font-extrabold text-muted-foreground uppercase tracking-wider">
                   {stat.label}
                 </p>
               </div>
@@ -77,15 +75,15 @@ export function Home({ onNavigateToAuth, onNavigateToWhy }: HomeProps) {
         </div>
       </section>
 
-      {/* Features Spotlight */}
-      <section className="py-20 bg-background">
+      {/* Key Platform Pillars Spotlight */}
+      <section className="py-16 sm:py-20 bg-background">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-xs font-extrabold tracking-[0.25em] text-[#FFC700] uppercase mb-3">
-              Enterprise Suite
+          <div className="text-center max-w-3xl mx-auto mb-12">
+            <h2 className="text-sm font-black tracking-[0.25em] text-[#FFC700] uppercase mb-2.5">
+              Platform Innovations
             </h2>
             <p className="text-2xl sm:text-4xl font-black tracking-tight text-foreground">
-              Next-Generation Vehicle Liquidation
+              Everything Needed for Seamless Vehicle Bidding
             </p>
           </div>
 
@@ -93,31 +91,31 @@ export function Home({ onNavigateToAuth, onNavigateToWhy }: HomeProps) {
             {[
               {
                 icon: ClipboardCheck,
-                title: "200-Point Wizard",
-                desc: "Inspectors utilize standardized tools to measure mechanical fluid, tyre tread wear, and upload detailed sheet metal panel images.",
+                title: "140+ Point Digital Inspections",
+                desc: "Certified evaluations covering exterior body panels, engine mechanics, electrical systems, OBD diagnostics, tyre tread depths, and mandatory photo proof.",
               },
               {
                 icon: Zap,
-                title: "WebSocket Telemetry",
-                desc: "Sub-second bid updates, ticking live timers, and active room logs synchronize automatically across screens without refreshing.",
+                title: "Real-Time WebSocket Bidding",
+                desc: "Sub-second bid synchronization with live countdown timers, bid increment controls, and instant leaderboards across all dealer screens.",
               },
               {
                 icon: Award,
-                title: "Verified Authenticity",
-                desc: "Complete database integrity. Registration logs, bid entries, and wishlist preferences are fully stored and verified.",
+                title: "Verified Winner Logs & Transparency",
+                desc: "Complete transparency with verified winner records, bid histories, and structured admin approval workflows.",
               },
             ].map((feat, idx) => (
               <div
                 key={idx}
-                className="rounded-2xl border border-border bg-card p-6 shadow-soft hover:border-[#FFC700]/40 transition-colors"
+                className="rounded-2xl border border-border bg-card p-6 shadow-soft hover:border-[#FFC700]/40 transition-all group"
               >
-                <span className="grid size-11 place-items-center rounded-xl bg-[#FFC700]/10 text-[#FFC700] mb-5">
-                  <feat.icon className="size-5.5" />
+                <span className="grid size-12 place-items-center rounded-2xl bg-[#FFC700]/15 text-[#FFC700] mb-5 border border-[#FFC700]/30 group-hover:scale-105 transition-transform">
+                  <feat.icon className="size-6" />
                 </span>
-                <h3 className="text-sm font-black text-foreground mb-2.5">
+                <h3 className="text-base sm:text-lg font-black text-foreground mb-2.5">
                   {feat.title}
                 </h3>
-                <p className="text-xs leading-relaxed text-muted-foreground font-medium">
+                <p className="text-sm leading-relaxed text-muted-foreground font-medium">
                   {feat.desc}
                 </p>
               </div>

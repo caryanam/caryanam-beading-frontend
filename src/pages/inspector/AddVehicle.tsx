@@ -545,6 +545,13 @@ export function InspectorAddVehicle() {
           ...prev,
           [panelName]: res.data,
         }));
+        if (errors[panelName]) {
+          setErrors((prev) => {
+            const copy = { ...prev };
+            delete copy[panelName];
+            return copy;
+          });
+        }
         toast.success(`Photo uploaded for ${panelName}!`);
       }
     } catch (err: any) {
@@ -641,12 +648,22 @@ export function InspectorAddVehicle() {
           newErrors[slot] = `${config ? config.label : slot} photo is required.`;
         }
       });
+      exteriorPanels.forEach((panel) => {
+        if (!panelImages[panel]) {
+          newErrors[panel] = `Photo is required for ${panel}.`;
+        }
+      });
     } else if (stepIndex === 2) {
       const mechSlots = ["engineImg", "batteryImg"];
       mechSlots.forEach((slot) => {
         if (!partImages[slot]) {
           const config = imageSlotsConfig.find((c) => c.key === slot);
           newErrors[slot] = `${config ? config.label : slot} photo is required.`;
+        }
+      });
+      mechanicalItems.forEach((item) => {
+        if (!panelImages[item.name]) {
+          newErrors[item.name] = `Photo is required for ${item.name}.`;
         }
       });
     } else if (stepIndex === 3) {
@@ -667,6 +684,11 @@ export function InspectorAddVehicle() {
         if (!partImages[slot]) {
           const config = imageSlotsConfig.find((c) => c.key === slot);
           newErrors[slot] = `${config ? config.label : slot} photo is required.`;
+        }
+      });
+      electricalItems.forEach((item) => {
+        if (!panelImages[item]) {
+          newErrors[item] = `Photo is required for ${item}.`;
         }
       });
     }
@@ -1044,61 +1066,13 @@ export function InspectorAddVehicle() {
       return;
     }
 
-    // Validate all required fields
-    const missing: string[] = [];
-
-    // Basic specs validation
-    if (!basicDetails.regNo) missing.push("Registration Number");
-    if (!basicDetails.brand) missing.push("Vehicle Brand / Make");
-    if (!basicDetails.model) missing.push("Model Name");
-    if (!basicDetails.variant) missing.push("Model Variant");
-    if (!basicDetails.year) missing.push("Manufacturing Year");
-    if (!basicDetails.fuel) missing.push("Fuel Type");
-    if (!basicDetails.transmission) missing.push("Transmission");
-    if (!basicDetails.odometer) missing.push("Odometer Reading");
-    if (!basicDetails.ownerName) missing.push("Owner Profile Status");
-    if (!basicDetails.insurance) missing.push("Insurance Validity");
-    if (!basicDetails.evaluator) missing.push("Evaluator Inspector Code");
-    if (!suggestedPrice) missing.push("Evaluator Valuation");
-
-    // Mechanical checklist validation
-    const mechanicalItems = [
-      "Engine / Motor Status",
-      "Engine Oil",
-      "Brakes Oil",
-      "Steering Oil",
-      "Coolant",
-      "Brakes Booster",
-      "Brakes Working",
-      "Apron Condition",
-      "Chassis Alignment",
-      "Suspension",
-      "Suspension Bushing",
-      "Oil Leakage",
-      "Exhaust Smoke Color",
-      "Manual Transmission Fluid Level",
-      "Differential Fluid Level",
-      "Fluid Leakages",
-      "Steering Gearbox & Linkage",
-      "Driveline / Axle",
-      "Engine / Motor Noise"
-    ];
-    mechanicalItems.forEach(item => {
-      if (!mechanicalState[item]) {
-        missing.push(item);
+    // Validate all required steps and images
+    for (let i = 0; i < steps.length; i++) {
+      if (!validateStep(i)) {
+        setStep(i);
+        toast.error(`Please complete all required fields and image uploads in Step ${i + 1}: ${steps[i].title}.`);
+        return;
       }
-    });
-
-    // Interior checklist text fields validation
-    if (!electricalState["Battery Company"]) missing.push("Battery Company");
-    if (!electricalState["Full Battery Number"]) missing.push("Full Battery Number");
-    if (!electricalState["AC"]) missing.push("AC Cooling Performance");
-
-    if (missing.length > 0) {
-      toast.error(
-        `Please complete the following required fields before submitting: ${missing.slice(0, 3).join(", ")}${missing.length > 3 ? ` and ${missing.length - 3} more` : ""}`
-      );
-      return;
     }
 
     try {
@@ -1566,14 +1540,18 @@ export function InspectorAddVehicle() {
                   {exteriorPanels.map((panel) => {
                     const value = exteriorState[panel] ?? "OK";
                     const hasImg = !!panelImages[panel];
+                    const errorMsg = errors[panel];
                     return (
                       <div
                         key={panel}
                         className={cn(
-                          "rounded-2xl border border-border bg-card p-3.5 shadow-soft transition-all duration-200",
+                          "rounded-2xl border p-3.5 shadow-soft transition-all duration-200",
+                          errorMsg
+                            ? "border-red-500 bg-red-50/5 hover:border-red-500"
+                            : "border-border bg-card hover:border-[#FFC700]/60",
                           hasImg
                             ? "flex flex-col gap-3"
-                            : "flex items-center justify-between gap-2",
+                            : "flex flex-col gap-2 justify-between",
                         )}
                       >
                         {hasImg ? (
@@ -1636,34 +1614,46 @@ export function InspectorAddVehicle() {
                           </>
                         ) : (
                           <>
-                            <span className="text-xs font-bold text-foreground truncate min-w-0">
-                              {panel} <span className="text-rose-500">*</span>
-                            </span>
-                            <div className="flex items-center gap-2">
-                              <select
-                                value={value}
-                                onChange={(e) => setExt(panel, e.target.value)}
-                                className="rounded-xl border border-border bg-secondary px-2.5 py-1 text-xs font-extrabold outline-none cursor-pointer"
-                              >
-                                <option value="OK">OK</option>
-                                <option value="DAMAGED">DAMAGED</option>
-                                <option value="REPAINTED">REPAINTED</option>
-                                <option value="CHANGED">CHANGED</option>
-                                <option value="SCRATCH">SCRATCH</option>
-                                <option value="DENT">DENT</option>
-                                <option value="RUST">RUST</option>
-                                <option value="NA">NA</option>
-                              </select>
+                            <div className="flex items-center justify-between gap-2 w-full">
+                              <span className="text-xs font-bold text-foreground truncate min-w-0">
+                                {panel} <span className="text-rose-500">*</span>
+                              </span>
+                              <div className="flex items-center gap-2">
+                                <select
+                                  value={value}
+                                  onChange={(e) => setExt(panel, e.target.value)}
+                                  className="rounded-xl border border-border bg-secondary px-2.5 py-1 text-xs font-extrabold outline-none cursor-pointer"
+                                >
+                                  <option value="OK">OK</option>
+                                  <option value="DAMAGED">DAMAGED</option>
+                                  <option value="REPAINTED">REPAINTED</option>
+                                  <option value="CHANGED">CHANGED</option>
+                                  <option value="SCRATCH">SCRATCH</option>
+                                  <option value="DENT">DENT</option>
+                                  <option value="RUST">RUST</option>
+                                  <option value="NA">NA</option>
+                                </select>
 
-                              <button
-                                type="button"
-                                onClick={() => triggerPanelImageUpload(panel)}
-                                className="size-9 rounded-full border border-border hover:border-[#FFC700] hover:bg-[#FFC700]/10 text-muted-foreground hover:text-[#FFC700] transition-all cursor-pointer flex-shrink-0 flex items-center justify-center"
-                                title="Upload Panel Photo"
-                              >
-                                <Camera className="size-3.5" />
-                              </button>
+                                <button
+                                  type="button"
+                                  onClick={() => triggerPanelImageUpload(panel)}
+                                  className={cn(
+                                    "size-9 rounded-full border transition-all cursor-pointer flex-shrink-0 flex items-center justify-center",
+                                    errorMsg
+                                      ? "border-red-500 text-red-500 bg-red-500/10 hover:bg-red-500/20"
+                                      : "border-border hover:border-[#FFC700] hover:bg-[#FFC700]/10 text-muted-foreground hover:text-[#FFC700]"
+                                  )}
+                                  title="Upload Panel Photo"
+                                >
+                                  <Camera className="size-3.5" />
+                                </button>
+                              </div>
                             </div>
+                            {errorMsg && (
+                              <span className="text-[10px] font-bold text-red-500 px-1 animate-fade-in">
+                                {errorMsg}
+                              </span>
+                            )}
                           </>
                         )}
                       </div>
@@ -1714,42 +1704,152 @@ export function InspectorAddVehicle() {
                       (item.type === "fluid"
                         ? item.options?.[0]
                         : (item.default ?? "OK"));
+                    const hasImg = !!panelImages[item.name];
+                    const errorMsg = errors[item.name];
                     return (
                       <div
                         key={item.name}
-                        className="flex items-center justify-between gap-2.5 rounded-2xl border border-border bg-card p-3 shadow-soft"
+                        className={cn(
+                          "rounded-2xl border p-3.5 shadow-soft transition-all duration-200",
+                          errorMsg
+                            ? "border-red-500 bg-red-50/5 hover:border-red-500"
+                            : "border-border bg-card hover:border-[#FFC700]/60",
+                          hasImg
+                            ? "flex flex-col gap-3"
+                            : "flex flex-col gap-2 justify-between",
+                        )}
                       >
-                        <span className="text-xs font-bold text-foreground truncate min-w-0">
-                          {item.name} <span className="text-rose-500">*</span>
-                        </span>
-                        {item.type === "fluid" ? (
-                          <select
-                            value={value}
-                            onChange={(e) => setMech(item.name, e.target.value)}
-                            className="rounded-xl border border-border bg-secondary px-2.5 py-1 text-xs font-extrabold outline-none cursor-pointer"
-                          >
-                            {item.options?.map((opt) => (
-                              <option key={opt} value={opt}>
-                                {opt}
-                              </option>
-                            ))}
-                          </select>
-                        ) : item.type === "text" ? (
-                          <input
-                            type="text"
-                            value={value}
-                            onChange={(e) => setMech(item.name, e.target.value)}
-                            className="max-w-[120px] rounded-xl border border-border bg-secondary px-2.5 py-1 text-xs font-extrabold outline-none text-right"
-                          />
+                        {hasImg ? (
+                          <>
+                            {/* Top Info Row */}
+                            <div className="flex items-center justify-between gap-2 w-full">
+                              <span className="text-xs font-bold text-foreground truncate min-w-0">
+                                {item.name} <span className="text-rose-500">*</span>
+                              </span>
+                              {item.type === "fluid" ? (
+                                <select
+                                  value={value}
+                                  onChange={(e) => setMech(item.name, e.target.value)}
+                                  className="rounded-xl border border-border bg-secondary px-2.5 py-1.5 text-xs font-extrabold outline-none cursor-pointer"
+                                >
+                                  {item.options?.map((opt) => (
+                                    <option key={opt} value={opt}>
+                                      {opt}
+                                    </option>
+                                  ))}
+                                </select>
+                              ) : item.type === "text" ? (
+                                <input
+                                  type="text"
+                                  value={value}
+                                  onChange={(e) => setMech(item.name, e.target.value)}
+                                  className="max-w-[120px] rounded-xl border border-border bg-secondary px-2.5 py-1.5 text-xs font-extrabold outline-none text-right"
+                                />
+                              ) : (
+                                <select
+                                  value={value}
+                                  onChange={(e) => setMech(item.name, e.target.value)}
+                                  className="rounded-xl border border-border bg-secondary px-2.5 py-1.5 text-xs font-extrabold outline-none cursor-pointer"
+                                >
+                                  <option value="OK">OK</option>
+                                  <option value="NOT OK">NOT OK</option>
+                                </select>
+                              )}
+                            </div>
+
+                            {/* Large Image Preview Card */}
+                            <div className="relative group w-full aspect-[16/10] rounded-xl overflow-hidden border border-border bg-secondary cursor-pointer shadow-inner">
+                              <img
+                                src={panelImages[item.name]}
+                                alt={item.name}
+                                className="size-full object-cover transition-transform duration-300 group-hover:scale-102"
+                              />
+                              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    window.open(panelImages[item.name], "_blank")
+                                  }
+                                  className="grid size-8 place-items-center rounded-xl bg-white/20 text-white backdrop-blur-md hover:bg-white/40 cursor-pointer"
+                                  title="View Fullscreen"
+                                >
+                                  <Eye className="size-4" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setPanelImages((prev) => {
+                                      const copy = { ...prev };
+                                      delete copy[item.name];
+                                      return copy;
+                                    });
+                                  }}
+                                  className="grid size-8 place-items-center rounded-xl bg-rose-600/80 text-white backdrop-blur-md hover:bg-rose-600 cursor-pointer"
+                                  title="Remove Photo"
+                                >
+                                  <Trash2 className="size-4" />
+                                </button>
+                              </div>
+                            </div>
+                          </>
                         ) : (
-                          <select
-                            value={value}
-                            onChange={(e) => setMech(item.name, e.target.value)}
-                            className="rounded-xl border border-border bg-secondary px-2.5 py-1 text-xs font-extrabold outline-none cursor-pointer"
-                          >
-                            <option value="OK">OK</option>
-                            <option value="NOT OK">NOT OK</option>
-                          </select>
+                          <>
+                            <div className="flex items-center justify-between gap-2 w-full">
+                              <span className="text-xs font-bold text-foreground truncate min-w-0">
+                                {item.name} <span className="text-rose-500">*</span>
+                              </span>
+                              <div className="flex items-center gap-2">
+                                {item.type === "fluid" ? (
+                                  <select
+                                    value={value}
+                                    onChange={(e) => setMech(item.name, e.target.value)}
+                                    className="rounded-xl border border-border bg-secondary px-2.5 py-1 text-xs font-extrabold outline-none cursor-pointer"
+                                  >
+                                    {item.options?.map((opt) => (
+                                      <option key={opt} value={opt}>
+                                        {opt}
+                                      </option>
+                                    ))}
+                                  </select>
+                                ) : item.type === "text" ? (
+                                  <input
+                                    type="text"
+                                    value={value}
+                                    onChange={(e) => setMech(item.name, e.target.value)}
+                                    className="max-w-[120px] rounded-xl border border-border bg-secondary px-2.5 py-1 text-xs font-extrabold outline-none text-right"
+                                  />
+                                ) : (
+                                  <select
+                                    value={value}
+                                    onChange={(e) => setMech(item.name, e.target.value)}
+                                    className="rounded-xl border border-border bg-secondary px-2.5 py-1 text-xs font-extrabold outline-none cursor-pointer"
+                                  >
+                                    <option value="OK">OK</option>
+                                    <option value="NOT OK">NOT OK</option>
+                                  </select>
+                                )}
+
+                                <button
+                                  type="button"
+                                  onClick={() => triggerPanelImageUpload(item.name)}
+                                  className={cn(
+                                    "size-9 rounded-full border transition-all cursor-pointer flex-shrink-0 flex items-center justify-center",
+                                    errorMsg
+                                      ? "border-red-500 text-red-500 bg-red-500/10 hover:bg-red-500/20"
+                                      : "border-border hover:border-[#FFC700] hover:bg-[#FFC700]/10 text-muted-foreground hover:text-[#FFC700]"
+                                  )}
+                                  title="Upload Photo"
+                                >
+                                  <Camera className="size-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                            {errorMsg && (
+                              <span className="text-[10px] font-bold text-red-500 px-1 animate-fade-in">
+                                {errorMsg}
+                              </span>
+                            )}
+                          </>
                         )}
                       </div>
                     );
@@ -2015,14 +2115,18 @@ export function InspectorAddVehicle() {
                   {electricalItems.map((item) => {
                     const status = electricalState[item] ?? "OK / WORKING";
                     const hasImg = !!panelImages[item];
+                    const errorMsg = errors[item];
                     return (
                       <div
                         key={item}
                         className={cn(
-                          "rounded-2xl border border-border bg-card p-3.5 shadow-soft transition-all duration-200",
+                          "rounded-2xl border p-3.5 shadow-soft transition-all duration-200",
+                          errorMsg
+                            ? "border-red-500 bg-red-50/5 hover:border-red-500"
+                            : "border-border bg-card hover:border-[#FFC700]/60",
                           hasImg
                             ? "flex flex-col gap-3"
-                            : "flex items-center justify-between gap-2",
+                            : "flex flex-col gap-2 justify-between",
                         )}
                       >
                         {hasImg ? (
@@ -2082,31 +2186,43 @@ export function InspectorAddVehicle() {
                           </>
                         ) : (
                           <>
-                            <span className="text-xs font-bold text-foreground truncate min-w-0">
-                              {item} <span className="text-rose-500">*</span>
-                            </span>
-                            <div className="flex items-center gap-2">
-                              <select
-                                value={status}
-                                onChange={(e) => setElec(item, e.target.value)}
-                                className="rounded-xl border border-border bg-secondary px-2.5 py-1 text-xs font-extrabold outline-none cursor-pointer"
-                              >
-                                <option value="OK / WORKING">
-                                  OK / WORKING
-                                </option>
-                                <option value="NOT WORKING">NOT WORKING</option>
-                                <option value="N/A">N/A</option>
-                              </select>
+                            <div className="flex items-center justify-between gap-2 w-full">
+                              <span className="text-xs font-bold text-foreground truncate min-w-0">
+                                {item} <span className="text-rose-500">*</span>
+                              </span>
+                              <div className="flex items-center gap-2">
+                                <select
+                                  value={status}
+                                  onChange={(e) => setElec(item, e.target.value)}
+                                  className="rounded-xl border border-border bg-secondary px-2.5 py-1 text-xs font-extrabold outline-none cursor-pointer"
+                                >
+                                  <option value="OK / WORKING">
+                                    OK / WORKING
+                                  </option>
+                                  <option value="NOT WORKING">NOT WORKING</option>
+                                  <option value="N/A">N/A</option>
+                                </select>
 
-                              <button
-                                type="button"
-                                onClick={() => triggerPanelImageUpload(item)}
-                                className="size-9 rounded-full border border-border hover:border-[#FFC700] hover:bg-[#FFC700]/10 text-muted-foreground hover:text-[#FFC700] transition-all cursor-pointer flex-shrink-0 flex items-center justify-center"
-                                title="Upload Panel Photo"
-                              >
-                                <Camera className="size-4" />
-                              </button>
+                                <button
+                                  type="button"
+                                  onClick={() => triggerPanelImageUpload(item)}
+                                  className={cn(
+                                    "size-9 rounded-full border transition-all cursor-pointer flex-shrink-0 flex items-center justify-center",
+                                    errorMsg
+                                      ? "border-red-500 text-red-500 bg-red-500/10 hover:bg-red-500/20"
+                                      : "border-border hover:border-[#FFC700] hover:bg-[#FFC700]/10 text-muted-foreground hover:text-[#FFC700]"
+                                  )}
+                                  title="Upload Panel Photo"
+                                >
+                                  <Camera className="size-4" />
+                                </button>
+                              </div>
                             </div>
+                            {errorMsg && (
+                              <span className="text-[10px] font-bold text-red-500 px-1 animate-fade-in">
+                                {errorMsg}
+                              </span>
+                            )}
                           </>
                         )}
                       </div>

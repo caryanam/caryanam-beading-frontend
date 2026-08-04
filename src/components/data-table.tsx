@@ -12,7 +12,7 @@ export function DataTable<T>({
   rows,
   columns,
   searchKeys,
-  pageSize = 6,
+  pageSize = 8,
   actions,
   placeholder = "Search…",
 }: {
@@ -43,7 +43,7 @@ export function DataTable<T>({
   const visible = filtered.slice((current - 1) * pageSize, current * pageSize);
 
   return (
-    <div className="rounded-3xl border border-border bg-card shadow-soft">
+    <div className="rounded-3xl border border-border bg-card shadow-soft overflow-hidden">
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-b border-border p-5">
         <label className="flex min-w-0 items-center gap-2 rounded-2xl border border-border bg-secondary px-4 py-2.5">
           <Search className="size-4 shrink-0 text-muted-foreground" />
@@ -78,28 +78,28 @@ export function DataTable<T>({
         </div>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[720px] border-collapse text-sm">
-          <thead className="sticky top-0 bg-secondary/80 backdrop-blur">
+      <div className="w-full overflow-x-auto">
+        <table className="w-full min-w-[1080px] border-collapse text-sm">
+          <thead className="sticky top-0 bg-secondary/80 backdrop-blur z-10 border-b border-border">
             <tr>
               {columns.map((c) => (
                 <th
                   key={c.key}
-                  className={`px-6 py-4 text-left text-xs font-medium tracking-wider text-muted-foreground uppercase ${c.className ?? ""}`}
+                  className={`px-5 py-4 text-left text-xs font-black tracking-wider text-muted-foreground uppercase whitespace-nowrap ${c.className ?? ""}`}
                 >
                   {c.header}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-border">
             {visible.map((row, i) => (
               <tr
                 key={i}
-                className="border-t border-border transition-colors hover:bg-secondary/60"
+                className="transition-colors hover:bg-secondary/40"
               >
                 {columns.map((c) => (
-                  <td key={c.key} className={`px-6 py-4 ${c.className ?? ""}`}>
+                  <td key={c.key} className={`px-5 py-4 whitespace-nowrap ${c.className ?? ""}`}>
                     {c.cell(row)}
                   </td>
                 ))}
@@ -111,7 +111,7 @@ export function DataTable<T>({
                   colSpan={columns.length}
                   className="px-6 py-16 text-center text-sm text-muted-foreground"
                 >
-                  No records match your search.
+                  No records match your search query.
                 </td>
               </tr>
             )}
@@ -120,24 +120,24 @@ export function DataTable<T>({
       </div>
 
       <div className="flex items-center justify-between gap-4 border-t border-border p-5 text-sm">
-        <p className="text-muted-foreground">
-          {filtered.length} record{filtered.length === 1 ? "" : "s"}
+        <p className="text-xs font-bold text-muted-foreground">
+          Showing <span className="text-foreground">{filtered.length}</span> record{filtered.length === 1 ? "" : "s"}
         </p>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={current === 1}
-            className="rounded-xl border border-border px-3 py-1.5 text-xs disabled:opacity-40"
+            className="rounded-xl border border-border px-3.5 py-1.5 text-xs font-extrabold disabled:opacity-40 hover:bg-secondary transition-all cursor-pointer"
           >
             Previous
           </button>
-          <span className="text-xs text-muted-foreground">
+          <span className="text-xs font-bold text-muted-foreground px-1">
             {current} / {pages}
           </span>
           <button
             onClick={() => setPage((p) => Math.min(pages, p + 1))}
             disabled={current === pages}
-            className="rounded-xl border border-border px-3 py-1.5 text-xs disabled:opacity-40"
+            className="rounded-xl border border-border px-3.5 py-1.5 text-xs font-extrabold disabled:opacity-40 hover:bg-secondary transition-all cursor-pointer"
           >
             Next
           </button>

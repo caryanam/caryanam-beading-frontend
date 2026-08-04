@@ -1,5 +1,7 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import {
+  ArrowLeft,
   Building2,
   ClipboardCheck,
   Eye,
@@ -158,16 +160,16 @@ export function Login({
           toast.error("Account Password is required.");
           return;
         }
-        if (!values.address) {
-          toast.error("Address is required.");
+        if (!values.address || values.address.trim().length < 5) {
+          toast.error("Address must be at least 5 characters long.");
           return;
         }
-        if (!values.area) {
-          toast.error("Area is required.");
+        if (!values.area || values.area.trim().length < 3) {
+          toast.error("Area must be at least 3 characters long.");
           return;
         }
-        if (!values.city) {
-          toast.error("City is required.");
+        if (!values.city || values.city.trim().length < 3) {
+          toast.error("City must be at least 3 characters long.");
           return;
         }
         try {
@@ -242,9 +244,17 @@ export function Login({
           )}
         >
           <form onSubmit={submit} className="w-full max-w-[420px] mx-auto flex flex-col items-center">
-            <div className="flex items-center gap-2 mb-8 self-start">
-              <span className="grid size-8 place-items-center rounded-xl bg-[#FFC700] text-[#0D0E12] font-extrabold shadow-sm">
-                <Zap className="size-4.5 fill-current" />
+            <Link
+              to="/"
+              className="inline-flex items-center gap-2 text-xs font-bold text-zinc-500 hover:text-zinc-900 transition-colors mb-6 self-start group cursor-pointer"
+            >
+              <ArrowLeft className="size-4 group-hover:-translate-x-1 transition-transform text-[#FFC700]" />
+              <span>Back to Home</span>
+            </Link>
+
+            <div className="flex items-center gap-2.5 mb-8 self-start">
+              <span className="relative grid size-9 place-items-center rounded-xl overflow-hidden bg-[#0D0E12] border border-[#FFC700]/40 shadow-sm">
+                <img src="/logo.png" alt="Caryanam Bidding" className="size-full object-cover" />
               </span>
               <p className="text-xs font-extrabold tracking-[0.2em] text-[#FFC700] uppercase">
                 Caryanam Bidding
@@ -325,9 +335,17 @@ export function Login({
           )}
         >
           <form onSubmit={submit} className="w-full max-w-[440px] mx-auto flex flex-col items-center">
-            <div className="flex items-center gap-2 mb-6 self-start">
-              <span className="grid size-8 place-items-center rounded-xl bg-[#FFC700] text-[#0D0E12] font-extrabold shadow-sm">
-                <Zap className="size-4.5 fill-current" />
+            <Link
+              to="/"
+              className="inline-flex items-center gap-2 text-xs font-bold text-zinc-500 hover:text-zinc-900 transition-colors mb-4 self-start group cursor-pointer"
+            >
+              <ArrowLeft className="size-4 group-hover:-translate-x-1 transition-transform text-[#FFC700]" />
+              <span>Back to Home</span>
+            </Link>
+
+            <div className="flex items-center gap-2.5 mb-6 self-start">
+              <span className="relative grid size-9 place-items-center rounded-xl overflow-hidden bg-[#0D0E12] border border-[#FFC700]/40 shadow-sm">
+                <img src="/logo.png" alt="Caryanam Bidding" className="size-full object-cover" />
               </span>
               <p className="text-xs font-extrabold tracking-[0.2em] text-[#FFC700] uppercase">
                 Caryanam Bidding
@@ -628,6 +646,15 @@ export function Login({
 
       {/* Mobile Form Layout */}
       <div className="lg:hidden w-full min-h-screen bg-zinc-50 flex flex-col justify-center relative overflow-hidden px-6 py-12">
+        {/* Back to Home Button Mobile */}
+        <Link
+          to="/"
+          className="absolute top-6 left-6 z-30 inline-flex items-center gap-2 text-xs font-black text-white bg-[#0D0E12]/80 backdrop-blur-md px-3.5 py-2 rounded-full border border-[#FFC700]/40 shadow-md hover:bg-[#0D0E12] transition-all cursor-pointer"
+        >
+          <ArrowLeft className="size-4 text-[#FFC700]" />
+          <span>Back to Home</span>
+        </Link>
+
         {/* Background Car Image for brand feeling */}
         <div
           className="absolute top-0 left-0 w-full h-44 bg-cover bg-center"
@@ -636,9 +663,9 @@ export function Login({
         <div className="absolute top-0 left-0 w-full h-44 bg-gradient-to-b from-[#0D0E12]/80 to-zinc-50" />
 
         {/* Top corporate brand logo */}
-        <div className="flex items-center justify-center gap-2 mb-6 mt-32 relative z-10">
-          <span className="grid size-8 place-items-center rounded-xl bg-[#0D0E12] text-[#FFC700] font-extrabold shadow-md">
-            <Zap className="size-4.5 fill-current" />
+        <div className="flex items-center justify-center gap-2.5 mb-6 mt-32 relative z-10">
+          <span className="relative grid size-10 place-items-center rounded-xl overflow-hidden bg-[#0D0E12] border border-[#FFC700]/40 shadow-md">
+            <img src="/logo.png" alt="Caryanam Bidding" className="size-full object-cover" />
           </span>
           <p className="text-xs font-extrabold tracking-[0.2em] text-[#0D0E12] uppercase">
             Caryanam Bidding

@@ -12,6 +12,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Eye,
+  MessageSquare,
+  Send,
   X as CloseIcon,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -29,6 +31,7 @@ import {
 } from "@/lib/api/dealer-api";
 import { API_BASE_URL } from "@/lib/api";
 import { readSession } from "@/lib/session";
+import { cn } from "@/lib/utils";
 
 export function DealerVehicleDetail() {
   const { vehicleId } = useParams<{ vehicleId: string }>();
@@ -400,14 +403,26 @@ export function DealerVehicleDetail() {
       vehicle.vehicleStatus === "SOLD" ||
       remaining === "Ended");
 
+  const myEmail = session?.email || "";
   const noBids =
     vehicle &&
     (!vehicle.highestBidder ||
       vehicle.highestBidder === "No bids" ||
       vehicle.bids === 0);
-  const isWinner = vehicle && vehicle.highestBidder === myName;
+
+  const isWinner =
+    vehicle &&
+    !noBids &&
+    (vehicle.highestBidder === myName ||
+      vehicle.highestBidder === myEmail ||
+      (rawDetails?.currentHighestBidder &&
+        (rawDetails.currentHighestBidder === myName ||
+          rawDetails.currentHighestBidder === myEmail ||
+          rawDetails.currentHighestBidder?.dealershipName === myName ||
+          rawDetails.currentHighestBidder?.ownerName === myName ||
+          rawDetails.currentHighestBidder?.email === myEmail)));
   const participated =
-    vehicle && bidHistory.some((b: any) => b.dealer === myName);
+    vehicle && bidHistory.some((b: any) => b.dealer === myName || b.dealer === myEmail);
 
   return (
     <AppShell

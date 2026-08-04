@@ -2,6 +2,7 @@ import { useState, useEffect, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowUpRight,
+  CheckCircle2,
   Clock,
   Fuel,
   Gauge,
@@ -142,9 +143,10 @@ const chipStyles: Record<string, string> = {
     "bg-[#FFC700] text-[#0D0E12] border-[#FFC700] font-extrabold shadow-sm",
   draft: "bg-secondary text-muted-foreground border-border font-semibold",
   completed: "bg-secondary text-muted-foreground border-border font-semibold",
-  "sold out": "bg-red-500/10 text-red-600 border-red-500/20 font-extrabold shadow-sm",
-  "sold_out": "bg-red-500/10 text-red-600 border-red-500/20 font-extrabold shadow-sm",
-  "sold": "bg-red-500/10 text-red-600 border-red-500/20 font-extrabold shadow-sm",
+  "sold out": "bg-rose-500/15 text-rose-600 border-rose-500/30 font-extrabold shadow-sm",
+  "sold_out": "bg-rose-500/15 text-rose-600 border-rose-500/30 font-extrabold shadow-sm",
+  "sold": "bg-rose-500/15 text-rose-600 border-rose-500/30 font-extrabold shadow-sm",
+  "ended": "bg-rose-500/15 text-rose-600 border-rose-500/30 font-extrabold shadow-sm",
   rejected:
     "bg-destructive/10 text-destructive border-destructive/20 font-bold",
   blocked: "bg-destructive/10 text-destructive border-destructive/20 font-bold",
@@ -158,7 +160,7 @@ export function StatusChip({ status }: { status: string }) {
   const label =
     key === "scheduled"
       ? "Coming Soon"
-      : (key === "sold out" || key === "sold_out" || key === "sold" || key === "ended")
+      : (key === "sold out" || key === "sold_out" || key === "sold" || key === "ended" || key === "completed")
       ? "SOLD OUT"
       : status;
   return (
@@ -268,6 +270,11 @@ export function VehicleCard({
   };
 
   const isLive = vehicle.auction === "live";
+  const isSoldOut =
+    vehicle.auction === "sold out" ||
+    vehicle.auction === "sold" ||
+    vehicle.auction === "ended" ||
+    vehicle.auction === "completed";
 
   const [timeRemaining, setTimeRemaining] = useState(timeLeft(vehicle.endsAt));
 
@@ -285,6 +292,8 @@ export function VehicleCard({
         "card-lift group relative overflow-hidden rounded-2xl border transition-all duration-300 bg-card",
         isLive
           ? "border-emerald-500/40 shadow-[0_0_24px_rgba(16,185,129,0.08)] hover:shadow-[0_0_30px_rgba(16,185,129,0.18)] ring-1 ring-emerald-500/10"
+          : isSoldOut
+          ? "border-rose-500/30 opacity-90"
           : "border-border shadow-soft hover:shadow-md",
       )}
     >
@@ -340,8 +349,16 @@ export function VehicleCard({
           <span className="bg-secondary px-2.5 py-1 rounded-lg">
             {vehicle.transmission === "Automatic" ? "Auto" : "Manual"}
           </span>
-          <span className="ml-auto text-[11px] text-muted-foreground/85 flex items-center gap-1 font-semibold">
-            <Clock className="size-3 text-[#FFC700]" /> {timeRemaining}
+          <span className="ml-auto text-[11px] font-semibold">
+            {isSoldOut ? (
+              <span className="text-rose-600 dark:text-rose-400 font-extrabold flex items-center gap-1">
+                <CheckCircle2 className="size-3" /> Sold Out
+              </span>
+            ) : (
+              <span className="text-muted-foreground/85 flex items-center gap-1">
+                <Clock className="size-3 text-[#FFC700]" /> {timeRemaining}
+              </span>
+            )}
           </span>
         </div>
 
@@ -358,7 +375,7 @@ export function VehicleCard({
             </div>
             <div className="min-w-0">
               <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block">
-                Highest Bid
+                {isSoldOut ? "Winning Bid" : "Highest Bid"}
               </span>
               <span className="truncate text-sm font-black text-foreground block mt-0.5">
                 <span className="flex items-center gap-1.5">
@@ -374,13 +391,23 @@ export function VehicleCard({
             </div>
           </div>
 
-          <Link
-            to={`/dealer/vehicles/${vehicle.id}`}
-            className="rounded-xl bg-[#FFC700] hover:bg-[#FFD633] px-3.5 py-2 text-xs font-extrabold text-[#0D0E12] shadow-sm transition-all hover:scale-[1.02] cursor-pointer flex items-center gap-1.5 shrink-0"
-          >
-            <span>Bid Now</span>
-            <ChevronRight className="size-3.5 stroke-[2.5]" />
-          </Link>
+          {isSoldOut ? (
+            <Link
+              to={`/dealer/vehicles/${vehicle.id}`}
+              className="rounded-xl border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 px-3.5 py-2 text-xs font-extrabold text-rose-600 dark:text-rose-400 shadow-sm transition-all flex items-center gap-1.5 shrink-0"
+            >
+              <span>Sold Out</span>
+              <ChevronRight className="size-3.5 stroke-[2.5]" />
+            </Link>
+          ) : (
+            <Link
+              to={`/dealer/vehicles/${vehicle.id}`}
+              className="rounded-xl bg-[#FFC700] hover:bg-[#FFD633] px-3.5 py-2 text-xs font-extrabold text-[#0D0E12] shadow-sm transition-all hover:scale-[1.02] cursor-pointer flex items-center gap-1.5 shrink-0"
+            >
+              <span>{isLive ? "Bid Now" : "View Room"}</span>
+              <ChevronRight className="size-3.5 stroke-[2.5]" />
+            </Link>
+          )}
         </div>
       </div>
     </article>

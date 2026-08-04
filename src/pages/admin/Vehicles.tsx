@@ -187,11 +187,10 @@ export function AdminVehicles() {
           <button
             key={status}
             onClick={() => setStatusFilter(status)}
-            className={`rounded-2xl border px-3.5 py-2 text-xs font-extrabold transition-all cursor-pointer ${
-              active
+            className={`rounded-2xl border px-3.5 py-2 text-xs font-extrabold transition-all cursor-pointer ${active
                 ? "bg-[#FFC700] border-[#FFC700] text-[#0D0E12] shadow-sm"
                 : "border-border bg-card text-foreground hover:bg-secondary"
-            }`}
+              }`}
           >
             {status}
           </button>
