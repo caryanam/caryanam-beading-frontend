@@ -28,7 +28,6 @@ export const inspectorNav: NavItem[] = [
   { label: "Dashboard", to: "/inspector", icon: LayoutDashboard },
   { label: "Add Vehicle", to: "/inspector/add-vehicle", icon: Upload },
   { label: "My Vehicles", to: "/inspector/vehicles", icon: Car },
-  { label: "Notifications", to: "/inspector/notifications", icon: Bell },
   { label: "Profile", to: "/inspector/profile", icon: UserRound },
 ];
 

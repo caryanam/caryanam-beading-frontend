@@ -123,8 +123,8 @@ export function DealerDashboard() {
           v.vehicleStatus === "LIVE"
             ? ("live" as const)
             : (v.vehicleStatus === "SOLD OUT" || v.vehicleStatus === "SOLD_OUT" || v.vehicleStatus === "SOLD" || v.vehicleStatus === "ENDED")
-            ? ("sold out" as const)
-            : ("scheduled" as const),
+              ? ("sold out" as const)
+              : ("scheduled" as const),
         image:
           v.vehicleImage ||
           "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=400&q=80",
@@ -217,11 +217,10 @@ export function DealerDashboard() {
                 <div className="relative z-10 grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4">
                   <div className="min-w-0">
                     <span
-                      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[10px] font-extrabold uppercase tracking-wider mb-3 ${
-                        featured.auction === "live"
+                      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[10px] font-extrabold uppercase tracking-wider mb-3 ${featured.auction === "live"
                           ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-400"
                           : "border-[#FFC700]/40 bg-[#FFC700]/15 text-[#FFC700]"
-                      }`}
+                        }`}
                     >
                       {featured.auction === "live" ? (
                         <span className="relative flex size-1.5 shrink-0">
@@ -294,33 +293,7 @@ export function DealerDashboard() {
           )}
         </Panel>
 
-        <Panel
-          title="Settlements & Invoices"
-          description="Payment due schedule"
-        >
-          <ul className="space-y-3 text-sm">
-            {[
-              ["INV-3391", "₹18,15,000", "Due in 2 days", "warning"],
-              ["INV-3388", "₹6,35,000", "Due in 6 days", "warning"],
-              ["INV-3380", "₹22,40,000", "Paid & Verified", "success"],
-            ].map(([id, amt, note, type]) => (
-              <li
-                key={id}
-                className="rounded-2xl border border-border p-4 transition-all hover:border-[#FFC700]/50 bg-card shadow-soft"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <span className="font-extrabold text-foreground">{id}</span>
-                  <span className="font-extrabold text-foreground">{amt}</span>
-                </div>
-                <p
-                  className={`mt-1.5 text-xs font-bold ${type === "success" ? "text-emerald-600" : "text-amber-600"}`}
-                >
-                  {note}
-                </p>
-              </li>
-            ))}
-          </ul>
-        </Panel>
+
       </div>
 
       <Panel

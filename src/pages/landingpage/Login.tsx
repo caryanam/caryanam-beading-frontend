@@ -94,9 +94,9 @@ interface LoginProps {
 
 export function Login({
   initialMode = "login",
-  initialRole = null,
+  initialRole = "dealer",
 }: LoginProps) {
-  const [role, setRole] = useState<Role | null>(initialRole);
+  const [role, setRole] = useState<Role>(initialRole || "dealer");
   const [mode, setMode] = useState<"login" | "signup">(initialMode);
   const [showPassword, setShowPassword] = useState(false);
   const [values, setValues] = useState<Record<string, string>>({});
@@ -239,11 +239,11 @@ export function Login({
         {/* Sign In Form Container */}
         <div
           className={cn(
-            "absolute top-0 left-0 h-full w-1/2 flex flex-col justify-center px-12 transition-all duration-700 ease-in-out z-20",
+            "absolute top-0 left-0 h-full w-1/2 flex flex-col justify-start overflow-y-auto px-12 py-8 transition-all duration-700 ease-in-out z-20 no-scrollbar",
             isSignUp ? "translate-x-full opacity-0 pointer-events-none" : "opacity-100"
           )}
         >
-          <form onSubmit={submit} className="w-full max-w-[420px] mx-auto flex flex-col items-center">
+          <form onSubmit={submit} className="w-full max-w-[420px] mx-auto flex flex-col items-center my-auto">
             <Link
               to="/"
               className="inline-flex items-center gap-2 text-xs font-bold text-zinc-500 hover:text-zinc-900 transition-colors mb-6 self-start group cursor-pointer"
@@ -330,11 +330,11 @@ export function Login({
         {/* Sign Up Form Container */}
         <div
           className={cn(
-            "absolute top-0 left-0 h-full w-1/2 flex flex-col justify-center px-12 transition-all duration-700 ease-in-out z-10 opacity-0 pointer-events-none",
+            "absolute top-0 left-0 h-full w-1/2 flex flex-col justify-start overflow-y-auto px-12 py-8 transition-all duration-700 ease-in-out z-10 opacity-0 pointer-events-none no-scrollbar",
             isSignUp ? "translate-x-full opacity-100 z-30 pointer-events-auto" : ""
           )}
         >
-          <form onSubmit={submit} className="w-full max-w-[440px] mx-auto flex flex-col items-center">
+          <form onSubmit={submit} className="w-full max-w-[440px] mx-auto flex flex-col items-center my-auto">
             <Link
               to="/"
               className="inline-flex items-center gap-2 text-xs font-bold text-zinc-500 hover:text-zinc-900 transition-colors mb-4 self-start group cursor-pointer"
@@ -662,14 +662,23 @@ export function Login({
         />
         <div className="absolute top-0 left-0 w-full h-44 bg-gradient-to-b from-[#0D0E12]/80 to-zinc-50" />
 
-        {/* Top corporate brand logo */}
-        <div className="flex items-center justify-center gap-2.5 mb-6 mt-32 relative z-10">
-          <span className="relative grid size-10 place-items-center rounded-xl overflow-hidden bg-[#0D0E12] border border-[#FFC700]/40 shadow-md">
-            <img src="/logo.png" alt="Caryanam Bidding" className="size-full object-cover" />
-          </span>
-          <p className="text-xs font-extrabold tracking-[0.2em] text-[#0D0E12] uppercase">
-            Caryanam Bidding
-          </p>
+        {/* Top corporate brand logo & Back button */}
+        <div className="flex items-center justify-between w-full max-w-md mx-auto mb-4 mt-6 relative z-10 px-4">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-1.5 text-xs font-extrabold text-foreground hover:text-[#FFC700] transition-colors bg-white/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-zinc-200 shadow-sm cursor-pointer"
+          >
+            <ArrowLeft className="size-4 text-[#FFC700]" />
+            <span>Back to Home</span>
+          </Link>
+          <div className="flex items-center gap-2">
+            <span className="relative grid size-8 place-items-center rounded-xl overflow-hidden bg-[#0D0E12] border border-[#FFC700]/40 shadow-sm">
+              <img src="/logo.png" alt="Caryanam Bidding" className="size-full object-cover" />
+            </span>
+            <p className="text-xs font-extrabold tracking-[0.15em] text-[#0D0E12] uppercase">
+              Caryanam Bidding
+            </p>
+          </div>
         </div>
 
         {mode === "login" ? (

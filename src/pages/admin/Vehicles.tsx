@@ -6,6 +6,7 @@ import { DataTable, type Column } from "@/components/data-table";
 import { StatusChip } from "@/components/premium";
 import { inr } from "@/lib/mock-data";
 import { Download } from "lucide-react";
+import { API_BASE_URL } from "@/lib/api";
 import {
   getSubmittedInspections,
   approveInspection,
@@ -156,7 +157,7 @@ export function AdminVehicles() {
             )}
             {v.status !== "DRAFT" && (
               <a
-                href={`http://localhost:8080/api/inspector/inspection/${v.inspectionId}/pdf`}
+                href={`${API_BASE_URL}/api/admin/inspection/${v.inspectionId}/pdf`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1.5 rounded-xl border border-border bg-card px-3.5 py-2 text-xs font-extrabold text-foreground hover:border-[#FFC700] hover:text-[#FFC700] transition-colors shadow-soft"

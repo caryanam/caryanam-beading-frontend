@@ -1,8 +1,10 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, useRef, type ReactNode } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import {
   Bell,
+  BellOff,
   ChevronRight,
+  ExternalLink,
   LogOut,
   Menu,
   Moon,
@@ -16,11 +18,22 @@ import { clearSession, readSession, type Session } from "@/lib/session";
 import type { Role } from "@/lib/mock-data";
 import { getMyInspections } from "@/lib/api/inspector-api";
 import { getSubmittedInspections } from "@/lib/api/admin-api";
+import { getMarketplaceInspections } from "@/lib/api/dealer-api";
 
 export interface NavItem {
   label: string;
   to: string;
   icon: LucideIcon;
+}
+
+export interface NotificationPopupItem {
+  id: string | number;
+  rawId: number;
+  title: string;
+  meta: string;
+  time: string;
+  status: string;
+  link: string;
 }
 
 export function AppShell({
@@ -42,57 +55,204 @@ export function AppShell({
   const [open, setOpen] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notificationItems, setNotificationItems] = useState<NotificationPopupItem[]>([]);
+  const [readIds, setReadIds] = useState<number[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem("read_notification_ids") || "[]");
+    } catch {
+      return [];
+    }
+  });
+  const notifRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setSession(readSession(role));
   }, [role]);
 
+  // Click outside to close notifications dropdown
   useEffect(() => {
-    const fetchNotificationCount = async () => {
-      try {
-        const readIds = JSON.parse(
-          localStorage.getItem("read_notification_ids") || "[]",
-        );
-        if (role === "inspector") {
-          const res = await getMyInspections();
-          if (res.success && res.data) {
-            // Count unread submitted, approved, or rejected reports for the inspector
-            const activeNotifications = res.data.filter(
-              (item: { status: string; inspectionId: number }) =>
-                (item.status === "SUBMITTED" ||
-                  item.status === "APPROVED" ||
-                  item.status === "REJECTED") &&
-                !readIds.includes(item.inspectionId),
-            );
-            setUnreadCount(activeNotifications.length);
-          }
-        } else if (role === "admin") {
-          const res = await getSubmittedInspections();
-          if (res.success && res.data) {
-            // Count unread pending submitted reports needing attention for the admin
-            const activeNotifications = res.data.filter(
-              (item: { status: string; inspectionId: number }) =>
-                item.status === "SUBMITTED" &&
-                !readIds.includes(item.inspectionId),
-            );
-            setUnreadCount(activeNotifications.length);
-          }
-        }
-      } catch (err) {
-        console.error("Failed to load notifications count", err);
+    const handleClickOutside = (event: MouseEvent) => {
+      if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
+        setShowNotifications(false);
       }
     };
+    if (showNotifications) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showNotifications]);
 
-    fetchNotificationCount();
+  const fetchNotifications = async () => {
+    try {
+      const currentReadIds: number[] = JSON.parse(
+        localStorage.getItem("read_notification_ids") || "[]"
+      );
+      setReadIds(currentReadIds);
+
+      if (role === "inspector") {
+        const res = await getMyInspections();
+        if (res.success && res.data) {
+          const list: NotificationPopupItem[] = res.data
+            .filter((ins) => ins.status !== "DRAFT" && ins.status !== "IN_PROGRESS")
+            .map((ins) => {
+              const carName = `${ins.brand || ""} ${ins.model || ""} ${ins.variant || ""}`.trim();
+              let notifTitle = "";
+              let notifMeta = "";
+              if (ins.status === "APPROVED") {
+                notifTitle = `Inspection Approved: ${carName}`;
+                notifMeta = `Vehicle ${ins.vehicleNumber} approved by Admin and ready for live bidding.`;
+              } else if (ins.status === "REJECTED") {
+                notifTitle = `Inspection Rejected: ${carName}`;
+                notifMeta = `Vehicle ${ins.vehicleNumber} rejected. Reason: ${ins.rejectionReason || "Please verify details."}`;
+              } else {
+                notifTitle = `Inspection Submitted: ${carName}`;
+                notifMeta = `Report for ${ins.vehicleNumber} submitted successfully and pending approval.`;
+              }
+              const timeStr = ins.submittedAt
+                ? new Date(ins.submittedAt).toLocaleString("en-IN", {
+                    month: "short",
+                    day: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })
+                : "Recently";
+
+              return {
+                id: ins.inspectionId,
+                rawId: ins.inspectionId,
+                title: notifTitle,
+                meta: notifMeta,
+                time: timeStr,
+                status: ins.status,
+                link: "/inspector/vehicles",
+              };
+            });
+
+          list.sort((a, b) => b.rawId - a.rawId);
+          setNotificationItems(list);
+          setUnreadCount(list.filter((n) => !currentReadIds.includes(n.rawId)).length);
+        }
+      } else if (role === "dealer") {
+        const res = await getMarketplaceInspections();
+        if (res.success && res.data) {
+          const list: NotificationPopupItem[] = res.data.map((ins) => {
+            const carName = `${ins.brand || ""} ${ins.model || ""} ${ins.variant || ""}`.trim();
+            let notifTitle = "";
+            let notifMeta = "";
+            const vStatus = ins.vehicleStatus || "READY_FOR_AUCTION";
+
+            if (vStatus === "AUCTION_LIVE") {
+              notifTitle = `🔥 Live Auction: ${carName}`;
+              notifMeta = `Bidding is LIVE now for vehicle ${ins.vehicleNumber}! Highest bid: ₹${ins.currentHighestBid || ins.suggestedPrice || 0}`;
+            } else if (vStatus === "AUCTION_COMPLETED") {
+              notifTitle = `Auction Closed: ${carName}`;
+              notifMeta = `Bidding has completed for vehicle ${ins.vehicleNumber}.`;
+            } else {
+              notifTitle = `🚗 New Vehicle: ${carName}`;
+              notifMeta = `Vehicle ${ins.vehicleNumber} added to marketplace. Suggested price: ₹${ins.suggestedPrice || 0}`;
+            }
+
+            const timeStr = ins.submittedAt
+              ? new Date(ins.submittedAt).toLocaleString("en-IN", {
+                  month: "short",
+                  day: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+              : "Recently";
+
+            return {
+              id: ins.inspectionId,
+              rawId: ins.inspectionId,
+              title: notifTitle,
+              meta: notifMeta,
+              time: timeStr,
+              status: vStatus,
+              link: `/dealer/marketplace`,
+            };
+          });
+
+          list.sort((a, b) => b.rawId - a.rawId);
+          setNotificationItems(list);
+          setUnreadCount(list.filter((n) => !currentReadIds.includes(n.rawId)).length);
+        }
+      } else if (role === "admin") {
+        const res = await getSubmittedInspections();
+        if (res.success && res.data) {
+          const list: NotificationPopupItem[] = res.data
+            .filter((ins: any) => ins.status === "SUBMITTED")
+            .map((ins: any) => {
+              const carName = `${ins.brand || ""} ${ins.model || ""} ${ins.variant || ""}`.trim();
+              const timeStr = ins.submittedAt
+                ? new Date(ins.submittedAt).toLocaleString("en-IN", {
+                    month: "short",
+                    day: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })
+                : "Recently";
+
+              return {
+                id: ins.inspectionId,
+                rawId: ins.inspectionId,
+                title: `Pending Approval: ${carName}`,
+                meta: `Vehicle ${ins.vehicleNumber} submitted by ${ins.inspectorName || "Inspector"} requires approval.`,
+                time: timeStr,
+                status: ins.status,
+                link: "/admin/vehicles",
+              };
+            });
+
+          list.sort((a, b) => b.rawId - a.rawId);
+          setNotificationItems(list);
+          setUnreadCount(list.filter((n) => !currentReadIds.includes(n.rawId)).length);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to load notifications", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
 
     const handleStorageChange = () => {
-      fetchNotificationCount();
+      fetchNotifications();
     };
     window.addEventListener("storage", handleStorageChange);
     return () => {
       window.removeEventListener("storage", handleStorageChange);
     };
   }, [role, pathname]);
+
+  const markSingleAsRead = (rawId: number, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const currentRead: number[] = JSON.parse(
+      localStorage.getItem("read_notification_ids") || "[]"
+    );
+    if (!currentRead.includes(rawId)) {
+      const updated = [...currentRead, rawId];
+      localStorage.setItem("read_notification_ids", JSON.stringify(updated));
+      setReadIds(updated);
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+      window.dispatchEvent(new Event("storage"));
+    }
+  };
+
+  const markAllAsRead = () => {
+    const allIds = notificationItems.map((n) => n.rawId);
+    const currentRead: number[] = JSON.parse(
+      localStorage.getItem("read_notification_ids") || "[]"
+    );
+    const updated = Array.from(new Set([...currentRead, ...allIds]));
+    localStorage.setItem("read_notification_ids", JSON.stringify(updated));
+    setReadIds(updated);
+    setUnreadCount(0);
+    window.dispatchEvent(new Event("storage"));
+  };
 
   const [expiredRole, setExpiredRole] = useState<string | null>(null);
 
@@ -297,22 +457,104 @@ export function AppShell({
                 <Sun className="size-4 text-foreground hidden dark:block" />
               </button>
 
-              <Link
-                to={
-                  role === "admin"
-                    ? "/admin/vehicles"
-                    : "/inspector/notifications"
-                }
-                className="relative grid size-9 place-items-center rounded-full border border-border bg-card shadow-soft transition-all hover:border-[#FFC700] hover:bg-[#FFC700]/10 cursor-pointer"
-                title="Notifications"
-              >
-                <Bell className="size-4 text-foreground" />
-                {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 grid size-4 min-w-4 place-items-center rounded-full bg-[#FFC700] px-1 text-[9px] font-extrabold text-[#0D0E12] shadow-sm animate-pulse">
-                    {unreadCount}
-                  </span>
+              {/* Notification Popover Dropdown */}
+              <div className="relative" ref={notifRef}>
+                <button
+                  onClick={() => setShowNotifications((prev) => !prev)}
+                  className={cn(
+                    "relative grid size-9 place-items-center rounded-full border border-border bg-card shadow-soft transition-all cursor-pointer",
+                    showNotifications
+                      ? "border-[#FFC700] bg-[#FFC700]/10 text-[#FFC700]"
+                      : "hover:border-[#FFC700] hover:bg-[#FFC700]/10 text-foreground"
+                  )}
+                  title="Notifications"
+                >
+                  <Bell className="size-4" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 grid size-4 min-w-4 place-items-center rounded-full bg-[#FFC700] px-1 text-[9px] font-extrabold text-[#0D0E12] shadow-sm animate-pulse">
+                      {unreadCount}
+                    </span>
+                  )}
+                </button>
+
+                {showNotifications && (
+                  <div className="absolute right-0 mt-3 w-80 sm:w-96 rounded-3xl border border-border bg-card/95 backdrop-blur-xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.3)] z-50 animate-in fade-in-50 zoom-in-95 duration-150">
+                    <div className="flex items-center justify-between border-b border-border pb-3 px-1">
+                      <div className="flex items-center gap-2">
+                        <p className="font-extrabold text-sm text-foreground">Notifications</p>
+                        {unreadCount > 0 && (
+                          <span className="rounded-full bg-[#FFC700] px-2 py-0.5 text-[10px] font-black text-[#0D0E12]">
+                            {unreadCount} UNREAD
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3">
+                        {unreadCount > 0 && (
+                          <button
+                            onClick={markAllAsRead}
+                            className="text-[11px] font-bold text-[#FFC700] hover:underline cursor-pointer"
+                          >
+                            Mark all as read
+                          </button>
+                        )}
+                        <button
+                          onClick={() => setShowNotifications(false)}
+                          className="rounded-lg p-1 text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
+                          title="Close"
+                        >
+                          <X className="size-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 max-h-[360px] sm:max-h-[420px] overflow-y-auto space-y-2 pr-1">
+                      {notificationItems.length === 0 ? (
+                        <div className="py-8 text-center text-muted-foreground">
+                          <BellOff className="size-8 mx-auto opacity-30 mb-2" />
+                          <p className="text-xs font-semibold">No recent notifications</p>
+                        </div>
+                      ) : (
+                        notificationItems.map((n) => {
+                          const isRead = readIds.includes(n.rawId);
+                          let dotBg = "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]";
+                          if (n.status === "REJECTED") {
+                            dotBg = "bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]";
+                          } else if (n.status === "SUBMITTED" || n.status === "READY_FOR_AUCTION") {
+                            dotBg = "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]";
+                          }
+
+                          return (
+                            <div
+                              key={n.id}
+                              onClick={(e) => markSingleAsRead(n.rawId, e)}
+                              className={cn(
+                                "group flex items-start gap-3 rounded-2xl p-3 border transition-all cursor-pointer",
+                                isRead
+                                  ? "border-transparent hover:bg-secondary/60 opacity-60"
+                                  : "border-[#FFC700]/30 bg-[#FFC700]/5 hover:bg-[#FFC700]/10 opacity-100"
+                              )}
+                              title={isRead ? "Read notification" : "Click to mark as read"}
+                            >
+                              <span className={cn("mt-1.5 size-2.5 shrink-0 rounded-full transition-all", dotBg)} />
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center justify-between gap-2">
+                                  <p className="truncate text-xs font-extrabold text-foreground group-hover:text-[#FFC700] transition-colors">
+                                    {n.title}
+                                  </p>
+                                  <span className="text-[9px] font-bold text-muted-foreground shrink-0">{n.time}</span>
+                                </div>
+                                <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
+                                  {n.meta}
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
                 )}
-              </Link>
+              </div>
 
               {/* User Profile Info and Avatar */}
               <div className="flex items-center gap-2.5">

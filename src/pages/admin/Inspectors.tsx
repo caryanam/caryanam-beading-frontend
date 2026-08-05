@@ -5,7 +5,7 @@ import { AppShell } from "@/components/app-shell";
 import { adminNav } from "@/components/nav-config";
 import { DataTable, type Column } from "@/components/data-table";
 import { StatusChip } from "@/components/premium";
-import { getSubmittedInspections } from "@/lib/api/admin-api";
+import { getRegisteredInspectors } from "@/lib/api/admin-api";
 
 interface Inspector {
   id: number;
@@ -24,25 +24,14 @@ export function AdminInspectors() {
     const fetchInspectors = async () => {
       setLoading(true);
       try {
-        const res = await getSubmittedInspections();
+        const res = await getRegisteredInspectors();
         if (res.success && res.data) {
-          // Aggregate by inspectorName to calculate total vehicle uploads per inspector
-          const group: Record<string, { name: string; uploads: number }> = {};
-          res.data.forEach((ins: any) => {
-            const name = ins.inspectorName || "N/A";
-            if (!group[name]) {
-              group[name] = { name, uploads: 0 };
-            }
-            group[name].uploads += 1;
-          });
-
-          // Map aggregated values into dynamic inspector profiles
-          const list = Object.values(group).map((item, idx) => ({
-            id: idx + 1,
-            name: item.name,
-            email: `${item.name.toLowerCase().replace(/\s+/g, "")}@caryanam.com`,
-            mobile: `+91 9876${idx} ${10000 + idx}`,
-            uploads: item.uploads,
+          const list = res.data.map((item) => ({
+            id: item.id,
+            name: item.fullName || "N/A",
+            email: item.email || "N/A",
+            mobile: item.mobileNumber || "N/A",
+            uploads: item.uploads ?? 0,
             status: "active",
           }));
           setInspectors(list);
@@ -97,8 +86,8 @@ export function AdminInspectors() {
         <DataTable
           rows={inspectors}
           columns={columns}
-          searchKeys={["name", "mobile"]}
-          placeholder="Search by inspector name, mobile..."
+          searchKeys={["name", "email", "mobile"]}
+          placeholder="Search by inspector name, email, mobile..."
           actions={null}
         />
       )}

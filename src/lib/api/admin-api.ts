@@ -82,6 +82,25 @@ export interface DealerWonBid {
   status: string;
 }
 
+export interface AdminInspector {
+  id: number;
+  fullName: string;
+  email: string;
+  mobileNumber: string;
+  role: string;
+  uploads?: number;
+}
+
+export const getRegisteredInspectors = async (): Promise<{ success: boolean; data: AdminInspector[] }> => {
+  const res = await adminApiClient.get("/api/admin/inspectors");
+  return res.data;
+};
+
+export const deleteAdminInspector = async (id: number): Promise<{ success: boolean; message?: string }> => {
+  const res = await adminApiClient.delete(`/api/admin/inspector/${id}`);
+  return res.data;
+};
+
 export interface AdminDealer {
   id: number;
   dealershipName: string;

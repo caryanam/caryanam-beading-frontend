@@ -494,6 +494,22 @@ function ImageSlotUploader({
   );
 }
 
+const isValidRegNo = (regNo: string): boolean => {
+  if (!regNo) return false;
+  const clean = regNo.replace(/\s+/g, "").toUpperCase();
+  // Standard format (e.g. MH12AB1234 or DL1C1234 or KA051234)
+  const standardPattern = /^[A-Z]{2}[0-9]{1,2}[A-Z]{0,3}[0-9]{1,4}$/;
+  // BH series format (e.g. 22BH1234A)
+  const bhPattern = /^[0-9]{2}BH[0-9]{4}[A-Z]{1,2}$/;
+
+  const isPureNumeric = /^\d+$/.test(clean);
+  const isPureAlpha = /^[A-Z]+$/.test(clean);
+
+  if (isPureNumeric || isPureAlpha) return false;
+
+  return (standardPattern.test(clean) || bhPattern.test(clean)) && clean.length >= 6 && clean.length <= 12;
+};
+
 export function InspectorAddVehicle() {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
@@ -563,6 +579,8 @@ export function InspectorAddVehicle() {
 
   // Form State matching PDF inputs
   const [basicDetails, setBasicDetails] = useState({
+    customerName: "",
+    customerMobile: "",
     ownerName: "1st Owner",
     brand: "",
     model: "",
@@ -628,18 +646,47 @@ export function InspectorAddVehicle() {
     const newErrors: Record<string, string> = {};
 
     if (stepIndex === 0) {
-      if (!basicDetails.regNo) newErrors.regNo = "Registration Number is required.";
-      if (!basicDetails.brand) newErrors.brand = "Vehicle Brand / Make is required.";
-      if (!basicDetails.model) newErrors.model = "Model Name is required.";
-      if (!basicDetails.variant) newErrors.variant = "Model Variant is required.";
+      if (!basicDetails.customerName) {
+        newErrors.customerName = "Customer Name is required.";
+      } else if (basicDetails.customerName.trim().length < 2) {
+        newErrors.customerName = "Customer Name must be at least 2 characters.";
+      }
+      if (!basicDetails.customerMobile) {
+        newErrors.customerMobile = "Customer Mobile Number is required.";
+      } else if (!/^[6-9]\d{9}$/.test(basicDetails.customerMobile)) {
+        newErrors.customerMobile = "Enter a valid 10-digit mobile number starting with 6, 7, 8, or 9.";
+      }
+      if (!basicDetails.regNo) {
+        newErrors.regNo = "Registration Number is required.";
+      } else if (!isValidRegNo(basicDetails.regNo)) {
+        newErrors.regNo = "Enter a valid registration number (e.g., MH12AB1234).";
+      }
+      if (!basicDetails.brand) {
+        newErrors.brand = "Vehicle Brand / Make is required.";
+      } else if (basicDetails.brand.trim().length < 2) {
+        newErrors.brand = "Vehicle Brand / Make must be at least 2 characters.";
+      }
+      if (!basicDetails.model) {
+        newErrors.model = "Model Name is required.";
+      } else if (basicDetails.model.trim().length < 2) {
+        newErrors.model = "Model Name must be at least 2 characters.";
+      }
+      if (!basicDetails.variant) {
+        newErrors.variant = "Model Variant is required.";
+      } else if (basicDetails.variant.trim().length < 2) {
+        newErrors.variant = "Model Variant must be at least 2 characters.";
+      }
       if (!basicDetails.year) newErrors.year = "Manufacturing Year is required.";
       if (!basicDetails.fuel) newErrors.fuel = "Fuel Type is required.";
       if (!basicDetails.transmission) newErrors.transmission = "Transmission is required.";
       if (!basicDetails.odometer) newErrors.odometer = "Odometer Reading is required.";
       if (!basicDetails.ownerName) newErrors.ownerName = "Owner Profile Status is required.";
       if (!basicDetails.insurance) newErrors.insurance = "Insurance Validity is required.";
-      if (!basicDetails.evaluator) newErrors.evaluator = "Evaluator Inspector Code is required.";
-      if (!suggestedPrice) newErrors.suggestedPrice = "Suggested Price is required.";
+      if (!suggestedPrice) {
+        newErrors.suggestedPrice = "Suggested Price is required.";
+      } else if (isNaN(Number(suggestedPrice.replace(/,/g, "")))) {
+        newErrors.suggestedPrice = "Please enter a valid numeric price.";
+      }
     } else if (stepIndex === 1) {
       const extSlots = ["frontSide", "rightSide", "rearSide", "leftSide", "roofTop"];
       extSlots.forEach((slot) => {
@@ -721,6 +768,8 @@ export function InspectorAddVehicle() {
 
         if (v) {
           setBasicDetails({
+            customerName: (v as any).customerName || v.ownerName || "",
+            customerMobile: (v as any).customerMobileNumber || "",
             ownerName: v.ownerName || "1st Owner",
             brand: v.brand || "",
             model: v.model || "",
@@ -879,11 +928,11 @@ export function InspectorAddVehicle() {
   };
 
   const saveDraftApiCall = async (showToast = true): Promise<any> => {
-    if (!basicDetails.regNo) {
+    if (!basicDetails.regNo || !isValidRegNo(basicDetails.regNo)) {
       toast.error(
-        "Registration Number is mandatory to save inspection drafts.",
+        "Enter a valid registration number (e.g., MH12AB1234).",
       );
-      throw new Error("Missing registration number");
+      throw new Error("Invalid registration number");
     }
 
     setSaving(true);
@@ -891,7 +940,9 @@ export function InspectorAddVehicle() {
       const payload: InspectionDraftRequest = {
         vehicleDetails: {
           vehicleNumber: basicDetails.regNo,
-          ownerName: basicDetails.ownerName || "1st Owner",
+          ownerName: basicDetails.customerName || basicDetails.ownerName || "1st Owner",
+          customerName: basicDetails.customerName,
+          customerMobileNumber: basicDetails.customerMobile,
           brand: basicDetails.brand,
           model: basicDetails.model,
           variant: basicDetails.variant,
@@ -1136,7 +1187,15 @@ export function InspectorAddVehicle() {
       return copy;
     });
   const handleSuggestedPriceChange = (val: string) => {
-    setSuggestedPrice(val);
+    // Block alphabetic & special characters - allow only digits and single optional decimal point
+    const cleaned = val.replace(/[^0-9.]/g, "");
+    const parts = cleaned.split(".");
+    let formattedVal = parts[0];
+    if (parts.length > 1) {
+      formattedVal += "." + parts.slice(1).join("");
+    }
+
+    setSuggestedPrice(formattedVal);
     if (errors.suggestedPrice) {
       setErrors((prev) => {
         const copy = { ...prev };
@@ -1236,6 +1295,55 @@ export function InspectorAddVehicle() {
               description="Capture legal registration certificate and owner profile credentials."
             >
               <div className="grid gap-4.5 sm:grid-cols-2 lg:grid-cols-3">
+                <div>
+                  <label className="block text-xs font-bold text-foreground mb-1.5">
+                    Customer Name <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={basicDetails.customerName}
+                    onChange={(e) => setBasic("customerName", e.target.value)}
+                    placeholder="e.g. Rahul Sharma"
+                    className={cn(
+                      "w-full rounded-2xl border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all focus:ring-2 shadow-soft",
+                      errors.customerName
+                        ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
+                        : "border-border hover:border-[#FFC700]/60 focus:border-[#FFC700] focus:ring-[#FFC700]/30",
+                    )}
+                  />
+                  {errors.customerName && (
+                    <span className="mt-1 block text-xs font-bold text-red-500 px-1">{errors.customerName}</span>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-foreground mb-1.5">
+                    Customer Mobile Number <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="tel"
+                    maxLength={10}
+                    value={basicDetails.customerMobile}
+                    onChange={(e) => {
+                      const numeric = e.target.value.replace(/\D/g, "");
+                      if (numeric.length > 0 && /^[0-5]/.test(numeric)) {
+                        return;
+                      }
+                      setBasic("customerMobile", numeric.slice(0, 10));
+                    }}
+                    placeholder="e.g. 9876543210"
+                    className={cn(
+                      "w-full rounded-2xl border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all focus:ring-2 shadow-soft",
+                      errors.customerMobile
+                        ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
+                        : "border-border hover:border-[#FFC700]/60 focus:border-[#FFC700] focus:ring-[#FFC700]/30",
+                    )}
+                  />
+                  {errors.customerMobile && (
+                    <span className="mt-1 block text-xs font-bold text-red-500 px-1">{errors.customerMobile}</span>
+                  )}
+                </div>
+
                 <div>
                   <label className="block text-xs font-bold text-foreground mb-1.5">
                     Registration Number <span className="text-rose-500">*</span>
@@ -1484,8 +1592,18 @@ export function InspectorAddVehicle() {
                   </label>
                   <input
                     type="text"
+                    inputMode="decimal"
                     value={suggestedPrice}
                     onChange={(e) => handleSuggestedPriceChange(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (
+                        !/[0-9.]/.test(e.key) &&
+                        !["Backspace", "Delete", "ArrowLeft", "ArrowRight", "Tab", "Enter"].includes(e.key) &&
+                        !(e.ctrlKey || e.metaKey)
+                      ) {
+                        e.preventDefault();
+                      }
+                    }}
                     placeholder="e.g. 350000"
                     className={cn(
                       "w-full rounded-2xl border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all focus:ring-2 shadow-soft",
@@ -1496,27 +1614,6 @@ export function InspectorAddVehicle() {
                   />
                   {errors.suggestedPrice && (
                     <span className="mt-1 block text-xs font-bold text-red-500 px-1">{errors.suggestedPrice}</span>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-foreground mb-1.5">
-                    Evaluator Inspector Code <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={basicDetails.evaluator}
-                    onChange={(e) => setBasic("evaluator", e.target.value)}
-                    placeholder="e.g. PRASHANT238"
-                    className={cn(
-                      "w-full rounded-2xl border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all focus:ring-2 shadow-soft",
-                      errors.evaluator
-                        ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
-                        : "border-border hover:border-[#FFC700]/60 focus:border-[#FFC700] focus:ring-[#FFC700]/30",
-                    )}
-                  />
-                  {errors.evaluator && (
-                    <span className="mt-1 block text-xs font-bold text-red-500 px-1">{errors.evaluator}</span>
                   )}
                 </div>
               </div>
