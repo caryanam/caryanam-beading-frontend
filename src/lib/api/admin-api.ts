@@ -161,3 +161,18 @@ export const getAdminBidHistory = async (id: number): Promise<{ success: boolean
   const res = await adminApiClient.get(`/api/admin/inspection/${id}/bids`);
   return res.data;
 };
+
+export const downloadAdminInspectionPdf = async (id: number) => {
+  const res = await adminApiClient.get(`/api/admin/inspection/${id}/pdf`, {
+    responseType: "blob",
+  });
+  const blob = new Blob([res.data], { type: "application/pdf" });
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.setAttribute("download", `Inspection_Report_${id}.pdf`);
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(url);
+};

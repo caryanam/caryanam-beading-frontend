@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
 import { adminNav } from "@/components/nav-config";
 import { Panel, StatusChip } from "@/components/premium";
-import { getSubmittedInspections, type AdminInspectionSummary } from "@/lib/api/admin-api";
+import { getSubmittedInspections, downloadAdminInspectionPdf, type AdminInspectionSummary } from "@/lib/api/admin-api";
 import { API_BASE_URL } from "@/lib/api";
 
 export function AdminReports() {
@@ -34,9 +34,9 @@ export function AdminReports() {
   }, []);
 
   const downloadReport = (id: number) => {
-    const pdfUrl = `${API_BASE_URL}/api/inspector/inspection/${id}/pdf`;
+    const pdfUrl = `${API_BASE_URL}/api/admin/inspection/${id}/pdf`;
     window.open(pdfUrl, "_blank");
-    toast.success("Downloading PDF report...");
+    toast.success("Opening PDF report in new tab...");
   };
 
   return (

@@ -142,6 +142,8 @@ const chipStyles: Record<string, string> = {
   scheduled:
     "bg-[#FFC700] text-[#0D0E12] border-[#FFC700] font-extrabold shadow-sm",
   draft: "bg-secondary text-muted-foreground border-border font-semibold",
+  "in_progress": "bg-secondary text-muted-foreground border-border font-semibold",
+  "in progress": "bg-secondary text-muted-foreground border-border font-semibold",
   completed: "bg-secondary text-muted-foreground border-border font-semibold",
   "sold out": "bg-rose-500/15 text-rose-600 border-rose-500/30 font-extrabold shadow-sm",
   "sold_out": "bg-rose-500/15 text-rose-600 border-rose-500/30 font-extrabold shadow-sm",
@@ -156,9 +158,11 @@ const chipStyles: Record<string, string> = {
 };
 
 export function StatusChip({ status }: { status: string }) {
-  const key = status.toLowerCase();
+  const key = (status || "").toLowerCase();
   const label =
-    key === "scheduled"
+    (key === "draft" || key === "in_progress" || key === "in progress")
+      ? "Draft"
+      : key === "scheduled"
       ? "Coming Soon"
       : (key === "sold out" || key === "sold_out" || key === "sold" || key === "ended" || key === "completed")
       ? "SOLD OUT"

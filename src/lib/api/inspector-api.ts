@@ -36,6 +36,8 @@ export interface VehicleDraft {
   id?: number;
   vehicleNumber: string;
   ownerName?: string;
+  customerName?: string;
+  customerMobileNumber?: string;
   brand?: string;
   model?: string;
   variant?: string;

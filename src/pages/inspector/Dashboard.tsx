@@ -184,12 +184,12 @@ export function InspectorDashboard() {
           ) : (
             <ul className="divide-y divide-border">
               {inspections.slice(0, 5).map((v) => {
-                // Normalize status to lowercase strings for StatusChip styling
-                let chipStatus: any = "pending";
-                if (v.status === "APPROVED") chipStatus = "approved";
-                else if (v.status === "REJECTED") chipStatus = "rejected";
-                else if (v.status === "DRAFT") chipStatus = "draft";
-                else if (v.status === "SUBMITTED") chipStatus = "submitted";
+                const s = (v.status || "").toUpperCase();
+                let chipStatus = "draft";
+                if (s === "APPROVED") chipStatus = "approved";
+                else if (s === "REJECTED") chipStatus = "rejected";
+                else if (s === "SUBMITTED") chipStatus = "submitted";
+                else if (s === "DRAFT" || s === "IN_PROGRESS") chipStatus = "draft";
 
                 return (
                   <li key={v.inspectionId} className="flex items-center gap-4 py-4 first:pt-0 last:pb-0">

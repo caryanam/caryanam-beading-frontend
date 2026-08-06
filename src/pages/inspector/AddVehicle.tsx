@@ -34,7 +34,7 @@ const steps = [
   { title: "Exterior Body", subtitle: "32-point panel & side photos" },
   { title: "Mechanical", subtitle: "Engine, oil & motor bay photos" },
   { title: "Tyres & Emergency", subtitle: "Tyre tread & wheel photos" },
-  { title: "Interior & Media", subtitle: "Dashboard, odometer & PDF report" },
+  { title: "Interior & Media", subtitle: "Odometer & PDF report" },
 ];
 
 /* Exact parameters extracted from Car Tattva Used Car Inspection PDF */
@@ -182,7 +182,7 @@ const slotToCategoryMap: Record<string, string> = {
   leftSide: "Left",
   roofTop: "Roof",
   engineImg: "Engine",
-  batteryImg: "Interior",
+  batteryImg: "Battery",
   rfTyreImg: "Front Right",
   rrTyreImg: "Rear Right",
   lrTyreImg: "Rear Left",
@@ -190,10 +190,29 @@ const slotToCategoryMap: Record<string, string> = {
   spareWheelImg: "Spare",
   tyresGeneralImg: "Tyres",
   odometerImg: "Odometer",
-  dashboardImg: "Dashboard",
   acImg: "AC Control",
   clusterImg: "Instrument Cluster",
   musicSystemImg: "Music System",
+};
+
+const photoTypeToSlotKeyMap: Record<string, string> = {
+  FRONT_VIEW: "frontSide",
+  RIGHT_FRONT_VIEW: "rightSide",
+  REAR_VIEW: "rearSide",
+  LEFT_FRONT_VIEW: "leftSide",
+  ROOF_VIEW: "roofTop",
+  ENGINE_IMAGE: "engineImg",
+  BATTERY_IMAGE: "batteryImg",
+  FRONT_RIGHT_TYRE: "rfTyreImg",
+  REAR_RIGHT_TYRE: "rrTyreImg",
+  REAR_LEFT_TYRE: "lrTyreImg",
+  FRONT_LEFT_TYRE: "lfTyreImg",
+  SPARE_WHEEL: "spareWheelImg",
+  TYRES_OVERVIEW: "tyresGeneralImg",
+  ODOMETER_IMAGE: "odometerImg",
+  AC_CONTROL_IMAGE: "acImg",
+  INSTRUMENT_CLUSTER_IMAGE: "clusterImg",
+  MUSIC_SYSTEM_IMAGE: "musicSystemImg",
 };
 
 const mapCondition = (cond: string): string => {
@@ -332,14 +351,6 @@ const imageSlotsConfig = [
     pdfSection: "INTERIOR AND ELECTRICAL",
     sample:
       "https://images.unsplash.com/photo-1517524008697-84bbe3c3fd98?auto=format&fit=crop&w=800&q=80",
-  },
-  {
-    key: "dashboardImg",
-    label: "DASHBOARD IMG",
-    step: 4,
-    pdfSection: "INTERIOR AND ELECTRICAL",
-    sample:
-      "https://images.unsplash.com/photo-1502877338535-766e1452684a?auto=format&fit=crop&w=800&q=80",
   },
   {
     key: "acImg",
@@ -726,7 +737,7 @@ export function InspectorAddVehicle() {
       if (!electricalState["Full Battery Number"]) newErrors["Full Battery Number"] = "Full Battery Number is required.";
       if (!electricalState["AC"]) newErrors["AC"] = "AC Cooling Performance is required.";
 
-      const intSlots = ["odometerImg", "dashboardImg", "acImg", "clusterImg", "musicSystemImg"];
+      const intSlots = ["odometerImg", "acImg", "clusterImg", "musicSystemImg"];
       intSlots.forEach((slot) => {
         if (!partImages[slot]) {
           const config = imageSlotsConfig.find((c) => c.key === slot);
@@ -791,10 +802,15 @@ export function InspectorAddVehicle() {
         }
 
         if (details.ratings) {
-          setExteriorRating(details.ratings.exteriorRating || 4);
-          setMechanicalRating(details.ratings.mechanicalRating || 5);
-          setTyreRating(details.ratings.tyreRating || 4);
-          setElectricalRating(details.ratings.interiorRating || 4);
+          const r = details.ratings;
+          const ext = r.exterior ?? r.exteriorRating;
+          const mech = r.mechanical ?? r.mechanicalRating;
+          const tyr = r.tyre ?? r.tyreRating;
+          const int = r.interior ?? r.interiorRating;
+          if (ext != null) setExteriorRating(Math.round(ext));
+          if (mech != null) setMechanicalRating(Math.round(mech));
+          if (tyr != null) setTyreRating(Math.round(tyr));
+          if (int != null) setElectricalRating(Math.round(int));
         }
 
         if (details.exteriorPanelDetails) {
@@ -904,17 +920,42 @@ export function InspectorAddVehicle() {
         if (details.inspectionPhotos) {
           const imageMap: Record<string, string> = {};
           const checklistImageMap: Record<string, string> = {};
+
+          const allChecklistNames = [
+            ...exteriorPanels,
+            ...mechanicalItems.map((m) => m.name),
+            ...electricalItems,
+            "Battery Company",
+            "Full Battery Number",
+          ];
+
           details.inspectionPhotos.forEach((img: any) => {
-            const key = Object.keys(slotToCategoryMap).find(
-              (k) => slotToCategoryMap[k] === img.imageCategory,
-            );
-            if (key) {
-              imageMap[key] = img.imageUrl;
-            } else {
-              // Map custom category images (e.g. electrical/interior items) to checklist images state
-              checklistImageMap[img.imageCategory] = img.imageUrl;
+            if (!img.imageUrl) return;
+
+            let slotKey = img.photoType ? photoTypeToSlotKeyMap[img.photoType] : undefined;
+            if (!slotKey) {
+              const cat = img.imageCategory || img.displayName || "";
+              slotKey = Object.keys(slotToCategoryMap).find(
+                (k) => slotToCategoryMap[k].toLowerCase() === cat.toLowerCase()
+              );
+            }
+
+            if (slotKey) {
+              imageMap[slotKey] = img.imageUrl;
+            }
+
+            const rawCat = img.imageCategory || img.displayName;
+            if (rawCat) {
+              checklistImageMap[rawCat] = img.imageUrl;
+              const matchName = allChecklistNames.find(
+                (name) => name.trim().toLowerCase() === rawCat.trim().toLowerCase()
+              );
+              if (matchName) {
+                checklistImageMap[matchName] = img.imageUrl;
+              }
             }
           });
+
           setPartImages((p) => ({ ...p, ...imageMap }));
           setPanelImages((p) => ({ ...p, ...checklistImageMap }));
         }
@@ -951,7 +992,7 @@ export function InspectorAddVehicle() {
           transmission: basicDetails.transmission,
           odometerReading: parseInt(basicDetails.odometer) || undefined,
           insuranceStatus: basicDetails.insurance,
-          inspectorCode: basicDetails.evaluator,
+          inspectorCode: basicDetails.evaluator || "",
           suggestedPrice:
             parseFloat(suggestedPrice.replace(/,/g, "")) || undefined,
         },
@@ -1139,7 +1180,7 @@ export function InspectorAddVehicle() {
     } catch (err: any) {
       toast.error(
         err.response?.data?.message ||
-          "Submission failed. Ensure all mandatory images and sections are completed.",
+        "Submission failed. Ensure all mandatory images and sections are completed.",
       );
     }
   };
@@ -1326,10 +1367,8 @@ export function InspectorAddVehicle() {
                     value={basicDetails.customerMobile}
                     onChange={(e) => {
                       const numeric = e.target.value.replace(/\D/g, "");
-                      if (numeric.length > 0 && /^[0-5]/.test(numeric)) {
-                        return;
-                      }
-                      setBasic("customerMobile", numeric.slice(0, 10));
+                      const cleaned = numeric.replace(/^[0-5]+/, "");
+                      setBasic("customerMobile", cleaned.slice(0, 10));
                     }}
                     placeholder="e.g. 9876543210"
                     className={cn(
@@ -2113,8 +2152,8 @@ export function InspectorAddVehicle() {
           {step === 4 && (
             <div className="space-y-8">
               <Panel
-                title="Dashboard Cabin & Electrical Components"
-                description="Upload cockpit telemetry and instrument console image slots."
+                title="Cabin & Electrical Components"
+                description="Upload odometer, AC control, instrument cluster, and music system photo slots."
               >
                 <div className="grid gap-4.5 sm:grid-cols-2 lg:grid-cols-3">
                   {imageSlotsConfig
@@ -2375,7 +2414,7 @@ export function InspectorAddVehicle() {
                 try {
                   await saveDraftApiCall(false);
                   setStep((s) => s + 1);
-                } catch (err) {}
+                } catch (err) { }
               }}
               className="flex items-center gap-2 rounded-2xl bg-[#FFC700] hover:bg-[#FFD633] px-6 py-3 text-xs font-extrabold text-[#0D0E12] shadow-[0_4px_18px_rgba(255,199,0,0.35)] transition-all cursor-pointer"
             >

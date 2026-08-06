@@ -61,7 +61,7 @@ export function useAuth() {
         throw new Error(apiResponse.message || "Invalid credentials.");
       }
     } catch (err: any) {
-      const errMsg = err.response?.data?.message || err.message || "Login failed.";
+      const errMsg = err.response?.data?.message || err.message || "Invalid credentials. Please check your email/mobile number and password.";
       setError(errMsg);
       toast.error(errMsg);
       throw err;
@@ -159,6 +159,56 @@ export function useAuth() {
     navigate("/", { replace: true });
   };
 
+  const sendOtp = async (email: string, mobile?: string) => {
+    setLoading(true);
+    try {
+      const response = await apiClient.post("/api/auth/send-otp", { email, mobile });
+      toast.success(response.data.message || "OTP sent successfully to your email!");
+      return true;
+    } catch (err: any) {
+      const errMsg = err.response?.data?.message || "Failed to send OTP.";
+      toast.error(errMsg);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const verifyOtp = async (email: string, otp: string) => {
+    setLoading(true);
+    try {
+      const response = await apiClient.post("/api/auth/verify-otp", { email, otp });
+      if (response.data.success) {
+        toast.success("Email verified successfully!");
+        return true;
+      } else {
+        toast.error(response.data.message || "Invalid OTP.");
+        return false;
+      }
+    } catch (err: any) {
+      const errMsg = err.response?.data?.message || "Invalid or expired OTP.";
+      toast.error(errMsg);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const sendPasswordOtp = async (email: string) => {
+    setLoading(true);
+    try {
+      const response = await apiClient.post("/api/auth/send-password-otp", { email });
+      toast.success(response.data.message || "OTP sent successfully to your email!");
+      return true;
+    } catch (err: any) {
+      const errMsg = err.response?.data?.message || "Failed to send OTP.";
+      toast.error(errMsg);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     user,
     loading,
@@ -166,6 +216,9 @@ export function useAuth() {
     login,
     registerDealer,
     registerInspector,
+    sendOtp,
+    sendPasswordOtp,
+    verifyOtp,
     logout,
   };
 }
