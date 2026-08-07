@@ -1,25 +1,18 @@
 import { useState, useEffect, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import {
-  ArrowUpRight,
-  CheckCircle2,
-  Clock,
-  Fuel,
-  Gauge,
-  Settings2,
-  ShieldCheck,
   Heart,
+  Clock,
+  ShieldCheck,
   ChevronRight,
+  CheckCircle2,
+  ArrowUpRight,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { inr, timeLeft, type Vehicle } from "@/lib/mock-data";
-import { readSession } from "@/lib/session";
 import { toast } from "sonner";
-import {
-  getDealerWishlist,
-  addToWishlist,
-  removeFromWishlist,
-} from "@/lib/api/dealer-api";
+import { cn } from "@/lib/utils";
+import { type Vehicle, inr, timeLeft } from "@/lib/mock-data";
+import { readSession } from "@/lib/session";
+import { addToWishlist, removeFromWishlist } from "@/lib/api/dealer-api";
 
 export function StatCard({
   label,
@@ -29,24 +22,24 @@ export function StatCard({
   accent,
 }: {
   label: string;
-  value: string;
+  value: string | number;
   delta?: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: any;
   accent?: boolean;
 }) {
   return (
     <div
       className={cn(
-        "card-lift relative overflow-hidden rounded-3xl border p-6 transition-all duration-300",
+        "group relative overflow-hidden rounded-3xl p-6 transition-all duration-300",
         accent
-          ? "surface-dark border-[#FFC700]/40 text-white shadow-lift before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_top_right,rgba(255,199,0,0.18),transparent_60%)]"
-          : "bg-card border-border shadow-soft hover:border-[#FFC700]/60",
+          ? "surface-dark border border-[#FFC700]/40 text-white shadow-lift"
+          : "border border-border bg-card shadow-soft hover:border-[#FFC700]/35 hover:shadow-md",
       )}
     >
-      <div className="relative z-10 flex items-start justify-between gap-4">
+      <div className="flex items-center justify-between">
         <span
           className={cn(
-            "text-xs font-bold tracking-wider uppercase",
+            "text-xs font-black uppercase tracking-wider",
             accent ? "text-[#FFC700]" : "text-muted-foreground",
           )}
         >
@@ -129,55 +122,57 @@ export function Panel({
 }
 
 const chipStyles: Record<string, string> = {
-  approved:
-    "bg-emerald-500/10 text-emerald-600 border-emerald-500/25 font-bold",
-  active: "bg-emerald-500/10 text-emerald-600 border-emerald-500/25 font-bold",
-  verified:
-    "bg-emerald-500/10 text-emerald-600 border-emerald-500/25 font-bold",
-  live: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 font-extrabold shadow-[0_0_12px_rgba(16,185,129,0.15)]",
-  won: "bg-emerald-500/10 text-emerald-600 border-emerald-500/25 font-bold",
-  pending: "bg-amber-500/10 text-amber-600 border-amber-500/25 font-bold",
-  submitted: "bg-amber-500/10 text-amber-600 border-amber-500/25 font-bold",
-  "on leave": "bg-amber-500/10 text-amber-600 border-amber-500/25 font-bold",
-  scheduled:
-    "bg-[#FFC700] text-[#0D0E12] border-[#FFC700] font-extrabold shadow-sm",
-  draft: "bg-secondary text-muted-foreground border-border font-semibold",
-  "in_progress": "bg-secondary text-muted-foreground border-border font-semibold",
-  "in progress": "bg-secondary text-muted-foreground border-border font-semibold",
-  completed: "bg-secondary text-muted-foreground border-border font-semibold",
-  "sold out": "bg-rose-500/15 text-rose-600 border-rose-500/30 font-extrabold shadow-sm",
-  "sold_out": "bg-rose-500/15 text-rose-600 border-rose-500/30 font-extrabold shadow-sm",
-  "sold": "bg-rose-500/15 text-rose-600 border-rose-500/30 font-extrabold shadow-sm",
-  "ended": "bg-rose-500/15 text-rose-600 border-rose-500/30 font-extrabold shadow-sm",
-  rejected:
-    "bg-destructive/10 text-destructive border-destructive/20 font-bold",
-  blocked: "bg-destructive/10 text-destructive border-destructive/20 font-bold",
-  suspended:
-    "bg-destructive/10 text-destructive border-destructive/20 font-bold",
-  lost: "bg-destructive/10 text-destructive border-destructive/20 font-bold",
+  approved: "bg-black/80 backdrop-blur-md text-emerald-400 border-emerald-500/40 font-black shadow-md",
+  active: "bg-black/80 backdrop-blur-md text-emerald-400 border-emerald-500/40 font-black shadow-md",
+  verified: "bg-black/80 backdrop-blur-md text-emerald-400 border-emerald-500/40 font-black shadow-md",
+  live: "bg-black/85 backdrop-blur-md text-emerald-400 border-emerald-500/50 font-black shadow-md shadow-emerald-500/20",
+  won: "bg-black/80 backdrop-blur-md text-emerald-400 border-emerald-500/40 font-black shadow-md",
+  pending: "bg-black/80 backdrop-blur-md text-amber-400 border-amber-500/40 font-black shadow-md",
+  submitted: "bg-black/80 backdrop-blur-md text-amber-400 border-amber-500/40 font-black shadow-md",
+  scheduled: "bg-[#FFC700] text-[#0D0E12] border-[#FFC700] font-black shadow-md",
+  "coming soon": "bg-[#FFC700] text-[#0D0E12] border-[#FFC700] font-black shadow-md",
+  draft: "bg-black/80 backdrop-blur-md text-slate-300 border-white/20 font-extrabold shadow-md",
+  "in_progress": "bg-black/80 backdrop-blur-md text-slate-300 border-white/20 font-extrabold shadow-md",
+  "in progress": "bg-black/80 backdrop-blur-md text-slate-300 border-white/20 font-extrabold shadow-md",
+  completed: "bg-black/80 backdrop-blur-md text-slate-300 border-slate-500/40 font-black shadow-md",
+  ended: "bg-black/80 backdrop-blur-md text-slate-300 border-slate-500/40 font-black shadow-md",
+  "auction ended": "bg-black/80 backdrop-blur-md text-slate-300 border-slate-500/40 font-black shadow-md",
+  "auction_ended": "bg-black/80 backdrop-blur-md text-slate-300 border-slate-500/40 font-black shadow-md",
+  "sold out": "bg-black/80 backdrop-blur-md text-rose-400 border-rose-500/40 font-black shadow-md",
+  "sold_out": "bg-black/80 backdrop-blur-md text-rose-400 border-rose-500/40 font-black shadow-md",
+  sold: "bg-black/80 backdrop-blur-md text-rose-400 border-rose-500/40 font-black shadow-md",
+  rejected: "bg-black/80 backdrop-blur-md text-rose-500 border-rose-500/40 font-black shadow-md",
+  blocked: "bg-black/80 backdrop-blur-md text-rose-500 border-rose-500/40 font-black shadow-md",
+  suspended: "bg-black/80 backdrop-blur-md text-rose-500 border-rose-500/40 font-black shadow-md",
+  lost: "bg-black/80 backdrop-blur-md text-rose-500 border-rose-500/40 font-black shadow-md",
 };
 
 export function StatusChip({ status }: { status: string }) {
   const key = (status || "").toLowerCase();
-  const label =
-    (key === "draft" || key === "in_progress" || key === "in progress")
-      ? "Draft"
-      : key === "scheduled"
-      ? "Coming Soon"
-      : (key === "sold out" || key === "sold_out" || key === "sold" || key === "ended" || key === "completed")
-      ? "SOLD OUT"
-      : status;
+  let label = status;
+  if (key === "draft" || key === "in_progress" || key === "in progress") {
+    label = "Draft";
+  } else if (key === "scheduled" || key === "coming soon") {
+    label = "Coming Soon";
+  } else if (key === "ended" || key === "auction ended" || key === "auction_ended" || key === "completed") {
+    label = "Auction Ended";
+  } else if (key === "sold out" || key === "sold_out" || key === "sold") {
+    label = "Sold Out";
+  } else if (key === "live") {
+    label = "LIVE";
+  }
+
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1 text-xs capitalize tracking-wide",
-        chipStyles[key] ?? "bg-secondary text-muted-foreground border-border",
+        "inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1 text-xs uppercase tracking-wider font-black shadow-md",
+        chipStyles[key] ?? "bg-black/80 backdrop-blur-md text-white border-white/20",
       )}
     >
       {key === "live" && (
-        <span className="relative flex size-1.5 shrink-0">
+        <span className="relative flex size-2 shrink-0">
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-          <span className="relative inline-flex rounded-full size-1.5 bg-emerald-500"></span>
+          <span className="relative inline-flex rounded-full size-2 bg-emerald-500"></span>
         </span>
       )}
       {label}
@@ -207,44 +202,19 @@ export function VehicleCard({
   const [isFav, setIsFav] = useState(isFavourite ?? false);
 
   useEffect(() => {
-    if (isFavourite !== undefined) {
-      setIsFav(isFavourite);
-      return;
-    }
-    const checkFav = async () => {
-      try {
-        const res = await getDealerWishlist();
-        if (res.success && res.data) {
-          setIsFav(
-            res.data.some((item) => String(item.inspectionId) === vehicle.id),
-          );
-        }
-      } catch (err) {
-        console.error("Failed to check wishlist status", err);
-      }
-    };
-    checkFav();
-  }, [vehicle.id, isFavourite]);
+    setIsFav(isFavourite ?? false);
+  }, [isFavourite]);
 
   useEffect(() => {
     const handleUpdate = () => {
-      if (isFavourite === undefined) {
-        const checkFav = async () => {
-          try {
-            const res = await getDealerWishlist();
-            if (res.success && res.data) {
-              setIsFav(
-                res.data.some(
-                  (item) => String(item.inspectionId) === vehicle.id,
-                ),
-              );
-            }
-          } catch (err) {
-            // Ignore error
-          }
-        };
-        checkFav();
-      }
+      const session = readSession("dealer");
+      const email = session?.email || "default_dealer";
+      const favList = JSON.parse(
+        localStorage.getItem(`dealer_${email}_favourites`) || "[]",
+      );
+      setIsFav(
+        favList.some((item: any) => String(item.id) === String(vehicle.id)),
+      );
     };
     window.addEventListener("wishlist-updated", handleUpdate);
     return () => window.removeEventListener("wishlist-updated", handleUpdate);
@@ -274,11 +244,18 @@ export function VehicleCard({
   };
 
   const isLive = vehicle.auction === "live";
+  const isEnded =
+    (vehicle.auction as string) === "ended" ||
+    (vehicle.auction as string) === "auction ended" ||
+    (vehicle.auction as string) === "auction_ended" ||
+    (vehicle.auction as string) === "completed";
   const isSoldOut =
-    vehicle.auction === "sold out" ||
-    vehicle.auction === "sold" ||
-    vehicle.auction === "ended" ||
-    vehicle.auction === "completed";
+    (vehicle.auction as string) === "sold out" ||
+    (vehicle.auction as string) === "sold_out" ||
+    (vehicle.auction as string) === "sold";
+  const isComingSoon =
+    vehicle.auction === "scheduled" ||
+    (vehicle.auction as string) === "coming soon";
 
   const [timeRemaining, setTimeRemaining] = useState(timeLeft(vehicle.endsAt));
 
@@ -296,8 +273,8 @@ export function VehicleCard({
         "card-lift group relative overflow-hidden rounded-2xl border transition-all duration-300 bg-card",
         isLive
           ? "border-emerald-500/40 shadow-[0_0_24px_rgba(16,185,129,0.08)] hover:shadow-[0_0_30px_rgba(16,185,129,0.18)] ring-1 ring-emerald-500/10"
-          : isSoldOut
-          ? "border-rose-500/30 opacity-90"
+          : isSoldOut || isEnded
+          ? "border-border/80 opacity-95"
           : "border-border shadow-soft hover:shadow-md",
       )}
     >
@@ -343,9 +320,8 @@ export function VehicleCard({
         <div className="flex flex-wrap items-center gap-1.5 text-[11px] font-bold text-muted-foreground/90">
           <span className="bg-secondary px-2.5 py-1 rounded-lg">
             {typeof vehicle.odometer === "number"
-              ? (vehicle.odometer / 1000).toFixed(0)
-              : "45"}
-            k km
+              ? `${vehicle.odometer.toLocaleString("en-IN")} km`
+              : "N/A"}
           </span>
           <span className="bg-secondary px-2.5 py-1 rounded-lg">
             {vehicle.fuel}
@@ -353,16 +329,23 @@ export function VehicleCard({
           <span className="bg-secondary px-2.5 py-1 rounded-lg">
             {vehicle.transmission === "Automatic" ? "Auto" : "Manual"}
           </span>
+          <span className="bg-secondary px-2.5 py-1 rounded-lg">
+            {vehicle.owner || "1st Owner"}
+          </span>
           <span className="ml-auto text-[11px] font-semibold">
             {isSoldOut ? (
               <span className="text-rose-600 dark:text-rose-400 font-extrabold flex items-center gap-1">
                 <CheckCircle2 className="size-3" /> Sold Out
               </span>
-            ) : (
+            ) : isEnded ? (
+              <span className="text-muted-foreground font-extrabold flex items-center gap-1">
+                <CheckCircle2 className="size-3 text-amber-500" /> Auction Ended
+              </span>
+            ) : isLive ? (
               <span className="text-muted-foreground/85 flex items-center gap-1">
                 <Clock className="size-3 text-[#FFC700]" /> {timeRemaining}
               </span>
-            )}
+            ) : null}
           </span>
         </div>
 
@@ -383,7 +366,9 @@ export function VehicleCard({
               </span>
               <span className="truncate text-sm font-black text-foreground block mt-0.5">
                 <span className="flex items-center gap-1.5">
-                  {inr(vehicle.highestBid)}
+                  {isComingSoon || !vehicle.highestBid || vehicle.bids === 0
+                    ? "No Bids Yet"
+                    : inr(vehicle.highestBid)}
                   {isLive && (
                     <span className="relative flex size-1.5 shrink-0">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -401,6 +386,14 @@ export function VehicleCard({
               className="rounded-xl border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 px-3.5 py-2 text-xs font-extrabold text-rose-600 dark:text-rose-400 shadow-sm transition-all flex items-center gap-1.5 shrink-0"
             >
               <span>Sold Out</span>
+              <ChevronRight className="size-3.5 stroke-[2.5]" />
+            </Link>
+          ) : isEnded ? (
+            <Link
+              to={`/dealer/vehicles/${vehicle.id}`}
+              className="rounded-xl border border-border bg-secondary hover:bg-secondary/80 px-3.5 py-2 text-xs font-extrabold text-foreground shadow-sm transition-all flex items-center gap-1.5 shrink-0"
+            >
+              <span>Auction Ended</span>
               <ChevronRight className="size-3.5 stroke-[2.5]" />
             </Link>
           ) : (

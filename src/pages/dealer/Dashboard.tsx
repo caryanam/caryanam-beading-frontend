@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Gavel, Trophy, Wallet, Zap, Heart } from "lucide-react";
+import { Gavel, Trophy, Zap, Heart, Car, ChevronRight, ShieldCheck, Clock } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { dealerNav } from "@/components/nav-config";
 import { Panel, StatCard, VehicleCard } from "@/components/premium";
-import { bidHistory, inr, timeLeft } from "@/lib/mock-data";
+import { inr, timeLeft } from "@/lib/mock-data";
 import {
   getMarketplaceInspections,
   getDealerWishlist,
   getDealerBidsHistory,
+  getVehicleBidHistory,
   type DealerInspectionSummary,
 } from "@/lib/api/dealer-api";
 import { readSession } from "@/lib/session";
@@ -19,6 +20,9 @@ export function DealerDashboard() {
   const [bidsCount, setBidsCount] = useState(0);
   const [favCount, setFavCount] = useState(0);
 
+  const session = readSession("dealer");
+  const dealerName = session?.name || session?.email || "Valued Dealer";
+
   useEffect(() => {
     const fetchBidsCount = async () => {
       try {
@@ -28,7 +32,6 @@ export function DealerDashboard() {
         }
       } catch (err) {
         console.error("Failed to load bids history count", err);
-        const session = readSession("dealer");
         const email = session?.email || "default_dealer";
         const bidsList = JSON.parse(
           localStorage.getItem(`dealer_${email}_bids`) || "[]",
@@ -37,7 +40,7 @@ export function DealerDashboard() {
       }
     };
     fetchBidsCount();
-  }, []);
+  }, [session?.email]);
 
   useEffect(() => {
     const fetchWishlistCount = async () => {
@@ -81,7 +84,7 @@ export function DealerDashboard() {
       const highestBid =
         v.currentHighestBid && v.currentHighestBid > 0
           ? v.currentHighestBid
-          : basePrice;
+          : 0;
 
       let fuelType:
         | "Petrol"
@@ -112,8 +115,8 @@ export function DealerDashboard() {
         year: v.year || 2020,
         fuel: fuelType,
         transmission: transmissionType,
-        odometer: v.odometer || 45000,
-        owner: v.ownerName,
+        odometer: v.odometer ?? 0,
+        owner: v.ownerName || "1st Owner",
         score: 88 + (v.inspectionId % 10),
         basePrice,
         highestBid,
@@ -128,7 +131,7 @@ export function DealerDashboard() {
         image:
           v.vehicleImage ||
           "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=400&q=80",
-        endsAt: v.auctionEndTime || Date.now() + 1000 * 60 * 60 * 24 * 2,
+        endsAt: v.auctionEndTime || undefined,
         inspector: v.inspectorName || "Certified Inspector",
       };
     });
@@ -144,6 +147,25 @@ export function DealerDashboard() {
   );
 
   const featured = live[0] || upcoming[0] || null;
+  const [featuredBids, setFeaturedBids] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (featured?.id) {
+      const loadFeaturedBids = async () => {
+        try {
+          const res = await getVehicleBidHistory(Number(featured.id));
+          if (res.success && res.data) {
+            setFeaturedBids(res.data);
+          }
+        } catch (err) {
+          console.error("Failed to load featured room bids", err);
+        }
+      };
+      loadFeaturedBids();
+    } else {
+      setFeaturedBids([]);
+    }
+  }, [featured?.id]);
 
   return (
     <AppShell
@@ -152,6 +174,30 @@ export function DealerDashboard() {
       title="Bidding Console"
       breadcrumb={["Dealer", "Dashboard"]}
     >
+      {/* Supercar Header Banner Accent */}
+      <div className="surface-dark rounded-3xl p-6 text-white border border-[#FFC700]/30 shadow-lift flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="grid size-12 shrink-0 place-items-center rounded-2xl bg-[#FFC700] text-[#0D0E12] shadow-[0_4px_18px_rgba(255,199,0,0.4)] font-extrabold">
+            <Zap className="size-6 fill-current" />
+          </div>
+          <div>
+            <h2 className="text-xl font-extrabold text-white tracking-tight">
+              Welcome, {dealerName}
+            </h2>
+            <p className="text-xs font-semibold text-white/70 mt-0.5">
+              Live Auctions Active · {live.length} Bidding Rooms Online · {mappedVehicles.length} Vehicles Inspected
+            </p>
+          </div>
+        </div>
+        <Link
+          to="/dealer/marketplace"
+          className="rounded-2xl bg-[#FFC700] hover:bg-[#FFD633] px-6 py-3 text-xs font-extrabold text-[#0D0E12] shadow-[0_4px_16px_rgba(255,199,0,0.35)] transition-all hover:scale-[1.02] cursor-pointer flex items-center gap-2"
+        >
+          Explore Bidding Marketplace <ChevronRight className="size-4" />
+        </Link>
+      </div>
+
+      {/* Primary KPI Metrics */}
       <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           label="Live Bidding Rooms"
@@ -167,39 +213,40 @@ export function DealerDashboard() {
           icon={Trophy}
         />
         <StatCard
-          label="My Bids"
+          label="My Bids Placed"
           value={bidsCount.toString()}
-          delta="Bids placed by you"
+          delta="Total active & past bids"
           icon={Gavel}
         />
         <StatCard
           label="My Watchlist"
           value={favCount.toString()}
-          delta="Saved to favourites"
+          delta="Saved favourite vehicles"
           icon={Heart}
         />
       </div>
 
       <div className="grid gap-5 xl:grid-cols-3">
+        {/* Featured Bidding Room Panel */}
         <Panel
           title="Featured Bidding Room"
           description={
             featured
-              ? `${featured.brand} ${featured.model} live auction`
+              ? `${featured.brand} ${featured.model} ${featured.variant}`
               : "Real-time auction stream"
           }
           className="xl:col-span-2"
           action={
             <Link
               to="/dealer/marketplace"
-              className="rounded-2xl border border-border px-4 py-2.5 text-xs font-bold transition-all hover:border-[#FFC700] hover:bg-secondary cursor-pointer"
+              className="rounded-2xl border border-border px-4 py-2 text-xs font-extrabold text-foreground transition-all hover:border-[#FFC700] hover:bg-secondary cursor-pointer flex items-center gap-1"
             >
-              Browse Marketplace
+              Browse All <ChevronRight className="size-3.5" />
             </Link>
           }
         >
           {loading ? (
-            <div className="flex h-48 items-center justify-center">
+            <div className="flex h-52 items-center justify-center">
               <span className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
             </div>
           ) : !featured ? (
@@ -217,88 +264,197 @@ export function DealerDashboard() {
                 <div className="relative z-10 grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4">
                   <div className="min-w-0">
                     <span
-                      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[10px] font-extrabold uppercase tracking-wider mb-3 ${featured.auction === "live"
+                      className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1 text-[10px] font-black uppercase tracking-wider mb-3 ${
+                        featured.auction === "live"
                           ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-400"
                           : "border-[#FFC700]/40 bg-[#FFC700]/15 text-[#FFC700]"
-                        }`}
+                      }`}
                     >
                       {featured.auction === "live" ? (
-                        <span className="relative flex size-1.5 shrink-0">
+                        <span className="relative flex size-2 shrink-0">
                           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                          <span className="relative inline-flex rounded-full size-1.5 bg-emerald-500"></span>
+                          <span className="relative inline-flex rounded-full size-2 bg-emerald-500"></span>
                         </span>
                       ) : (
                         <Zap className="size-3 fill-current" />
                       )}
                       {featured.auction === "live"
-                        ? "Live Auction"
-                        : "Coming Soon"}
+                        ? "LIVE BIDDING ACTIVE"
+                        : "COMING SOON"}
                     </span>
-                    <p className="mt-1 truncate text-4xl font-extrabold text-white tracking-tight">
-                      {inr(featured.highestBid)}
+                    <p className="mt-1 truncate text-4xl font-black text-white tracking-tight">
+                      {featured.auction !== "live" || !featured.highestBid || featured.bids === 0
+                        ? "No Bids Yet"
+                        : inr(featured.highestBid)}
                     </p>
-                    <p className="mt-2 text-sm font-semibold text-white/70">
-                      {featured.brand} {featured.model} · {featured.bids} active
-                      bids placed
-                    </p>
-                  </div>
-                  <div className="shrink-0 rounded-2xl border border-[#FFC700]/40 bg-[#FFC700]/10 px-4 py-3.5 text-center shadow-sm">
-                    <p className="text-[10px] font-extrabold tracking-widest text-[#FFC700] uppercase">
-                      Closes In
-                    </p>
-                    <p className="mt-1 text-lg font-extrabold text-white">
-                      {timeLeft(featured.endsAt)}
+                    <p className="mt-2 text-sm font-bold text-white/80">
+                      {featured.brand} {featured.model} {featured.variant} · {featured.bids} active bids placed
                     </p>
                   </div>
+                  {featured.auction === "live" && featured.endsAt && (
+                    <div className="shrink-0 rounded-2xl border border-[#FFC700]/40 bg-[#FFC700]/10 px-4 py-3 text-center shadow-sm">
+                      <p className="text-[10px] font-black tracking-widest text-[#FFC700] uppercase">
+                        CLOSES IN
+                      </p>
+                      <p className="mt-1 text-lg font-black text-white">
+                        {timeLeft(featured.endsAt)}
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <Link
                   to={`/dealer/vehicles/${featured.id}`}
-                  className="relative z-10 mt-7 block rounded-2xl bg-[#FFC700] hover:bg-[#FFD633] py-3.5 text-center text-sm font-extrabold text-[#0D0E12] shadow-[0_4px_20px_rgba(255,199,0,0.4)] transition-all hover:shadow-[0_6px_24px_rgba(255,199,0,0.55)]"
+                  className="relative z-10 mt-7 block rounded-2xl bg-[#FFC700] hover:bg-[#FFD633] py-3.5 text-center text-sm font-black text-[#0D0E12] shadow-[0_4px_20px_rgba(255,199,0,0.4)] transition-all hover:shadow-[0_6px_24px_rgba(255,199,0,0.55)] cursor-pointer"
                 >
                   {featured.auction === "live"
                     ? "Enter Live Bidding Room"
-                    : "View Upcoming Details"}
+                    : "View Vehicle Inspection Report"}
                 </Link>
               </div>
 
-              <table className="mt-6 w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border text-left text-xs font-bold uppercase text-muted-foreground">
-                    <th className="pb-3 font-bold">Dealer</th>
-                    <th className="pb-3 text-right font-bold">Bid Amount</th>
-                    <th className="pb-3 text-right font-bold">Time</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {bidHistory.slice(0, 4).map((b, i) => (
-                    <tr
-                      key={i}
-                      className="border-b border-border/60 last:border-0 hover:bg-secondary/50"
-                    >
-                      <td className="py-3.5 font-extrabold text-foreground">
-                        {b.dealer}
-                      </td>
-                      <td className="py-3.5 text-right font-extrabold text-[#0D0E12]">
-                        {inr(b.amount)}
-                      </td>
-                      <td className="py-3.5 text-right text-xs font-bold text-muted-foreground">
-                        {b.time}
-                      </td>
+              {/* Bids Log Table */}
+              <div className="mt-6">
+                <div className="flex items-center justify-between pb-3 border-b border-border">
+                  <p className="text-xs font-black uppercase tracking-wider text-muted-foreground">
+                    Live Bidding Feed ({featuredBids.length})
+                  </p>
+                  {featured.auction === "live" && (
+                    <span className="text-[11px] font-extrabold text-[#FFC700] flex items-center gap-1">
+                      <Clock className="size-3" /> Updating in Realtime
+                    </span>
+                  )}
+                </div>
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border/80 text-left text-[11px] font-black uppercase text-muted-foreground">
+                      <th className="py-3 font-black">Dealer / Bidder</th>
+                      <th className="py-3 text-right font-black">Bid Amount</th>
+                      <th className="py-3 text-right font-black">Submitted Time</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {featuredBids.length === 0 ? (
+                      <tr>
+                        <td colSpan={3} className="py-8 text-center text-xs font-bold text-muted-foreground">
+                          No active bids placed on this room yet. Be the first to place a bid!
+                        </td>
+                      </tr>
+                    ) : (
+                      featuredBids.slice(0, 5).map((b: any, i: number) => (
+                        <tr
+                          key={b.id || i}
+                          className="border-b border-border/60 last:border-0 hover:bg-secondary/50 transition-colors"
+                        >
+                          <td className="py-3.5 font-extrabold text-foreground flex items-center gap-2">
+                            <span className="size-2 rounded-full bg-[#FFC700]" />
+                            {b.dealerName || b.dealershipName || b.dealer || "Dealer"}
+                          </td>
+                          <td className="py-3.5 text-right font-black text-foreground">
+                            {inr(b.bidAmount || b.amount || 0)}
+                          </td>
+                          <td className="py-3.5 text-right text-xs font-extrabold text-muted-foreground">
+                            {b.createdAt || b.time
+                              ? new Date(b.createdAt || b.time).toLocaleTimeString("en-IN", {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })
+                              : "Recently"}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </>
           )}
         </Panel>
 
+        {/* Quick Operations Sidebar */}
+        <div className="space-y-5">
+          <Panel title="Dealer Shortcuts" description="Instant access options">
+            <div className="space-y-3">
+              <Link
+                to="/dealer/marketplace"
+                className="group card-lift flex items-center justify-between rounded-2xl border border-border bg-card p-4 hover:border-[#FFC700] transition-all shadow-soft"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                    <Zap className="size-5" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-extrabold text-foreground group-hover:text-[#FFC700] transition-colors">
+                      Live Marketplace
+                    </p>
+                    <p className="text-xs text-muted-foreground font-semibold">
+                      {live.length} active bidding rooms
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight className="size-4 text-muted-foreground group-hover:text-[#FFC700] group-hover:translate-x-1 transition-all" />
+              </Link>
 
+              <Link
+                to="/dealer/bids"
+                className="group card-lift flex items-center justify-between rounded-2xl border border-border bg-card p-4 hover:border-[#FFC700] transition-all shadow-soft"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-xl bg-[#FFC700]/10 text-[#FFC700] border border-[#FFC700]/20">
+                    <Gavel className="size-5" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-extrabold text-foreground group-hover:text-[#FFC700] transition-colors">
+                      My Placed Bids
+                    </p>
+                    <p className="text-xs text-muted-foreground font-semibold">
+                      {bidsCount} total submitted bids
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight className="size-4 text-muted-foreground group-hover:text-[#FFC700] group-hover:translate-x-1 transition-all" />
+              </Link>
+
+              <Link
+                to="/dealer/favourites"
+                className="group card-lift flex items-center justify-between rounded-2xl border border-border bg-card p-4 hover:border-[#FFC700] transition-all shadow-soft"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-xl bg-rose-500/10 text-rose-500 border border-rose-500/20">
+                    <Heart className="size-5" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-extrabold text-foreground group-hover:text-[#FFC700] transition-colors">
+                      Saved Watchlist
+                    </p>
+                    <p className="text-xs text-muted-foreground font-semibold">
+                      {favCount} saved vehicles
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight className="size-4 text-muted-foreground group-hover:text-[#FFC700] group-hover:translate-x-1 transition-all" />
+              </Link>
+            </div>
+          </Panel>
+
+          <Panel title="Verification Guarantee" description="200-point inspection badge">
+            <div className="rounded-2xl border border-[#FFC700]/30 bg-[#FFC700]/10 p-5 space-y-3">
+              <div className="flex items-center gap-2.5">
+                <ShieldCheck className="size-6 text-[#FFC700]" />
+                <p className="font-black text-sm text-foreground">Certified Inspection Reports</p>
+              </div>
+              <p className="text-xs font-bold text-muted-foreground leading-relaxed">
+                Every vehicle on Caryanam Bidding is thoroughly evaluated by certified engineers with verified structural, engine, and document reports.
+              </p>
+            </div>
+          </Panel>
+        </div>
       </div>
 
+      {/* Recommended Vehicle Inventory */}
       <Panel
         title="Recommended Vehicle Inventory"
-        description="Inspected & verified cars matching your segment"
+        description="Inspected & verified cars matching your buying segment"
       >
         {loading ? (
           <div className="flex h-40 items-center justify-center">

@@ -222,8 +222,12 @@ export function AdminAuctions() {
         const isLive = v.vehicleStatus === "LIVE";
         const isSold =
           v.vehicleStatus === "SOLD OUT" ||
-          v.vehicleStatus === "SOLD" ||
-          v.vehicleStatus === "ENDED";
+          v.vehicleStatus === "SOLD";
+        const isEnded =
+          v.vehicleStatus === "ENDED" ||
+          v.vehicleStatus === "AUCTION ENDED" ||
+          v.vehicleStatus === "AUCTION_ENDED" ||
+          v.vehicleStatus === "COMPLETED";
 
         if (isLive) {
           return (
@@ -237,6 +241,13 @@ export function AdminAuctions() {
           return (
             <span className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-black capitalize tracking-wide bg-rose-500/15 border-rose-500/30 text-rose-600 dark:text-rose-400">
               Sold Out
+            </span>
+          );
+        }
+        if (isEnded) {
+          return (
+            <span className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-black capitalize tracking-wide bg-secondary border-border text-foreground">
+              Auction Ended
             </span>
           );
         }
@@ -254,8 +265,7 @@ export function AdminAuctions() {
         const isLive = v.vehicleStatus === "LIVE";
         const isSold =
           v.vehicleStatus === "SOLD OUT" ||
-          v.vehicleStatus === "SOLD" ||
-          v.vehicleStatus === "ENDED";
+          v.vehicleStatus === "SOLD";
 
         return (
           <div className="flex items-center gap-2">

@@ -45,7 +45,7 @@ export function DealerMarketplace() {
       const highestBid =
         v.currentHighestBid && v.currentHighestBid > 0
           ? v.currentHighestBid
-          : basePrice;
+          : 0;
 
       let fuelType:
         | "Petrol"
@@ -76,8 +76,8 @@ export function DealerMarketplace() {
         year: v.year || 2020,
         fuel: fuelType,
         transmission: transmissionType,
-        odometer: v.odometer || 45000,
-        owner: v.ownerName,
+        odometer: v.odometer ?? 0,
+        owner: v.ownerName || "1st Owner",
         score: 88 + (v.inspectionId % 10),
         basePrice,
         highestBid,

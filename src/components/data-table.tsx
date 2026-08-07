@@ -4,7 +4,7 @@ import { Download, Printer, Search, SlidersHorizontal } from "lucide-react";
 export interface Column<T> {
   key: string;
   header: string;
-  cell: (row: T) => ReactNode;
+  cell: (row: T, index: number) => ReactNode;
   className?: string;
 }
 
@@ -100,7 +100,7 @@ export function DataTable<T>({
               >
                 {columns.map((c) => (
                   <td key={c.key} className={`px-5 py-4 whitespace-nowrap ${c.className ?? ""}`}>
-                    {c.cell(row)}
+                    {c.cell(row, (current - 1) * pageSize + i + 1)}
                   </td>
                 ))}
               </tr>

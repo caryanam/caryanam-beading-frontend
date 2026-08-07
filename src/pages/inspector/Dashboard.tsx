@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { CheckCircle2, ClipboardList, Clock, Upload } from "lucide-react";
+import { CheckCircle2, FileText, Upload, XCircle } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { inspectorNav } from "@/components/nav-config";
 import { Panel, StatCard, StatusChip } from "@/components/premium";
@@ -109,6 +109,22 @@ export function InspectorDashboard() {
 
   const fallbackCarImage = "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=200&q=80&sat=-100";
 
+  const draftCount = inspections.filter(
+    (ins) => ins.status === "DRAFT" || ins.status === "IN_PROGRESS"
+  ).length;
+
+  const submittedCount = inspections.filter(
+    (ins) => ins.status === "SUBMITTED"
+  ).length;
+
+  const approvedCount = inspections.filter(
+    (ins) => ins.status === "APPROVED"
+  ).length;
+
+  const rejectedCount = inspections.filter(
+    (ins) => ins.status === "REJECTED"
+  ).length;
+
   return (
     <AppShell
       role="inspector"
@@ -118,29 +134,29 @@ export function InspectorDashboard() {
     >
       <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard 
-          label="Today's inspections" 
-          value={loading ? "..." : stats.todayInspections.toString()} 
-          delta="Drafts active" 
-          icon={ClipboardList} 
+          label="Draft Inspections" 
+          value={loading ? "..." : draftCount.toString()} 
+          delta="In progress & saved drafts" 
+          icon={FileText} 
           accent 
         />
         <StatCard 
-          label="Pending uploads" 
-          value={loading ? "..." : stats.pendingUploads.toString()} 
-          delta="Step photos required" 
+          label="Submitted Inspections" 
+          value={loading ? "..." : submittedCount.toString()} 
+          delta="Awaiting admin approval" 
           icon={Upload} 
         />
         <StatCard 
-          label="Completed reports" 
-          value={loading ? "..." : stats.completedReports.toString()} 
-          delta="Submitted to Admin" 
+          label="Approved Inspections" 
+          value={loading ? "..." : approvedCount.toString()} 
+          delta="Live in marketplace" 
           icon={CheckCircle2} 
         />
         <StatCard 
-          label="Vehicles submitted" 
-          value={loading ? "..." : stats.vehiclesSubmitted.toString()} 
-          delta="All time" 
-          icon={Clock} 
+          label="Rejected Inspections" 
+          value={loading ? "..." : rejectedCount.toString()} 
+          delta="Needs photo / data revision" 
+          icon={XCircle} 
         />
       </div>
 

@@ -111,7 +111,7 @@ export function AdminVehicles() {
     {
       key: "inspectionId",
       header: "ID",
-      cell: (v) => <span className="font-extrabold text-xs">#{v.inspectionId}</span>,
+      cell: (_, idx) => <span className="font-extrabold text-xs">#{idx}</span>,
     },
     {
       key: "vehicle",
@@ -205,20 +205,36 @@ export function AdminVehicles() {
     return ins.status.toUpperCase() === statusFilter.toUpperCase();
   });
 
+  const getStatusCount = (status: string) => {
+    if (status === "All") return inspections.length;
+    return inspections.filter((v) => v.status.toUpperCase() === status.toUpperCase()).length;
+  };
+
   const actionButtons = (
-    <div className="flex items-center gap-2">
-      {["All", "Approved", "Rejected"].map((status) => {
+    <div className="flex flex-wrap items-center gap-2">
+      {["All", "Submitted", "Approved", "Rejected"].map((status) => {
         const active = statusFilter === status;
+        const count = getStatusCount(status);
         return (
           <button
             key={status}
             onClick={() => setStatusFilter(status)}
-            className={`rounded-2xl border px-3.5 py-2 text-xs font-extrabold transition-all cursor-pointer ${active
+            className={`rounded-2xl border px-3.5 py-2 text-xs font-extrabold transition-all cursor-pointer flex items-center gap-2 ${
+              active
                 ? "bg-[#FFC700] border-[#FFC700] text-[#0D0E12] shadow-sm"
                 : "border-border bg-card text-foreground hover:bg-secondary"
-              }`}
+            }`}
           >
-            {status}
+            <span>{status}</span>
+            <span
+              className={`rounded-full px-2 py-0.5 text-[10px] font-black ${
+                active
+                  ? "bg-[#0D0E12]/15 text-[#0D0E12]"
+                  : "bg-secondary text-muted-foreground"
+              }`}
+            >
+              {count}
+            </span>
           </button>
         );
       })}

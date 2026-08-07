@@ -18,7 +18,7 @@ export interface Vehicle {
   bids: number;
   status: VehicleStatus;
   auction: "live" | "scheduled" | "completed" | "sold out" | "sold" | "ended";
-  endsAt: number;
+  endsAt?: number;
   inspector: string;
   image: string;
 }
@@ -220,7 +220,8 @@ export const inr = (n: number) =>
     maximumFractionDigits: 0,
   }).format(n);
 
-export const timeLeft = (endsAt: number) => {
+export const timeLeft = (endsAt?: number) => {
+  if (!endsAt) return "Ended";
   const diff = endsAt - Date.now();
   if (diff <= 0) return "Ended";
   const h = Math.floor(diff / 3600000);

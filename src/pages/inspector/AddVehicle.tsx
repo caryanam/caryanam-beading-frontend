@@ -779,7 +779,7 @@ export function InspectorAddVehicle() {
 
         if (v) {
           setBasicDetails({
-            customerName: (v as any).customerName || v.ownerName || "",
+            customerName: (v as any).customerName || "",
             customerMobile: (v as any).customerMobileNumber || "",
             ownerName: v.ownerName || "1st Owner",
             brand: v.brand || "",
@@ -981,7 +981,7 @@ export function InspectorAddVehicle() {
       const payload: InspectionDraftRequest = {
         vehicleDetails: {
           vehicleNumber: basicDetails.regNo,
-          ownerName: basicDetails.customerName || basicDetails.ownerName || "1st Owner",
+          ownerName: basicDetails.ownerName || "1st Owner",
           customerName: basicDetails.customerName,
           customerMobileNumber: basicDetails.customerMobile,
           brand: basicDetails.brand,

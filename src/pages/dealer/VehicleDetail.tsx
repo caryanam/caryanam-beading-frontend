@@ -1,9 +1,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import {
-  Download,
-  FileText,
   Heart,
   Zap,
   Shield,
@@ -12,9 +10,20 @@ import {
   ChevronLeft,
   ChevronRight,
   Eye,
-  MessageSquare,
-  Send,
+  ArrowLeft,
+  Clock,
+  Car,
+  Gauge,
+  Fuel,
+  Settings2,
+  TrendingUp,
   X as CloseIcon,
+  Sparkles,
+  Layers,
+  Video,
+  Share2,
+  CheckCircle2,
+  Camera,
 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
@@ -24,7 +33,6 @@ import { inr, timeLeft } from "@/lib/mock-data";
 import {
   getMarketplaceInspectionDetails,
   placeDealerBid,
-  getVehicleBidHistory,
   getDealerWishlist,
   addToWishlist,
   removeFromWishlist,
@@ -51,7 +59,11 @@ export function DealerVehicleDetail() {
       try {
         const res = await getDealerWishlist();
         if (res.success && res.data) {
-          setIsFavourite(res.data.some((item: any) => String(item.inspectionId) === String(vehicle.id)));
+          setIsFavourite(
+            res.data.some(
+              (item: any) => String(item.inspectionId) === String(vehicle.id),
+            ),
+          );
         }
       } catch (err) {
         console.error("Failed to fetch wishlist status", err);
@@ -60,7 +72,9 @@ export function DealerVehicleDetail() {
         const favList = JSON.parse(
           localStorage.getItem(`dealer_${email}_favourites`) || "[]",
         );
-        setIsFavourite(favList.some((item: any) => String(item.id) === String(vehicle.id)));
+        setIsFavourite(
+          favList.some((item: any) => String(item.id) === String(vehicle.id)),
+        );
       }
     };
     checkWishlist();
@@ -127,7 +141,7 @@ export function DealerVehicleDetail() {
             toast.info("Auction has ended.");
           }
         } catch (err) {
-          console.error("Error parsing WS message:", err);
+          console.error("Error parsing WS message:", event);
         }
       };
 
@@ -183,7 +197,9 @@ export function DealerVehicleDetail() {
       let favList = JSON.parse(localStorage.getItem(key) || "[]");
 
       if (isFavourite) {
-        favList = favList.filter((item: any) => String(item.id) !== String(vehicle.id));
+        favList = favList.filter(
+          (item: any) => String(item.id) !== String(vehicle.id),
+        );
         setIsFavourite(false);
         toast.success("Removed from watchlist.");
       } else {
@@ -197,8 +213,15 @@ export function DealerVehicleDetail() {
 
   const handlePlaceBid = async () => {
     if (!vehicle) return;
-    if (amount <= vehicle.highestBid) {
-      toast.error("Bid must exceed the current highest bid.");
+
+    const currentHighest = vehicle.highestBid || 0;
+    const minBidRequired =
+      currentHighest > 0 ? currentHighest + 1000 : vehicle.basePrice || 10000;
+
+    if (amount < minBidRequired) {
+      toast.error(
+        `Bid amount must be at least ${inr(minBidRequired)} to outbid current highest bid.`,
+      );
       return;
     }
 
@@ -206,6 +229,11 @@ export function DealerVehicleDetail() {
       const res = await placeDealerBid(Number(vehicleId), amount);
       if (res.success) {
         toast.success(`Bid of ${inr(amount)} submitted successfully!`);
+        setVehicle((prev: any) => ({
+          ...prev,
+          highestBid: amount,
+          bids: (prev.bids || 0) + 1,
+        }));
         setAmount(amount + 25000);
       } else {
         toast.error(res.message || "Failed to place bid.");
@@ -214,6 +242,13 @@ export function DealerVehicleDetail() {
       console.error("Error placing bid:", err);
       toast.error(err.response?.data?.message || "Failed to submit bid.");
     }
+  };
+
+  const addQuickIncrement = (increment: number) => {
+    const currentHighest = vehicle?.highestBid || 0;
+    const base = currentHighest > 0 ? currentHighest : vehicle?.basePrice || 0;
+    const nextAmount = Math.max(amount, base) + increment;
+    setAmount(nextAmount);
   };
 
   useEffect(() => {
@@ -232,7 +267,7 @@ export function DealerVehicleDetail() {
           const highestBid =
             v.currentHighestBid && v.currentHighestBid > 0
               ? v.currentHighestBid
-              : basePrice;
+              : 0;
           const bidCount = v.totalBids || 0;
 
           let fuelType = "Petrol";
@@ -252,28 +287,42 @@ export function DealerVehicleDetail() {
           const endsAtTime =
             v.auctionEndTime || Date.now() + 1000 * 60 * 60 * 24;
 
-          // Get images list containing {url, name} objects
+          const r = raw.ratings || {};
+          const extR = r.exterior || r.exteriorRating || 0;
+          const mechR = r.mechanical || r.mechanicalRating || 0;
+          const tyreR = r.tyre || r.tyreRating || 0;
+          const intR = r.interior || r.interiorRating || 0;
+          const hasRatings = extR > 0 || mechR > 0 || tyreR > 0 || intR > 0;
+          const calculatedScore = hasRatings
+            ? Math.round(((extR + mechR + tyreR + intR) / 4) * 20)
+            : 88 + (inspectionId % 10);
+
           const imageList = raw.inspectionPhotos || [];
           const validPhotos = imageList
             .filter((img: any) => img.imageUrl)
             .map((img: any) => ({
               url: img.imageUrl,
-              name: img.displayName || "Vehicle View",
+              name: img.displayName || img.imageCategory || "Inspection View",
+              photoType: img.photoType,
+              category: img.imageCategory,
             }));
           const finalImages =
             validPhotos.length > 0
               ? validPhotos
               : [
-                  {
-                    url: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=800&q=80",
-                    name: "Default View",
-                  },
-                ];
+                {
+                  url: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=800&q=80",
+                  name: "Front View",
+                },
+              ];
           const primaryImage = finalImages[0].url;
+
+          const videoList = (raw.inspectionVideos || []).filter(
+            (vid: any) => vid.videoUrl && vid.captured !== false,
+          );
 
           const mapped = {
             id: String(inspectionId),
-            regNo: v.vehicleNumber || "N/A",
             brand: v.brand || "Vehicle",
             model: v.model || "Details",
             variant: v.variant || "",
@@ -281,8 +330,8 @@ export function DealerVehicleDetail() {
             fuel: fuelType,
             transmission: transmissionType,
             odometer: v.odometerReading || 45000,
-            owner: v.ownerName || "1st Owner",
-            score: 88 + (inspectionId % 10),
+            insuranceStatus: v.insuranceStatus || "Expired / N/A",
+            score: calculatedScore,
             basePrice,
             highestBid,
             highestBidder: v.currentHighestBidder
@@ -294,19 +343,22 @@ export function DealerVehicleDetail() {
               v.vehicleStatus === "LIVE"
                 ? "live"
                 : v.vehicleStatus === "SOLD OUT" ||
-                    v.vehicleStatus === "SOLD" ||
-                    v.vehicleStatus === "ENDED"
+                  v.vehicleStatus === "SOLD" ||
+                  v.vehicleStatus === "ENDED"
                   ? "completed"
                   : "scheduled",
             image: primaryImage,
             images: finalImages,
+            videos: videoList,
             endsAt: endsAtTime,
             inspector: raw.inspectorName || "Certified Inspector",
             vehicleStatus: v.vehicleStatus,
           };
           setVehicle(mapped);
           setBidHistory(raw.bidHistory || []);
-          setAmount(highestBid + 25000);
+          const startAmount =
+            highestBid > 0 ? highestBid + 25000 : basePrice || 50000;
+          setAmount(startAmount);
           setRemaining(timeLeft(endsAtTime));
         }
       } catch (err: any) {
@@ -319,7 +371,6 @@ export function DealerVehicleDetail() {
     loadDetails();
   }, [vehicleId]);
 
-  // Handle keyboard navigation for preview lightbox modal
   useEffect(() => {
     if (previewIndex === null || !vehicle?.images) return;
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -347,11 +398,67 @@ export function DealerVehicleDetail() {
     return () => clearInterval(id);
   }, [vehicle?.endsAt]);
 
-  const downloadReport = () => {
-    if (!vehicle?.id) return;
-    const pdfUrl = `${API_BASE_URL}/api/inspector/inspection/${vehicle.id}/pdf`;
-    window.open(pdfUrl, "_blank");
-    toast.success("Downloading PDF report...");
+  const shareVehicle = () => {
+    if (navigator.share) {
+      navigator
+        .share({
+          title: `${vehicle.brand} ${vehicle.model}`,
+          text: `Check out this ${vehicle.brand} ${vehicle.model} on Caryanam Auction Marketplace`,
+          url: window.location.href,
+        })
+        .catch(() => { });
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+      toast.success("Vehicle link copied to clipboard!");
+    }
+  };
+
+  const getConditionBadgeStyle = (condStr: string) => {
+    const c = (condStr || "").trim().toUpperCase();
+    if (
+      c === "OK" ||
+      c === "WORKING" ||
+      c === "AVAILABLE" ||
+      c === "YES" ||
+      c === "EFFECTIVE / OK"
+    ) {
+      return "bg-emerald-500/10 text-emerald-600 border-emerald-500/20";
+    }
+    if (
+      c === "REPAINTED" ||
+      c === "CHANGED" ||
+      c === "SCRATCH" ||
+      c === "LOW" ||
+      c === "NEED REPLACEMENT"
+    ) {
+      return "bg-amber-500/10 text-amber-600 border-amber-500/20";
+    }
+    if (
+      c === "DENT" ||
+      c === "RUST" ||
+      c === "DAMAGED" ||
+      c === "NOT OK" ||
+      c === "NOT WORKING" ||
+      c === "MISSING" ||
+      c === "NO"
+    ) {
+      return "bg-rose-500/10 text-rose-600 border-rose-500/20";
+    }
+    return "bg-secondary text-muted-foreground border-border";
+  };
+
+  const findMatchingPhoto = (queryKeys: string[]) => {
+    if (!rawDetails?.inspectionPhotos) return null;
+    const found = rawDetails.inspectionPhotos.find((p: any) => {
+      const pt = (p.photoType || "").toUpperCase();
+      const ic = (p.imageCategory || "").toUpperCase();
+      const dn = (p.displayName || "").toUpperCase();
+      return queryKeys.some((q) => {
+        const uq = q.toUpperCase();
+        return pt === uq || ic.includes(uq) || dn.includes(uq);
+      });
+    });
+    return (found as { imageUrl?: string } | undefined)?.imageUrl || null;
   };
 
   if (loading) {
@@ -359,11 +466,14 @@ export function DealerVehicleDetail() {
       <AppShell
         role="dealer"
         nav={dealerNav}
-        title="Loading..."
+        title="Loading Vehicle..."
         breadcrumb={["Dealer", "Marketplace"]}
       >
-        <div className="flex h-80 items-center justify-center bg-card border border-border rounded-3xl shadow-soft">
-          <span className="h-10 w-10 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        <div className="flex h-96 flex-col items-center justify-center gap-4 bg-card border border-border rounded-3xl shadow-soft">
+          <span className="h-12 w-12 animate-spin rounded-full border-4 border-[#FFC700] border-t-transparent" />
+          <p className="text-sm font-extrabold text-muted-foreground animate-pulse">
+            Fetching 200-Point Inspection & Live Auction State...
+          </p>
         </div>
       </AppShell>
     );
@@ -381,20 +491,32 @@ export function DealerVehicleDetail() {
           <p className="font-extrabold text-foreground text-lg">
             Vehicle details not found.
           </p>
+          <Link
+            to="/dealer/marketplace"
+            className="mt-4 inline-flex items-center gap-2 rounded-2xl bg-[#FFC700] px-5 py-2.5 text-xs font-extrabold text-[#0D0E12] shadow-sm hover:scale-105 transition-all"
+          >
+            <ArrowLeft className="size-4" /> Back to Marketplace
+          </Link>
         </div>
       </AppShell>
     );
   }
 
-  // Sub-section data references
   const ratings = rawDetails?.ratings || {};
   const mechanical = rawDetails?.mechanicalDetails || {};
   const tyre = rawDetails?.tyreDetails || {};
   const interior = rawDetails?.interiorDetails || {};
   const exteriorPanels = rawDetails?.exteriorPanelDetails || [];
+  const videos = vehicle.videos || [];
 
   const session = readSession("dealer");
   const myName = session?.name || "";
+  const myEmail = session?.email || "";
+
+  const isLive = vehicle.auction === "live";
+  const isComingSoon =
+    vehicle.auction === "scheduled" ||
+    (vehicle.auction as string) === "coming soon";
   const isEnded =
     vehicle &&
     (vehicle.auction === "completed" ||
@@ -403,7 +525,6 @@ export function DealerVehicleDetail() {
       vehicle.vehicleStatus === "SOLD" ||
       remaining === "Ended");
 
-  const myEmail = session?.email || "";
   const noBids =
     vehicle &&
     (!vehicle.highestBidder ||
@@ -421,8 +542,23 @@ export function DealerVehicleDetail() {
           rawDetails.currentHighestBidder?.dealershipName === myName ||
           rawDetails.currentHighestBidder?.ownerName === myName ||
           rawDetails.currentHighestBidder?.email === myEmail)));
+
   const participated =
-    vehicle && bidHistory.some((b: any) => b.dealer === myName || b.dealer === myEmail);
+    vehicle &&
+    bidHistory.some(
+      (b: any) =>
+        b.dealer === myName ||
+        b.dealer === myEmail ||
+        b.dealerName === myName,
+    );
+
+  const detailSteps = [
+    { id: "overview", title: "Step 1: Vehicle Specs", subtitle: "Specs, insurance & primary photos" },
+    { id: "exterior", title: `Step 2: Exterior Body (${exteriorPanels.length})`, subtitle: "Panel conditions & body photos" },
+    { id: "mechanical", title: "Step 3: Mechanical", subtitle: "Engine, oil, transmission & brakes" },
+    { id: "tyres", title: "Step 4: Tyres & Toolkit", subtitle: "Tread depth % & emergency tools" },
+    { id: "interior", title: "Step 5: Interior & Electrical", subtitle: "Cabin, electricals & remarks" },
+  ];
 
   return (
     <AppShell
@@ -431,583 +567,929 @@ export function DealerVehicleDetail() {
       title={`${vehicle.brand} ${vehicle.model}`}
       breadcrumb={["Dealer", "Marketplace", vehicle.id]}
     >
-      <div className="grid gap-5 xl:grid-cols-3">
-        <div className="space-y-5 xl:col-span-2">
-          {/* Main Gallery */}
-          <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-soft">
-            <div
-              onClick={() => setPreviewIndex(0)}
-              className="relative aspect-[16/9] w-full overflow-hidden bg-secondary cursor-pointer group"
+      <div className="space-y-6">
+        {/* Top Hero Breadcrumb & Header Bar */}
+        <div className="flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-border bg-card p-5 shadow-soft">
+          <div className="flex items-center gap-3">
+            <Link
+              to="/dealer/marketplace"
+              className="grid size-10 place-items-center rounded-2xl border border-border bg-secondary hover:bg-secondary/80 text-foreground transition-all hover:scale-105"
+              title="Back to Marketplace"
             >
-              <img
-                src={vehicle.image}
-                alt={`${vehicle.brand} ${vehicle.model}`}
-                className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
-              <div className="absolute top-4 left-4 flex items-center gap-2">
-                <span className="rounded-full bg-black/60 backdrop-blur-md px-3.5 py-1 text-xs font-extrabold text-white border border-white/10">
-                  {vehicle.year} Model
+              <ArrowLeft className="size-5 stroke-[2.5]" />
+            </Link>
+
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-xl font-black tracking-tight text-foreground sm:text-2xl uppercase">
+                  {vehicle.brand} {vehicle.model}
+                </h1>
+                <span className="text-sm font-semibold text-muted-foreground">
+                  {vehicle.variant}
                 </span>
-                <span className="rounded-full bg-black/60 backdrop-blur-md px-3.5 py-1 text-xs font-extrabold text-[#FFC700] border border-[#FFC700]/30">
-                  {vehicle.regNo}
-                </span>
+                <StatusChip status={vehicle.auction} />
               </div>
+              <p className="mt-0.5 flex flex-wrap items-center gap-2 text-xs font-semibold text-muted-foreground">
+                <span>{vehicle.year} Model</span>
+                <span>•</span>
+                <span>Inspected by {vehicle.inspector}</span>
+              </p>
             </div>
-            {vehicle.images && vehicle.images.length > 0 && (
-              <div className="grid grid-cols-4 gap-3 p-4 bg-secondary/60">
-                {vehicle.images.slice(0, 4).map((imgObj: any, idx: number) => {
-                  const isLast = idx === 3 && vehicle.images.length > 4;
-                  return (
-                    <div
-                      key={idx}
-                      onClick={() => setPreviewIndex(idx)}
-                      className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl cursor-pointer hover:scale-[1.03] transition-all shadow-sm group"
-                    >
-                      <img
-                        src={imgObj.url}
-                        alt={imgObj.name}
-                        loading="lazy"
-                        className="size-full object-cover"
-                      />
-                      {isLast && (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-white font-extrabold transition-all group-hover:bg-black/70">
-                          <span className="text-lg">
-                            +{vehicle.images.length - 4}
-                          </span>
-                          <span className="text-[10px] tracking-wider uppercase mt-0.5">
-                            View More
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
           </div>
 
-          {/* Dynamic Tabs Navigation Bar */}
-          <div className="flex border-b border-border bg-card rounded-2xl p-1.5 shadow-soft overflow-x-auto gap-1">
-            {[
-              { id: "overview", label: "Overview" },
-              { id: "exterior", label: "Exterior Condition" },
-              { id: "mechanical", label: "Engine & Mechanical" },
-              { id: "tyres", label: "Tyres & Toolkit" },
-              { id: "interior", label: "Interior & Electricals" },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`rounded-xl px-4 py-2.5 text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
-                  activeTab === tab.id
-                    ? "bg-[#FFC700] text-[#0D0E12] shadow-sm"
-                    : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Tab Content Panels */}
-          {activeTab === "overview" && (
-            <>
-              {/* Vehicle Spec Grid */}
-              <Panel title="Vehicle Inspection Specs">
-                <dl className="grid gap-5 sm:grid-cols-3">
-                  {[
-                    ["Registration No.", vehicle.regNo],
-                    ["Manufacturing Year", String(vehicle.year)],
-                    ["Trim & Variant", vehicle.variant],
-                    ["Fuel Type", vehicle.fuel],
-                    ["Transmission", vehicle.transmission],
-                    [
-                      "Odometer Reading",
-                      `${vehicle.odometer.toLocaleString("en-IN")} km`,
-                    ],
-                    ["Ownership Count", vehicle.owner],
-                    ["Inspected By", vehicle.inspector],
-                    ["Base Valuation", inr(vehicle.basePrice)],
-                  ].map(([k, val]) => (
-                    <div
-                      key={k}
-                      className="rounded-2xl bg-secondary/50 p-3.5 border border-border/60"
-                    >
-                      <dt className="text-xs text-muted-foreground font-semibold">
-                        {k}
-                      </dt>
-                      <dd className="truncate text-sm font-extrabold text-foreground mt-1">
-                        {val}
-                      </dd>
-                    </div>
-                  ))}
-                </dl>
-              </Panel>
-
-              {/* Inspection Report Download */}
-              <Panel title="200-Point Digital Inspection Certificate">
-                <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-[#FFC700]/30 bg-[#FFC700]/5 p-5">
-                  <div className="grid size-12 shrink-0 place-items-center rounded-2xl bg-[#FFC700] text-[#0D0E12] shadow-sm">
-                    <FileText className="size-6" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-extrabold text-foreground">
-                      Inspection-Report-{vehicle.id}.pdf
-                    </p>
-                    <p className="text-xs font-semibold text-muted-foreground mt-0.5">
-                      Verified by Certified Inspector · 2.4 MB
-                    </p>
-                  </div>
-                  <button
-                    onClick={downloadReport}
-                    className="flex shrink-0 items-center gap-2 rounded-2xl bg-[#FFC700] hover:bg-[#FFD633] px-5 py-3 text-xs font-extrabold text-[#0D0E12] shadow-[0_4px_16px_rgba(255,199,0,0.35)] transition-all cursor-pointer"
-                  >
-                    <Download className="size-4" /> Download PDF Report
-                  </button>
-                </div>
-              </Panel>
-            </>
-          )}
-
-          {activeTab === "exterior" && (
-            <Panel
-              title="Exterior Panel Health"
-              action={
-                <ScoreBadge
-                  score={ratings.exterior ? Number(ratings.exterior) * 20 : 85}
-                />
-              }
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={handleToggleFavourite}
+              className={cn(
+                "flex items-center gap-2 rounded-2xl border px-3 py-2.5 text-xs font-extrabold transition-all cursor-pointer shadow-sm",
+                isFavourite
+                  ? "border-rose-500/40 bg-rose-500/10 text-rose-600 dark:text-rose-400"
+                  : "border-border bg-secondary text-foreground hover:border-[#FFC700]/50",
+              )}
             >
-              {exteriorPanels.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-border bg-card p-8 text-center text-xs font-bold text-muted-foreground">
-                  No panels evaluation recorded.
+              <Heart
+                className={cn(
+                  "size-4",
+                  isFavourite
+                    ? "fill-rose-500 text-rose-500"
+                    : "text-muted-foreground",
+                )}
+              />
+
+            </button>
+          </div>
+        </div>
+
+        {/* Quick Specs Pill Row */}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3.5 shadow-soft">
+            <div className="grid size-10 place-items-center rounded-xl bg-[#FFC700]/15 text-[#FFC700]">
+              <Car className="size-5" />
+            </div>
+            <div>
+              <p className="text-[10px] font-extrabold uppercase text-muted-foreground tracking-wider">
+                Manufacturing
+              </p>
+              <p className="text-xs font-black text-foreground mt-0.5">
+                {vehicle.year}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3.5 shadow-soft">
+            <div className="grid size-10 place-items-center rounded-xl bg-blue-500/15 text-blue-500">
+              <Gauge className="size-5" />
+            </div>
+            <div>
+              <p className="text-[10px] font-extrabold uppercase text-muted-foreground tracking-wider">
+                Odometer
+              </p>
+              <p className="text-xs font-black text-foreground mt-0.5">
+                {vehicle.odometer.toLocaleString("en-IN")} km
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3.5 shadow-soft">
+            <div className="grid size-10 place-items-center rounded-xl bg-emerald-500/15 text-emerald-500">
+              <Fuel className="size-5" />
+            </div>
+            <div>
+              <p className="text-[10px] font-extrabold uppercase text-muted-foreground tracking-wider">
+                Fuel Type
+              </p>
+              <p className="text-xs font-black text-foreground mt-0.5">
+                {vehicle.fuel}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3.5 shadow-soft">
+            <div className="grid size-10 place-items-center rounded-xl bg-purple-500/15 text-purple-500">
+              <Settings2 className="size-5" />
+            </div>
+            <div>
+              <p className="text-[10px] font-extrabold uppercase text-muted-foreground tracking-wider">
+                Transmission
+              </p>
+              <p className="text-xs font-black text-foreground mt-0.5">
+                {vehicle.transmission}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Grid: Left Gallery & Details, Right Live Bidding Panel */}
+        <div className="grid gap-6 xl:grid-cols-3">
+          <div className="space-y-6 xl:col-span-2">
+            {/* Gallery Card */}
+            <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-soft">
+              <div
+                onClick={() => setPreviewIndex(0)}
+                className="relative aspect-[16/9] w-full overflow-hidden bg-secondary cursor-pointer group"
+              >
+                <img
+                  src={vehicle.image}
+                  alt={`${vehicle.brand} ${vehicle.model}`}
+                  className="size-full object-cover transition-transform duration-700 group-hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-80" />
+
+                {/* Floating Top Badges */}
+                <div className="absolute left-4 top-4 z-10 flex flex-wrap items-center gap-2">
+                  <span className="rounded-full bg-black/60 backdrop-blur-md px-3.5 py-1 text-xs font-extrabold text-white border border-white/10 shadow-sm">
+                    {vehicle.year} Model
+                  </span>
+                  <span className="rounded-full bg-[#FFC700] px-3.5 py-1 text-xs font-black text-[#0D0E12] shadow-sm">
+                    Score {vehicle.score}/100
+                  </span>
                 </div>
-              ) : (
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {exteriorPanels.map((p: any) => {
-                    const cond = (p.condition || "").toUpperCase();
-                    const isOk = cond === "OK";
+
+                <div className="absolute right-4 top-4 z-10">
+                  <span className="rounded-full bg-black/60 backdrop-blur-md px-3.5 py-1 text-xs font-extrabold text-white border border-white/10 flex items-center gap-1.5">
+                    <Eye className="size-3.5 text-[#FFC700]" />
+                    Click photo for Lightbox
+                  </span>
+                </div>
+
+                <div className="absolute bottom-4 left-4 right-4 z-10 flex items-center justify-between text-white">
+                  <div>
+                    <p className="text-lg font-black tracking-tight drop-shadow-md uppercase">
+                      {vehicle.brand} {vehicle.model} {vehicle.variant}
+                    </p>
+                    <p className="text-xs text-white/80 font-semibold drop-shadow">
+                      Inspected 200-Point Quality Verified
+                    </p>
+                  </div>
+                  <span className="rounded-xl bg-white/10 backdrop-blur-md px-3 py-1.5 text-xs font-extrabold border border-white/20">
+                    📷 {vehicle.images?.length || 1} Inspection Photos
+                  </span>
+                </div>
+              </div>
+
+              {/* Gallery Thumbnails Grid */}
+              {vehicle.images && vehicle.images.length > 0 && (
+                <div className="grid grid-cols-4 gap-3 p-4 bg-secondary/40 border-t border-border">
+                  {vehicle.images.slice(0, 4).map((imgObj: any, idx: number) => {
+                    const isLast = idx === 3 && vehicle.images.length > 4;
                     return (
                       <div
-                        key={p.id || p.panelName}
-                        className="flex items-center justify-between rounded-xl bg-secondary/40 border border-border p-3"
+                        key={idx}
+                        onClick={() => setPreviewIndex(idx)}
+                        className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl cursor-pointer hover:scale-[1.03] transition-all shadow-sm group border border-border"
                       >
-                        <span className="text-xs font-extrabold text-foreground">
-                          {p.panelName}
+                        <img
+                          src={imgObj.url}
+                          alt={imgObj.name}
+                          loading="lazy"
+                          className="size-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors" />
+                        <span className="absolute bottom-1.5 left-1.5 text-[9px] font-bold text-white bg-black/60 px-1.5 py-0.5 rounded-md backdrop-blur-sm truncate max-w-[90%]">
+                          {imgObj.name}
                         </span>
-                        <div className="flex items-center gap-2.5">
-                          {p.imageUrl && (
-                            <button
-                              type="button"
-                              onClick={() => window.open(p.imageUrl, "_blank")}
-                              className="inline-flex items-center gap-1 text-[10px] font-extrabold text-blue-500 hover:text-blue-600 bg-blue-500/10 px-2 py-1 rounded-full border border-blue-500/20 cursor-pointer flex-shrink-0"
-                              title="View Panel Photo"
-                            >
-                              <Eye className="size-3" /> Photo
-                            </button>
-                          )}
-                          <span
-                            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${
-                              isOk
-                                ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"
-                                : "bg-amber-500/10 text-amber-600 border border-amber-500/20"
-                            }`}
-                          >
-                            {isOk ? (
-                              <CheckCircle className="size-3" />
-                            ) : (
-                              <AlertTriangle className="size-3" />
-                            )}
-                            {cond}
-                          </span>
-                        </div>
+                        {isLast && (
+                          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 text-white font-extrabold backdrop-blur-xs transition-all group-hover:bg-black/80">
+                            <span className="text-lg font-black text-[#FFC700]">
+                              +{vehicle.images.length - 4}
+                            </span>
+                            <span className="text-[10px] tracking-wider uppercase mt-0.5 text-white/90">
+                              More Photos
+                            </span>
+                          </div>
+                        )}
                       </div>
                     );
                   })}
                 </div>
               )}
-            </Panel>
-          )}
-
-          {activeTab === "mechanical" && (
-            <Panel
-              title="Engine & Transmission Diagnostics"
-              action={
-                <ScoreBadge
-                  score={
-                    ratings.mechanical ? Number(ratings.mechanical) * 20 : 88
-                  }
-                />
-              }
-            >
-              <div className="grid gap-4 sm:grid-cols-2">
-                {[
-                  ["Engine Condition", mechanical.engineStatus],
-                  ["Engine Oil", mechanical.engineOil],
-                  ["Brake Fluid Level", mechanical.brakeOil],
-                  ["Coolant Quality", mechanical.coolant],
-                  ["Suspension Action", mechanical.suspension],
-                  ["Axle Wear", mechanical.axle],
-                  ["Exhaust Smoke Level", mechanical.smoke],
-                  ["Engine Noise / Vibration", mechanical.engineNoise],
-                  ["Fluid Leakages Check", mechanical.fluidLeakage],
-                ].map(([k, val]) => (
-                  <div
-                    key={k}
-                    className="flex items-center justify-between rounded-xl bg-secondary/40 border border-border p-4"
-                  >
-                    <span className="text-xs font-extrabold text-foreground">
-                      {k}
-                    </span>
-                    <span className="text-xs font-black text-muted-foreground uppercase">
-                      {val || "OK"}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </Panel>
-          )}
-
-          {activeTab === "tyres" && (
-            <Panel
-              title="Tyres Integrity & Tool Kits"
-              action={
-                <ScoreBadge
-                  score={ratings.tyre ? Number(ratings.tyre) * 20 : 90}
-                />
-              }
-            >
-              <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">
-                Tyres Wear & Brands
-              </h4>
-              <div className="grid gap-4 sm:grid-cols-2 mb-6">
-                {[
-                  ["Front Left Tyre", tyre.frontLeftBrand, tyre.frontLeftTread],
-                  [
-                    "Front Right Tyre",
-                    tyre.frontRightBrand,
-                    tyre.frontRightTread,
-                  ],
-                  ["Rear Left Tyre", tyre.rearLeftBrand, tyre.rearLeftTread],
-                  ["Rear Right Tyre", tyre.rearRightBrand, tyre.rearRightTread],
-                  ["Spare Tyre", tyre.spareBrand, tyre.spareTread],
-                ].map(([lbl, brand, tread]) => (
-                  <div
-                    key={lbl}
-                    className="rounded-xl bg-secondary/40 border border-border p-4 flex flex-col justify-between gap-1"
-                  >
-                    <span className="text-xs font-extrabold text-foreground">
-                      {lbl}
-                    </span>
-                    <div className="flex justify-between items-center mt-1.5">
-                      <span className="text-xs font-semibold text-muted-foreground">
-                        {brand || "JK Tyre"}
-                      </span>
-                      <span className="text-[11px] font-black text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
-                        {tread || 6} mm
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">
-                Safety & Toolkit Checklist
-              </h4>
-              <div className="grid gap-3 sm:grid-cols-2">
-                {[
-                  ["Mechanical Jack Present", tyre.hasJack],
-                  ["Wrench & Handle Present", tyre.hasHandle],
-                  ["Standard Tool Kit Present", tyre.hasToolkit],
-                  ["Reflective Hazard Triangle", tyre.hasTriangle],
-                  ["First Aid Kit Installed", tyre.hasFirstAidBox],
-                ].map(([label, active]) => (
-                  <div
-                    key={label}
-                    className="flex items-center justify-between rounded-xl bg-secondary/40 border border-border p-3"
-                  >
-                    <span className="text-xs font-extrabold text-foreground">
-                      {label}
-                    </span>
-                    <span
-                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
-                        active !== false
-                          ? "bg-emerald-500/10 text-emerald-600"
-                          : "bg-rose-500/10 text-rose-600"
-                      }`}
-                    >
-                      {active !== false ? "AVAILABLE" : "MISSING"}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </Panel>
-          )}
-
-          {activeTab === "interior" && (
-            <Panel
-              title="Electricals & Cabin Amenities"
-              action={
-                <ScoreBadge
-                  score={ratings.interior ? Number(ratings.interior) * 20 : 92}
-                />
-              }
-            >
-              {/* Battery and AC Section */}
-              <div className="grid gap-4 sm:grid-cols-3 mb-6">
-                <div className="rounded-2xl bg-secondary/50 p-4 border border-border/60">
-                  <dt className="text-xs text-muted-foreground font-semibold">
-                    Battery Brand & Details
-                  </dt>
-                  <dd className="truncate text-sm font-extrabold text-foreground mt-1">
-                    {interior.batteryBrand
-                      ? `${interior.batteryBrand} (${interior.batterySerialNumber || ""})`
-                      : "N/A"}
-                  </dd>
-                </div>
-                <div className="rounded-2xl bg-secondary/50 p-4 border border-border/60">
-                  <dt className="text-xs text-muted-foreground font-semibold">
-                    AC Cooling Performance
-                  </dt>
-                  <dd className="truncate text-sm font-extrabold text-foreground mt-1">
-                    {interior.acCooling || "N/A"}
-                  </dd>
-                </div>
-                <div className="rounded-2xl bg-secondary/50 p-4 border border-border/60">
-                  <dt className="text-xs text-muted-foreground font-semibold">
-                    Suggested Valuation
-                  </dt>
-                  <dd className="truncate text-sm font-extrabold text-foreground mt-1">
-                    {inr(vehicle.basePrice)}
-                  </dd>
-                </div>
-              </div>
-
-              {/* 25 Checklist Items Grid */}
-              <div className="grid gap-3 sm:grid-cols-2">
-                {[
-                  {
-                    label: "Right Side Tail Lamp",
-                    val: interior.rightTailLamp,
-                  },
-                  { label: "Left Side Tail Lamp", val: interior.leftTailLamp },
-                  {
-                    label: "Right Side Head Light",
-                    val: interior.rightHeadLamp,
-                  },
-                  { label: "Left Side Head Light", val: interior.leftHeadLamp },
-                  { label: "Right Indicator", val: interior.indicators },
-                  { label: "Left Indicator", val: interior.indicators },
-                  { label: "Boot Floor", val: interior.bootFloor },
-                  { label: "Washer Fluid", val: interior.wiper },
-                  { label: "Dashboard", val: interior.dashboard },
-                  { label: "Left Side Fog Lamp", val: interior.fogLamps },
-                  { label: "Right Side Fog Lamp", val: interior.fogLamps },
-                  { label: "Rear Stop Light", val: interior.rightTailLamp },
-                  {
-                    label: "Power Window All Buttons",
-                    val: interior.powerWindows,
-                  },
-                  { label: "Music System", val: interior.musicSystem },
-                  {
-                    label: "Adjustable Steering",
-                    val: interior.steeringMountedControls,
-                  },
-                  {
-                    label: "Steering Mounted Controls",
-                    val: interior.steeringMountedControls,
-                  },
-                  { label: "Wiper Washer Front", val: interior.wiper },
-                  { label: "Rear Defogger", val: interior.rearDefogger },
-                  { label: "Rear Wiper Washer", val: interior.rearWasher },
-                  {
-                    label: "Instrument Cluster",
-                    val: interior.instrumentCluster,
-                  },
-                  { label: "Infotainment System", val: interior.infotainment },
-                  { label: "Central Lock", val: interior.centralLock },
-                  { label: "Push Start Button", val: interior.pushButton },
-                  { label: "Sunroof", val: interior.sunroof },
-                  { label: "All Sensors", val: interior.sensors },
-                ].map((item) => {
-                  const cond = (item.val || "OK / WORKING").toUpperCase();
-                  const isOk =
-                    cond.includes("OK") ||
-                    (cond.includes("WORKING") && !cond.includes("NOT"));
-
-                  // Helper function to look up the image category
-                  const photoUrl = (() => {
-                    if (!rawDetails?.inspectionPhotos) return null;
-                    const found = rawDetails.inspectionPhotos.find(
-                      ({ imageCategory }: { imageCategory: string }) =>
-                        imageCategory === item.label,
-                    );
-                    return (found as { imageUrl?: string } | undefined)?.imageUrl || null;
-                  })();
-
-                  return (
-                    <div
-                      key={item.label}
-                      className="flex items-center justify-between rounded-xl bg-secondary/40 border border-border p-3"
-                    >
-                      <span className="text-xs font-extrabold text-foreground truncate max-w-[200px]">
-                        {item.label}
-                      </span>
-                      <div className="flex items-center gap-2.5 shrink-0">
-                        {photoUrl && (
-                          <button
-                            type="button"
-                            onClick={() => window.open(photoUrl, "_blank")}
-                            className="inline-flex items-center gap-1 text-[10px] font-extrabold text-blue-500 hover:text-blue-600 bg-blue-500/10 px-2 py-1 rounded-full border border-blue-500/20 cursor-pointer"
-                            title={`View ${item.label} Photo`}
-                          >
-                            <Eye className="size-3" /> Photo
-                          </button>
-                        )}
-                        <span
-                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${
-                            isOk
-                              ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"
-                              : "bg-amber-500/10 text-amber-600 border border-amber-500/20"
-                          }`}
-                        >
-                          {isOk ? (
-                            <CheckCircle className="size-3" />
-                          ) : (
-                            <AlertTriangle className="size-3" />
-                          )}
-                          {cond}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {interior.remarks && (
-                <div className="mt-6 rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 text-xs font-semibold text-amber-700 dark:text-amber-400">
-                  <span className="font-extrabold block text-foreground mb-1">
-                    Inspector Hand-written Remarks:
-                  </span>
-                  {interior.remarks}
-                </div>
-              )}
-            </Panel>
-          )}
-        </div>
-
-        {/* Live Bidding Box Sidebar */}
-        <div className="space-y-5">
-          <div className="surface-dark rounded-3xl p-7 text-white border border-[#FFC700]/40 shadow-lift relative overflow-hidden before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_top_right,rgba(255,199,0,0.18),transparent_60%)]">
-            <div className="relative z-10 flex items-center justify-between gap-3">
-              <StatusChip status={vehicle.auction} />
-              <span className="text-xs font-extrabold text-[#FFC700] flex items-center gap-1">
-                <Zap className="size-3.5 fill-current" /> {vehicle.bids} Bids
-              </span>
             </div>
 
-            <p className="relative z-10 mt-6 text-xs font-extrabold tracking-widest text-[#FFC700] uppercase">
-              Highest Bid Price
-            </p>
-            <p className="relative z-10 mt-1 text-3xl font-extrabold text-white tracking-tight">
-              {inr(vehicle.highestBid)}
-            </p>
+            {/* 5-Step Stepper Tabs Bar (Placed directly down to the main image gallery) */}
+            <div className="grid gap-2.5 grid-cols-2 sm:grid-cols-5">
+              {detailSteps.map((s, idx) => {
+                const isActive = activeTab === s.id;
+                return (
+                  <div
+                    key={s.id}
+                    onClick={() => setActiveTab(s.id)}
+                    className={cn(
+                      "rounded-2xl border p-3.5 shadow-soft transition-all duration-200 cursor-pointer flex flex-col justify-between",
+                      isActive
+                        ? "border-[#FFC700] bg-card shadow-md ring-2 ring-[#FFC700]/30"
+                        : "border-border bg-card/40 hover:border-[#FFC700]/50 opacity-80",
+                    )}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div
+                        className={cn(
+                          "flex size-6 items-center justify-center rounded-lg text-xs font-black transition-colors shrink-0",
+                          isActive
+                            ? "bg-[#FFC700] text-[#0D0E12]"
+                            : "bg-secondary text-muted-foreground",
+                        )}
+                      >
+                        {idx + 1}
+                      </div>
+                      <span className="text-xs font-extrabold text-foreground truncate">
+                        {s.title.split(":")[1] || s.title}
+                      </span>
+                    </div>
+                    <p className="mt-1 line-clamp-1 text-[10px] font-semibold text-muted-foreground">
+                      {s.subtitle}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
 
-            <p className="relative z-10 mt-5 text-xs font-extrabold tracking-widest text-white/60 uppercase">
-              Auction Closing In
-            </p>
-            <p className="relative z-10 mt-1 text-lg font-extrabold text-white">
-              {remaining}
-            </p>
+            {/* STEP 1: Overview & Specs */}
+            {activeTab === "overview" && (
+              <div className="space-y-6">
+                <Panel title="Step 1: Vehicle Specifications">
+                  <dl className="grid gap-4 sm:grid-cols-3">
+                    {[
+                      ["Manufacturing Year", String(vehicle.year)],
+                      ["Variant & Trim", vehicle.variant || "Standard"],
+                      ["Fuel Type", vehicle.fuel],
+                      ["Transmission", vehicle.transmission],
+                      [
+                        "Odometer Reading",
+                        `${vehicle.odometer.toLocaleString("en-IN")} km`,
+                      ],
+                      ["Insurance Status", vehicle.insuranceStatus || "Expired / N/A"],
+                      ["Certified Inspector", vehicle.inspector],
+                      ["Base Price", inr(vehicle.basePrice)],
+                    ].map(([k, val]) => (
+                      <div
+                        key={k}
+                        className="rounded-2xl bg-secondary/50 p-4 border border-border/60"
+                      >
+                        <dt className="text-xs text-muted-foreground font-semibold">
+                          {k}
+                        </dt>
+                        <dd className="truncate text-sm font-extrabold text-foreground mt-1">
+                          {val}
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+                </Panel>
 
-            {isEnded ? (
-              <div className="relative z-10 mt-6 rounded-2xl border p-4 bg-white/5 border-white/10 space-y-2 text-center">
-                {noBids ? (
-                  <>
-                    <p className="text-sm font-black text-amber-400 flex items-center gap-1.5 justify-center">
-                      <AlertTriangle className="size-4" /> Unsold
-                    </p>
-                    <p className="text-[11px] text-white/70 font-semibold">
-                      The live bidding ended with no active bids placed.
-                    </p>
-                  </>
-                ) : isWinner ? (
-                  <>
-                    <p className="text-sm font-black text-emerald-400 flex items-center gap-1.5 justify-center animate-bounce">
-                      🏆 Bid Winner!
-                    </p>
-                    <p className="text-[11px] text-white/95 font-semibold leading-relaxed">
-                      Congratulations! You won the bidding for this vehicle with
-                      the highest bid of{" "}
-                      <strong className="text-emerald-300">
-                        {inr(vehicle.highestBid)}
-                      </strong>
-                      !
-                    </p>
-                  </>
-                ) : participated ? (
-                  <>
-                    <p className="text-sm font-black text-rose-400 flex items-center gap-1.5 justify-center">
-                      ❌ Outbid / Lost
-                    </p>
-                    <p className="text-[11px] text-white/70 font-semibold leading-relaxed">
-                      You participated in this room, but another dealer won with
-                      the highest bid of {inr(vehicle.highestBid)}.
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-sm font-black text-white/80 flex items-center gap-1.5 justify-center">
-                      🏁 Closed
-                    </p>
-                    <p className="text-[11px] text-white/70 font-semibold leading-relaxed">
-                      This live bidding is now closed. Sold to{" "}
-                      {vehicle.highestBidder || "highest bidder"} for{" "}
-                      {inr(vehicle.highestBid)}.
-                    </p>
-                  </>
-                )}
+                {/* Primary Exterior Angle Photos */}
+                <Panel
+                  title="Primary Inspection Photos"
+                  description="High-resolution mandatory vehicle angle photos."
+                >
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {[
+                      { keys: ["FRONT_VIEW", "FRONT"], label: "Front Angle Photo" },
+                      { keys: ["RIGHT_FRONT_VIEW", "RIGHT"], label: "Right Side Angle Photo" },
+                      { keys: ["REAR_VIEW", "REAR"], label: "Rear Angle Photo" },
+                      { keys: ["LEFT_FRONT_VIEW", "LEFT"], label: "Left Side Angle Photo" },
+                      { keys: ["ROOF_VIEW", "ROOF"], label: "Roof Top Photo" },
+                      { keys: ["ODOMETER_IMAGE", "ODOMETER"], label: "Odometer Cluster Photo" },
+                    ].map((slot) => {
+                      const imgUrl = findMatchingPhoto(slot.keys);
+                      return (
+                        <div
+                          key={slot.label}
+                          className="rounded-2xl border border-border bg-card p-3.5 shadow-soft flex flex-col gap-2"
+                        >
+                          <span className="text-xs font-extrabold text-foreground truncate">
+                            {slot.label}
+                          </span>
+                          <div className="relative group aspect-[16/10] w-full overflow-hidden rounded-xl border border-border bg-secondary shadow-inner flex items-center justify-center">
+                            {imgUrl ? (
+                              <>
+                                <img
+                                  src={imgUrl}
+                                  alt={slot.label}
+                                  className="size-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                />
+                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                  <button
+                                    type="button"
+                                    onClick={() => window.open(imgUrl, "_blank")}
+                                    className="inline-flex items-center gap-1 rounded-xl bg-[#FFC700] text-[#0D0E12] px-3 py-1.5 text-[11px] font-black shadow-md hover:bg-[#FFD633] transition-all cursor-pointer"
+                                  >
+                                    <Eye className="size-3.5" /> View Photo
+                                  </button>
+                                </div>
+                              </>
+                            ) : (
+                              <div className="flex size-full items-center justify-center text-[10px] text-muted-foreground font-bold">
+                                Photo Available in Lightbox
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </Panel>
               </div>
-            ) : (
-              <>
-                <div className="relative z-10 mt-6 space-y-2">
-                  <label className="block text-xs font-bold text-white/80">
-                    Enter Your Bid (₹)
-                  </label>
-                  <input
-                    type="number"
-                    value={amount}
-                    step={25000}
-                    onChange={(e) => setAmount(Number(e.target.value))}
-                    className="w-full rounded-2xl border border-[#FFC700]/40 bg-white/10 px-4 py-3.5 text-base font-extrabold text-white outline-none focus:border-[#FFC700] focus:ring-2 focus:ring-[#FFC700]/40"
+            )}
+
+            {/* STEP 2: Exterior Body Panels */}
+            {activeTab === "exterior" && (
+              <Panel
+                title="Step 2: Exterior Body Inspection"
+                description="32-point panel condition report with inline photos."
+                action={
+                  <ScoreBadge
+                    score={
+                      ratings.exterior ? Number(ratings.exterior) * 20 : 85
+                    }
                   />
+                }
+              >
+                {exteriorPanels.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-border bg-card p-8 text-center text-xs font-bold text-muted-foreground">
+                    No panel details recorded for this vehicle.
+                  </div>
+                ) : (
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 items-start">
+                    {exteriorPanels.map((p: any) => {
+                      const cond = p.condition || "N/A";
+                      return (
+                        <div
+                          key={p.id || p.panelName}
+                          className="rounded-2xl border border-border bg-card p-3.5 shadow-soft flex flex-col gap-2.5"
+                        >
+                          <div className="flex items-center justify-between gap-2 w-full">
+                            <span className="text-xs font-extrabold text-foreground truncate">
+                              {p.panelName}
+                            </span>
+                            <span
+                              className={`rounded-lg border px-2.5 py-0.5 text-[10px] font-black uppercase ${getConditionBadgeStyle(
+                                cond,
+                              )}`}
+                            >
+                              {cond}
+                            </span>
+                          </div>
+
+                          {p.imageUrl ? (
+                            <div className="relative group aspect-[16/10] w-full overflow-hidden rounded-xl border border-border bg-secondary shadow-inner">
+                              <img
+                                src={p.imageUrl}
+                                alt={p.panelName}
+                                className="size-full object-cover transition-transform duration-300 group-hover:scale-105"
+                              />
+                              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <button
+                                  type="button"
+                                  onClick={() => window.open(p.imageUrl, "_blank")}
+                                  className="inline-flex items-center gap-1 rounded-xl bg-[#FFC700] text-[#0D0E12] px-3 py-1.5 text-[11px] font-black shadow-md hover:bg-[#FFD633] transition-all cursor-pointer"
+                                >
+                                  <Eye className="size-3.5" /> View Photo
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex h-14 w-full items-center justify-center rounded-xl border border-dashed border-border/60 bg-secondary/30 text-[10px] font-bold text-muted-foreground">
+                              No panel photo attached
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </Panel>
+            )}
+
+            {/* STEP 3: Mechanical Health */}
+            {activeTab === "mechanical" && (
+              <div className="space-y-6">
+                <Panel
+                  title="Step 3: Mechanical Health Diagnostics"
+                  description="Engine compartment, transmission bay and fluid assemblies."
+                  action={
+                    <ScoreBadge
+                      score={
+                        ratings.mechanical ? Number(ratings.mechanical) * 20 : 88
+                      }
+                    />
+                  }
+                >
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {[
+                      { key: "Engine Condition", val: mechanical.engineStatus, photos: ["ENGINE_IMAGE", "ENGINE"] },
+                      { key: "Engine Oil Quality", val: mechanical.engineOil, photos: ["ENGINE OIL"] },
+                      { key: "Brake Oil Level", val: mechanical.brakeOil, photos: ["BRAKES OIL"] },
+                      { key: "Steering Oil Level", val: mechanical.steeringOil, photos: ["STEERING OIL"] },
+                      { key: "Coolant Level", val: mechanical.coolant, photos: ["COOLANT"] },
+                      { key: "Brake Booster Status", val: mechanical.brakeBooster, photos: ["BRAKES BOOSTER"] },
+                      { key: "Brakes Working", val: mechanical.brakeWorking, photos: ["BRAKES WORKING"] },
+                      { key: "Apron Condition", val: mechanical.apron, photos: ["APRON"] },
+                      { key: "Chassis Alignment", val: mechanical.chassis, photos: ["CHASSIS"] },
+                      { key: "Suspension Action", val: mechanical.suspension, photos: ["SUSPENSION"] },
+                      { key: "Suspension Bushing", val: mechanical.bush, photos: ["SUSPENSION BUSHING"] },
+                      { key: "Transmission Status", val: mechanical.transmission, photos: ["TRANSMISSION"] },
+                      { key: "Gearbox Condition", val: mechanical.gearbox, photos: ["GEARBOX"] },
+                      { key: "Differential Action", val: mechanical.differential, photos: ["DIFFERENTIAL"] },
+                      { key: "Axle & Driveline", val: mechanical.axle, photos: ["DRIVELINE"] },
+                      { key: "Engine Noise / Vibration", val: mechanical.engineNoise, photos: ["ENGINE NOISE"] },
+                      { key: "Exhaust Smoke Color", val: mechanical.smoke, photos: ["EXHAUST SMOKE"] },
+                      { key: "Fluid Leakages Check", val: mechanical.fluidLeakage, photos: ["FLUID LEAKAGES"] },
+                    ].map((item) => {
+                      const strVal = String(item.val || "OK");
+                      const photoUrl = findMatchingPhoto(item.photos);
+                      return (
+                        <div
+                          key={item.key}
+                          className="rounded-2xl border border-border bg-card p-3.5 shadow-soft flex flex-col gap-2.5"
+                        >
+                          <div className="flex items-center justify-between gap-2 w-full">
+                            <span className="text-xs font-extrabold text-foreground truncate min-w-0">
+                              {item.key}
+                            </span>
+                            <span
+                              className={`rounded-lg border px-2.5 py-0.5 text-[10px] font-black uppercase ${getConditionBadgeStyle(
+                                strVal,
+                              )}`}
+                            >
+                              {strVal}
+                            </span>
+                          </div>
+
+                          {photoUrl && (
+                            <div className="relative group aspect-[16/10] w-full overflow-hidden rounded-xl border border-border bg-secondary shadow-inner">
+                              <img
+                                src={photoUrl}
+                                alt={item.key}
+                                className="size-full object-cover transition-transform duration-300 group-hover:scale-105"
+                              />
+                              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <button
+                                  type="button"
+                                  onClick={() => window.open(photoUrl, "_blank")}
+                                  className="inline-flex items-center gap-1 rounded-xl bg-[#FFC700] text-[#0D0E12] px-3 py-1.5 text-[11px] font-black shadow-md hover:bg-[#FFD633] transition-all cursor-pointer"
+                                >
+                                  <Eye className="size-3.5" /> View Photo
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </Panel>
+              </div>
+            )}
+
+            {/* STEP 4: Tyres Specifications */}
+            {activeTab === "tyres" && (
+              <Panel
+                title="Step 4: Tyres Specifications & Toolkits"
+                description="Tread depth percentage, brand names & emergency equipment."
+                action={
+                  <ScoreBadge
+                    score={ratings.tyre ? Number(ratings.tyre) * 20 : 90}
+                  />
+                }
+              >
+                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">
+                  Tyres Wear & Brand Details
+                </h4>
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-6">
+                  {[
+                    { label: "Front Left Tyre", brand: tyre.frontLeftBrand, tread: tyre.frontLeftTread, photoKey: ["FRONT_LEFT_TYRE", "FRONT LEFT"] },
+                    { label: "Front Right Tyre", brand: tyre.frontRightBrand, tread: tyre.frontRightTread, photoKey: ["FRONT_RIGHT_TYRE", "FRONT RIGHT"] },
+                    { label: "Rear Left Tyre", brand: tyre.rearLeftBrand, tread: tyre.rearLeftTread, photoKey: ["REAR_LEFT_TYRE", "REAR LEFT"] },
+                    { label: "Rear Right Tyre", brand: tyre.rearRightBrand, tread: tyre.rearRightTread, photoKey: ["REAR_RIGHT_TYRE", "REAR RIGHT"] },
+                    { label: "Spare Wheel", brand: tyre.spareBrand, tread: tyre.spareTread, photoKey: ["SPARE_WHEEL", "SPARE"] },
+                  ].map((t) => {
+                    const tyrePhoto = findMatchingPhoto(t.photoKey);
+                    return (
+                      <div
+                        key={t.label}
+                        className="rounded-2xl border border-border bg-card p-4 shadow-soft flex flex-col justify-between gap-2.5"
+                      >
+                        <div className="flex items-center justify-between border-b border-border pb-2">
+                          <span className="text-xs font-extrabold text-foreground">
+                            {t.label}
+                          </span>
+                          <span className="text-[11px] font-black text-emerald-600 bg-emerald-500/10 px-2.5 py-0.5 rounded-md border border-emerald-500/20">
+                            {t.tread ? `${t.tread}% Tread` : "60% Tread"}
+                          </span>
+                        </div>
+                        <p className="text-xs font-bold text-muted-foreground">
+                          Brand: <span className="text-foreground">{t.brand || "Standard Tyre"}</span>
+                        </p>
+
+                        {tyrePhoto && (
+                          <div className="relative group aspect-[16/10] w-full overflow-hidden rounded-xl border border-border bg-secondary shadow-inner">
+                            <img
+                              src={tyrePhoto}
+                              alt={t.label}
+                              className="size-full object-cover transition-transform duration-300 group-hover:scale-105"
+                            />
+                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                              <button
+                                type="button"
+                                onClick={() => window.open(tyrePhoto, "_blank")}
+                                className="inline-flex items-center gap-1 rounded-xl bg-[#FFC700] text-[#0D0E12] px-3 py-1.5 text-[11px] font-black shadow-md hover:bg-[#FFD633] transition-all cursor-pointer"
+                              >
+                                <Eye className="size-3.5" /> View Photo
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
 
-                <button
-                  onClick={handlePlaceBid}
-                  className="relative z-10 mt-4 w-full rounded-2xl bg-[#FFC700] hover:bg-[#FFD633] py-4 text-sm font-extrabold text-[#0D0E12] shadow-[0_4px_20px_rgba(255,199,0,0.4)] transition-all hover:shadow-[0_6px_24px_rgba(255,199,0,0.55)] cursor-pointer"
-                >
-                  Submit Live Bid
-                </button>
-              </>
+                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">
+                  Safety & Emergency Toolkit
+                </h4>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {[
+                    ["Mechanical Jack Present", tyre.hasJack],
+                    ["Wrench & Handle Present", tyre.hasHandle],
+                    ["Standard Tool Kit Present", tyre.hasToolkit],
+                    ["Reflective Hazard Triangle", tyre.hasTriangle],
+                    ["First Aid Kit Installed", tyre.hasFirstAidBox],
+                  ].map(([label, active]) => (
+                    <div
+                      key={label}
+                      className="flex items-center justify-between rounded-xl bg-secondary/40 border border-border p-3.5"
+                    >
+                      <span className="text-xs font-extrabold text-foreground">
+                        {label}
+                      </span>
+                      <span
+                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase border ${active !== false
+                          ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                          : "bg-rose-500/10 text-rose-600 border-rose-500/20"
+                          }`}
+                      >
+                        {active !== false ? "AVAILABLE" : "MISSING"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </Panel>
+            )}
+
+            {/* STEP 5: Interior & Electricals */}
+            {activeTab === "interior" && (
+              <Panel
+                title="Step 5: Interior Cabin & Electrical Checklist"
+                description="Cabin trim, battery condition, electrical buttons & inspector remarks."
+                action={
+                  <ScoreBadge
+                    score={ratings.interior ? Number(ratings.interior) * 20 : 92}
+                  />
+                }
+              >
+                <div className="grid gap-4 sm:grid-cols-3 mb-6">
+                  <div className="rounded-2xl bg-secondary/50 p-4 border border-border/60">
+                    <dt className="text-xs text-muted-foreground font-semibold">
+                      Battery Brand
+                    </dt>
+                    <dd className="truncate text-sm font-extrabold text-foreground mt-1">
+                      {interior.batteryBrand
+                        ? `${interior.batteryBrand} (${interior.batterySerialNumber || ""})`
+                        : "OK"}
+                    </dd>
+                  </div>
+                  <div className="rounded-2xl bg-secondary/50 p-4 border border-border/60">
+                    <dt className="text-xs text-muted-foreground font-semibold">
+                      AC Cooling Performance
+                    </dt>
+                    <dd className="truncate text-sm font-extrabold text-foreground mt-1">
+                      {interior.acCooling || "Effective / OK"}
+                    </dd>
+                  </div>
+                  <div className="rounded-2xl bg-secondary/50 p-4 border border-border/60">
+                    <dt className="text-xs text-muted-foreground font-semibold">
+                      Base Price
+                    </dt>
+                    <dd className="truncate text-sm font-extrabold text-foreground mt-1">
+                      {inr(vehicle.basePrice)}
+                    </dd>
+                  </div>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {[
+                    { label: "Right Tail Lamp", val: interior.rightTailLamp, photos: ["RIGHT SIDE TAIL LAMP", "TAIL LAMP"] },
+                    { label: "Left Tail Lamp", val: interior.leftTailLamp, photos: ["LEFT SIDE TAIL LAMP"] },
+                    { label: "Right Head Light", val: interior.rightHeadLamp, photos: ["RIGHT SIDE HEAD LIGHT", "HEAD LIGHT"] },
+                    { label: "Left Head Light", val: interior.leftHeadLamp, photos: ["LEFT SIDE HEAD LIGHT"] },
+                    { label: "Indicators", val: interior.indicators, photos: ["RIGHT INDICATOR", "LEFT INDICATOR"] },
+                    { label: "Boot Floor Condition", val: interior.bootFloor, photos: ["BOOT FLOOR"] },
+                    { label: "Wiper & Washer", val: interior.wiper, photos: ["WASHER FLUID"] },
+                    { label: "Dashboard Trim", val: interior.dashboard, photos: ["DASHBOARD_IMAGE", "DASHBOARD"] },
+                    { label: "Fog Lamps", val: interior.fogLamps, photos: ["FOG LAMP"] },
+                    { label: "Power Windows", val: interior.powerWindows, photos: ["POWER WINDOW"] },
+                    { label: "Music System", val: interior.musicSystem, photos: ["MUSIC_SYSTEM_IMAGE", "MUSIC SYSTEM"] },
+                    { label: "Steering Mounted Controls", val: interior.steeringMountedControls, photos: ["STEERING MOUNTED"] },
+                    { label: "Rear Defogger", val: interior.rearDefogger, photos: ["REAR DEFOGGER"] },
+                    { label: "Instrument Cluster", val: interior.instrumentCluster, photos: ["INSTRUMENT_CLUSTER_IMAGE", "INSTRUMENT CLUSTER"] },
+                    { label: "Infotainment System", val: interior.infotainment, photos: ["INFOTAINMENT"] },
+                    { label: "Central Locking", val: interior.centralLock, photos: ["CENTRAL LOCK"] },
+                    { label: "Push Start Button", val: interior.pushButton, photos: ["PUSH START"] },
+                    { label: "Sunroof Operation", val: interior.sunroof, photos: ["SUNROOF"] },
+                    { label: "Parking Sensors", val: interior.sensors, photos: ["SENSORS"] },
+                  ].map((item) => {
+                    const cond = item.val || "OK / WORKING";
+                    const photoUrl = findMatchingPhoto(item.photos);
+
+                    return (
+                      <div
+                        key={item.label}
+                        className="rounded-2xl border border-border bg-card p-3.5 shadow-soft flex flex-col gap-2.5"
+                      >
+                        <div className="flex items-center justify-between gap-2 w-full">
+                          <span className="text-xs font-extrabold text-foreground truncate min-w-0">
+                            {item.label}
+                          </span>
+                          <span
+                            className={`rounded-lg border px-2.5 py-0.5 text-[10px] font-black uppercase ${getConditionBadgeStyle(
+                              cond,
+                            )}`}
+                          >
+                            {cond}
+                          </span>
+                        </div>
+
+                        {photoUrl && (
+                          <div className="relative group aspect-[16/10] w-full overflow-hidden rounded-xl border border-border bg-secondary shadow-inner">
+                            <img
+                              src={photoUrl}
+                              alt={item.label}
+                              className="size-full object-cover transition-transform duration-300 group-hover:scale-105"
+                            />
+                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                              <button
+                                type="button"
+                                onClick={() => window.open(photoUrl, "_blank")}
+                                className="inline-flex items-center gap-1 rounded-xl bg-[#FFC700] text-[#0D0E12] px-3 py-1.5 text-[11px] font-black shadow-md hover:bg-[#FFD633] transition-all cursor-pointer"
+                              >
+                                <Eye className="size-3.5" /> View Photo
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {interior.remarks && (
+                  <div className="mt-6 rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 text-xs font-semibold text-amber-700 dark:text-amber-400">
+                    <span className="font-extrabold block text-foreground mb-1">
+                      Inspector Remarks:
+                    </span>
+                    {interior.remarks}
+                  </div>
+                )}
+              </Panel>
             )}
           </div>
 
-          <button
-            onClick={handleToggleFavourite}
-            className="flex w-full items-center justify-center gap-2 rounded-3xl border border-border bg-card py-4 text-xs font-extrabold shadow-soft transition-all hover:border-[#FFC700]/60 hover:bg-secondary cursor-pointer"
-          >
-            <Heart
-              className={`size-4 ${isFavourite ? "fill-rose-500 text-rose-500" : "text-[#FFC700] fill-[#FFC700]/20"}`}
-            />
-            {isFavourite
-              ? "Remove from Watchlist"
-              : "Add to Favourites Watchlist"}
-          </button>
+          {/* High-Stakes Live Bidding Sidebar */}
+          <div className="space-y-5">
+            {/* Live Bidding Box */}
+            <div className="surface-dark rounded-3xl p-6 text-white border border-[#FFC700]/40 shadow-lift relative overflow-hidden before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_top_right,rgba(255,199,0,0.2),transparent_65%)]">
+              {/* Header Status */}
+              <div className="relative z-10 flex items-center justify-between gap-3 border-b border-white/10 pb-4">
+                <StatusChip status={vehicle.auction} />
+                <span className="text-xs font-extrabold text-[#FFC700] flex items-center gap-1.5 bg-[#FFC700]/10 px-3 py-1 rounded-full border border-[#FFC700]/30">
+                  <Zap className="size-3.5 fill-current animate-pulse" />{" "}
+                  {vehicle.bids || 0} Total Bids
+                </span>
+              </div>
+
+              {/* Price & Bid Display */}
+              <div className="relative z-10 my-5 space-y-4">
+                <div className="flex items-baseline justify-between gap-2">
+                  <div>
+                    <p className="text-[10px] font-extrabold tracking-widest text-[#FFC700] uppercase">
+                      Highest Bid
+                    </p>
+                    <p className="mt-1 text-3xl font-black text-white tracking-tight">
+                      {isComingSoon || !vehicle.highestBid || vehicle.bids === 0
+                        ? "No Bids Yet"
+                        : inr(vehicle.highestBid)}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] font-bold text-white/50 uppercase">
+                      Actual Price
+                    </p>
+                    <p className="mt-1 text-xs font-bold text-white/80">
+                      {inr(vehicle.basePrice)}
+                    </p>
+                  </div>
+                </div>
+
+                {isLive && (
+                  <div className="flex items-center justify-between rounded-2xl bg-white/5 border border-white/10 px-4 py-3">
+                    <span className="text-xs font-bold text-white/70 flex items-center gap-1.5">
+                      <Clock className="size-4 text-[#FFC700]" /> Closing In
+                    </span>
+                    <span className="text-base font-black text-[#FFC700] tracking-wide">
+                      {remaining}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {isComingSoon ? (
+                <div className="relative z-10 rounded-2xl border border-[#FFC700]/30 bg-[#FFC700]/10 p-5 text-center space-y-2">
+                  <Clock className="size-8 text-[#FFC700] mx-auto animate-bounce" />
+                  <p className="text-sm font-extrabold text-white">
+                    Bidding Opening Soon
+                  </p>
+                </div>
+              ) : isEnded ? (
+                <div className="relative z-10 rounded-2xl border p-5 bg-white/5 border-white/10 space-y-2 text-center">
+                  {noBids ? (
+                    <>
+                      <p className="text-sm font-black text-amber-400 flex items-center gap-1.5 justify-center">
+                        <AlertTriangle className="size-4" /> Unsold
+                      </p>
+                      <p className="text-xs text-white/70 font-semibold">
+                        The live bidding ended with no active bids placed.
+                      </p>
+                    </>
+                  ) : isWinner ? (
+                    <>
+                      <p className="text-sm font-black text-emerald-400 flex items-center gap-1.5 justify-center animate-bounce">
+                        🏆 Bid Winner!
+                      </p>
+                      <p className="text-xs text-white/95 font-semibold leading-relaxed">
+                        Congratulations! You won the bidding for this vehicle with
+                        the highest bid of{" "}
+                        <strong className="text-emerald-300">
+                          {inr(vehicle.highestBid)}
+                        </strong>
+                        !
+                      </p>
+                    </>
+                  ) : participated ? (
+                    <>
+                      <p className="text-sm font-black text-rose-400 flex items-center gap-1.5 justify-center">
+                        ❌ Outbid / Lost
+                      </p>
+                      <p className="text-xs text-white/70 font-semibold leading-relaxed">
+                        You participated in this room, but another dealer won with
+                        the highest bid of {inr(vehicle.highestBid)}.
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-sm font-black text-white/80 flex items-center gap-1.5 justify-center">
+                        🏁 Closed
+                      </p>
+                      <p className="text-xs text-white/70 font-semibold leading-relaxed">
+                        This live bidding is now closed. Sold for{" "}
+                        {inr(vehicle.highestBid)}.
+                      </p>
+                    </>
+                  )}
+                </div>
+              ) : (
+                <div className="relative z-10 space-y-4">
+                  {/* Quick Bid Increment Buttons */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-white/70 uppercase tracking-wider mb-2">
+                      Quick Bid Increment
+                    </label>
+                    <div className="grid grid-cols-4 gap-2">
+                      {[
+                        { label: "+10k", val: 10000 },
+                        { label: "+25k", val: 25000 },
+                        { label: "+50k", val: 50000 },
+                        { label: "+1L", val: 100000 },
+                      ].map((preset) => (
+                        <button
+                          key={preset.label}
+                          type="button"
+                          onClick={() => addQuickIncrement(preset.val)}
+                          className="rounded-xl border border-white/20 bg-[#101216] hover:bg-[#FFC700] hover:text-[#0D0E12] hover:border-[#FFC700] py-2 text-xs font-black transition-all cursor-pointer"
+                        >
+                          {preset.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Input field */}
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-bold text-white/80">
+                      Enter Bid Amount (₹)
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#FFC700] font-black">
+                        ₹
+                      </span>
+                      <input
+                        type="number"
+                        value={amount}
+                        step={10000}
+                        onChange={(e) => setAmount(Number(e.target.value))}
+                        className="w-full rounded-2xl border border-[#FFC700]/40 bg-white/10 pl-9 pr-4 py-3.5 text-lg font-black text-white outline-none focus:border-[#FFC700] focus:ring-2 focus:ring-[#FFC700]/40"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={handlePlaceBid}
+                    className="w-full rounded-2xl bg-[#FFC700] hover:bg-[#FFD633] py-4 text-sm font-black text-[#0D0E12] shadow-[0_4px_20px_rgba(255,199,0,0.4)] transition-all hover:shadow-[0_6px_24px_rgba(255,199,0,0.55)] hover:scale-[1.01] active:scale-[0.99] cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    <Zap className="size-4 fill-current" /> Submit Live Bid
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Live Bid Stream / Activity Feed */}
+            <div className="rounded-3xl border border-border bg-card p-5 shadow-soft space-y-4">
+              <div className="flex items-center justify-between border-b border-border pb-3">
+                <h3 className="text-xs font-extrabold uppercase text-foreground tracking-wider flex items-center gap-1.5">
+                  <TrendingUp className="size-4 text-[#FFC700]" /> Bid Activity Stream
+                </h3>
+                <span className="text-[10px] font-bold text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
+                  Real-time
+                </span>
+              </div>
+
+              {bidHistory.length > 0 ? (
+                <div className="space-y-2 max-h-60 overflow-y-auto pr-1 no-scrollbar">
+                  {bidHistory.map((bid: any, idx: number) => {
+                    const isTop = idx === 0;
+                    const bAmount = bid.amount || bid.bidAmount || 0;
+                    const bDealer =
+                      bid.dealer ||
+                      bid.dealerName ||
+                      bid.dealershipName ||
+                      "Registered Dealer";
+                    const bTime = bid.createdAt
+                      ? new Date(bid.createdAt).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })
+                      : "Just now";
+
+                    return (
+                      <div
+                        key={bid.id || idx}
+                        className={cn(
+                          "flex items-center justify-between p-3 rounded-2xl border text-xs transition-all",
+                          isTop
+                            ? "bg-[#FFC700]/15 border-[#FFC700]/40 text-foreground font-bold"
+                            : "bg-secondary/40 border-border/60 text-muted-foreground",
+                        )}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={cn(
+                              "size-2 rounded-full",
+                              isTop ? "bg-[#FFC700]" : "bg-muted-foreground/40",
+                            )}
+                          />
+                          <div>
+                            <p className="font-bold truncate max-w-[130px] text-foreground">
+                              {bDealer}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground">
+                              {bTime}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-black text-sm text-foreground">
+                            {inr(bAmount)}
+                          </p>
+                          {isTop && (
+                            <span className="text-[9px] font-extrabold uppercase text-[#FFC700]">
+                              Highest Bid
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="p-6 text-center rounded-2xl bg-secondary/30 border border-dashed border-border text-xs text-muted-foreground font-medium">
+                  No live bids recorded yet. Place the first bid above!
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
+      {/* Lightbox Preview Modal */}
       {previewIndex !== null &&
         vehicle.images &&
         vehicle.images.length > 0 &&
@@ -1019,13 +1501,13 @@ export function DealerVehicleDetail() {
             {/* Top Bar Header */}
             <div
               onClick={(e) => e.stopPropagation()}
-              className="flex w-full items-center justify-between px-6 py-4 border-b border-white/10 bg-black/45 backdrop-blur-md z-20 cursor-default select-none animate-slide-down"
+              className="flex w-full items-center justify-between px-6 py-4 border-b border-white/10 bg-black/45 backdrop-blur-md z-20 cursor-default select-none"
             >
               <div className="min-w-0">
-                <h3 className="text-base font-extrabold text-white tracking-tight">
-                  {vehicle.brand} {vehicle.model}
+                <h3 className="text-base font-extrabold text-white tracking-tight uppercase">
+                  {vehicle.brand} {vehicle.model} {vehicle.variant}
                 </h3>
-                <p className="text-xs font-semibold text-white/60 mt-0.5">
+                <p className="text-xs font-semibold text-[#FFC700] mt-0.5">
                   {vehicle.images[previewIndex]?.name || "Inspection Photo"}
                 </p>
               </div>
@@ -1038,18 +1520,17 @@ export function DealerVehicleDetail() {
               </button>
             </div>
 
-            {/* Center Area (Arrows and Image) */}
+            {/* Center Area */}
             <div
               onClick={(e) => e.stopPropagation()}
               className="relative flex flex-1 w-full items-center justify-center px-12 md:px-20 cursor-default"
             >
-              {/* Prev Button */}
               <button
                 onClick={() =>
                   setPreviewIndex((prev) =>
                     prev !== null
                       ? (prev - 1 + vehicle.images.length) %
-                        vehicle.images.length
+                      vehicle.images.length
                       : null,
                   )
                 }
@@ -1059,7 +1540,6 @@ export function DealerVehicleDetail() {
                 <ChevronLeft className="size-8" />
               </button>
 
-              {/* Current Image Frame */}
               <div className="relative flex h-[60vh] w-full max-w-4xl items-center justify-center overflow-hidden rounded-3xl border border-white/10 bg-black/40 shadow-[0_15px_50px_rgba(0,0,0,0.4)]">
                 <img
                   src={vehicle.images[previewIndex]?.url}
@@ -1068,7 +1548,6 @@ export function DealerVehicleDetail() {
                 />
               </div>
 
-              {/* Next Button */}
               <button
                 onClick={() =>
                   setPreviewIndex((prev) =>
@@ -1082,12 +1561,11 @@ export function DealerVehicleDetail() {
               </button>
             </div>
 
-            {/* Bottom Bar (Strip and Counter) */}
+            {/* Bottom Bar */}
             <div
               onClick={(e) => e.stopPropagation()}
-              className="w-full flex flex-col items-center bg-black/45 border-t border-white/10 py-5 px-6 gap-4 z-20 cursor-default select-none animate-slide-up"
+              className="w-full flex flex-col items-center bg-black/45 border-t border-white/10 py-5 px-6 gap-4 z-20 cursor-default select-none"
             >
-              {/* Mini-Thumbnails Slider Strip */}
               <div className="flex gap-2.5 overflow-x-auto max-w-full no-scrollbar pb-1">
                 {vehicle.images.map((imgObj: any, idx: number) => {
                   const isActive = idx === previewIndex;
@@ -1097,19 +1575,17 @@ export function DealerVehicleDetail() {
                       src={imgObj.url}
                       alt=""
                       onClick={() => setPreviewIndex(idx)}
-                      className={`h-11 w-16 object-cover rounded-lg cursor-pointer transition-all border-2 ${
-                        isActive
-                          ? "border-[#FFC700] scale-105 opacity-100 shadow-[0_0_10px_rgba(255,199,0,0.5)]"
-                          : "border-transparent opacity-50 hover:opacity-85"
-                      }`}
+                      className={`h-11 w-16 object-cover rounded-lg cursor-pointer transition-all border-2 ${isActive
+                        ? "border-[#FFC700] scale-105 opacity-100 shadow-[0_0_10px_rgba(255,199,0,0.5)]"
+                        : "border-transparent opacity-50 hover:opacity-85"
+                        }`}
                     />
                   );
                 })}
               </div>
 
-              {/* Counter pill */}
               <div className="text-xs font-black text-white/80 bg-neutral-900 border border-white/10 px-4 py-1.5 rounded-full shadow-sm">
-                Image {previewIndex + 1} of {vehicle.images.length}
+                Photo {previewIndex + 1} of {vehicle.images.length}
               </div>
             </div>
           </div>,

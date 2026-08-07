@@ -1,32 +1,33 @@
-import { useEffect, useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { Link } from "react-router-dom";
 import {
-  Bell,
   Car,
   CheckCircle2,
+  ChevronRight,
   Gavel,
-  IndianRupee,
   Store,
   TrendingUp,
+  User,
   Users,
   Zap,
-  Clock,
-  User,
+  Download,
+  ShieldCheck,
+  ClipboardList,
 } from "lucide-react";
 import {
-  Area,
   AreaChart,
-  Bar,
+  Area,
   BarChart,
-  CartesianGrid,
-  Cell,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
+  Bar,
   XAxis,
   YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
 } from "recharts";
-import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
 import { adminNav } from "@/components/nav-config";
 import { Panel, StatCard, StatusChip } from "@/components/premium";
@@ -36,116 +37,50 @@ import {
   type AdminInspectionSummary,
   type AdminDealer,
 } from "@/lib/api/admin-api";
-import { inr, timeLeft } from "@/lib/mock-data";
-import { cn } from "@/lib/utils";
-import { API_BASE_URL } from "@/lib/api";
+import { inr } from "@/lib/mock-data";
+import { toast } from "sonner";
+
+const COLORS = ["#10B981", "#FFC700", "#EF4444", "#696974"];
 
 const chartAxis = {
-  stroke: "#94A3B8",
+  stroke: "#696974",
   fontSize: 11,
-  fontWeight: 600,
   tickLine: false,
   axisLine: false,
 };
 
 const tooltipStyle = {
-  borderRadius: 16,
-  border: "1px solid #E2E4E9",
-  background: "#FFFFFF",
-  boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
-  fontSize: 12,
-  fontWeight: 700,
-  color: "#0D0E12",
+  backgroundColor: "#0D0E12",
+  borderColor: "rgba(255, 199, 0, 0.3)",
+  borderRadius: "16px",
+  color: "#FFFFFF",
+  fontSize: "12px",
+  boxShadow: "0 10px 30px rgba(0,0,0,0.5)",
 };
 
 function AdminLiveRoomCard({ room }: { room: AdminInspectionSummary }) {
-  const [highestBid, setHighestBid] = useState(
-    room.currentHighestBid || room.suggestedPrice || 0,
-  );
-  const [highestBidder, setHighestBidder] = useState(
-    room.currentHighestBidder || "No bids yet",
-  );
-  const [totalBids, setTotalBids] = useState(room.totalBids || 0);
-  const [endTime, setEndTime] = useState(
-    room.auctionEndTime || Date.now() + 600 * 1000,
-  );
-  const [status, setStatus] = useState(room.vehicleStatus || "LIVE");
-  const [remaining, setRemaining] = useState(timeLeft(endTime));
-
-  useEffect(() => {
-    if (room.auctionEndTime) {
-      setEndTime(room.auctionEndTime);
-    }
-  }, [room.auctionEndTime]);
-
-  useEffect(() => {
-    const id = setInterval(() => {
-      setRemaining(timeLeft(endTime));
-    }, 1000);
-    return () => clearInterval(id);
-  }, [endTime]);
-
-  useEffect(() => {
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    let host = "localhost:8080";
-    if (API_BASE_URL && API_BASE_URL.includes("://")) {
-      host = API_BASE_URL.split("://")[1];
-    } else if (API_BASE_URL) {
-      host = API_BASE_URL;
-    }
-
-    const wsUrl = `${protocol}//${host}/ws/auction?inspectionId=${room.inspectionId}`;
-    const socket = new WebSocket(wsUrl);
-
-    socket.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (
-          (data.type === "BID_UPDATE" || data.type === "GO_LIVE") &&
-          Number(data.inspectionId) === Number(room.inspectionId)
-        ) {
-          setHighestBid(data.currentHighestBid);
-          setHighestBidder(data.currentHighestBidder || "Anonymous");
-          setTotalBids(data.totalBids);
-          if (data.auctionEndTime) {
-            setEndTime(data.auctionEndTime);
-          }
-          if (status !== "LIVE") {
-            setStatus("LIVE");
-          }
-        } else if (
-          data.type === "AUCTION_ENDED" &&
-          Number(data.inspectionId) === Number(room.inspectionId)
-        ) {
-          setStatus("SOLD OUT");
-          setHighestBid(data.winningBid);
-          setHighestBidder(data.winner || "No winner");
-        }
-      } catch (err) {
-        console.error("Error parsing dashboard websocket message:", err);
-      }
-    };
-
-    return () => {
-      socket.close(1000);
-    };
-  }, [room.inspectionId, status]);
+  const highestBid = room.currentHighestBid || room.suggestedPrice || 0;
+  const highestBidder = room.currentHighestBidder || (room as any).highestBidderName || "No Bids Yet";
+  const totalBids = room.totalBids || 0;
 
   return (
-    <div
-      className={cn(
-        "card-lift rounded-3xl border p-5 bg-card transition-all duration-300",
-        status === "LIVE"
-          ? "border-emerald-500/30 shadow-[0_4px_20px_rgba(16,185,129,0.06)] ring-1 ring-emerald-500/5"
-          : "border-border shadow-soft",
-      )}
-    >
-      <div className="flex items-center justify-between gap-3">
-        <StatusChip status={status === "LIVE" ? "live" : "sold out"} />
-        <span className="text-[11px] font-bold text-muted-foreground/90 flex items-center gap-1">
-          <Clock className="size-3 text-[#FFC700]" />{" "}
-          {status === "LIVE" ? remaining : "Sold Out"}
-        </span>
+    <div className="card-lift relative overflow-hidden rounded-3xl border border-border bg-card p-5 shadow-soft hover:border-[#FFC700]/60 transition-all">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <span className="relative flex size-2.5 shrink-0">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full size-2.5 bg-emerald-500"></span>
+          </span>
+          <span className="text-xs font-black text-emerald-500 uppercase tracking-widest">
+            LIVE BIDDING
+          </span>
+        </div>
+        <Link
+          to={`/admin/live-bidding?room=${room.inspectionId}`}
+          className="rounded-xl bg-[#FFC700]/10 hover:bg-[#FFC700] text-[#FFC700] hover:text-[#0D0E12] px-3 py-1.5 text-[11px] font-black transition-all cursor-pointer flex items-center gap-1"
+        >
+          View Room <ChevronRight className="size-3" />
+        </Link>
       </div>
 
       <p className="mt-4 font-extrabold text-foreground text-base truncate">
@@ -220,61 +155,48 @@ export function AdminDashboard() {
   // Compute live stats
   const totalInventory = inspections.length;
   const approvedCount = inspections.filter(
-    (ins) => ins.status === "APPROVED",
+    (ins) => ins.status === "APPROVED"
   ).length;
   const runningAuctions = inspections.filter(
-    (ins) => ins.status === "APPROVED" && ins.vehicleStatus === "LIVE",
+    (ins) => ins.status === "APPROVED" && ins.vehicleStatus === "LIVE"
   ).length;
   const pendingApprovals = inspections.filter(
-    (ins) => ins.status === "SUBMITTED",
+    (ins) => ins.status === "SUBMITTED"
   ).length;
 
-  // Count unique inspectors
   const uniqueInspectors = new Set(
-    inspections.map((ins) => ins.inspectorName).filter(Boolean),
+    inspections.map((ins) => ins.inspectorName).filter(Boolean)
   ).size;
 
   const totalDealers = dealers.length;
 
-  // Highest bid calculator
-  const highestPrice = inspections
-    .filter((ins) => ins.status === "APPROVED")
-    .map((ins) => ins.suggestedPrice || 0)
-    .reduce((max, val) => Math.max(max, val), 0);
+  const inspectionBreakdownData = useMemo(() => {
+    const approved = inspections.filter((ins) => ins.status === "APPROVED").length;
+    const pending = inspections.filter((ins) => ins.status === "SUBMITTED").length;
+    const rejected = inspections.filter((ins) => ins.status === "REJECTED").length;
+    const drafts = inspections.filter(
+      (ins) => ins.status === "DRAFT" || ins.status === "IN_PROGRESS"
+    ).length;
 
-  // Dynamic telemetry charts datasets
-  const inspectionBreakdownData = [
-    { name: "Approved", value: approvedCount },
-    { name: "Pending Approval", value: pendingApprovals },
-    {
-      name: "Rejected",
-      value: inspections.filter((ins) => ins.status === "REJECTED").length,
-    },
-    {
-      name: "Drafts",
-      value: inspections.filter(
-        (ins) => ins.status === "DRAFT" || ins.status === "IN_PROGRESS",
-      ).length,
-    },
-  ].filter((item) => item.value > 0);
+    return [
+      { name: "Approved", value: approved },
+      { name: "Pending Approval", value: pending },
+      { name: "Rejected", value: rejected },
+      { name: "Drafts", value: drafts },
+    ].filter((item) => item.value > 0);
+  }, [inspections]);
 
-  // Active live auction inspections list
   const liveAuctions = inspections.filter(
-    (ins) => ins.status === "APPROVED" && ins.vehicleStatus === "LIVE",
+    (ins) => ins.status === "APPROVED" && ins.vehicleStatus === "LIVE"
   );
 
   const monthlyData = useMemo(() => {
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     const counts: Record<string, { bids: number; auctions: number }> = {};
     
-    const now = new Date();
-    const activeMonths: string[] = [];
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const mName = months[d.getMonth()];
-      activeMonths.push(mName);
+    months.forEach((mName) => {
       counts[mName] = { bids: 0, auctions: 0 };
-    }
+    });
     
     inspections.forEach((ins) => {
       if (!ins.submittedAt) return;
@@ -282,16 +204,54 @@ export function AdminDashboard() {
       const mName = months[d.getMonth()];
       if (counts[mName] !== undefined) {
         counts[mName].auctions += 1;
-        counts[mName].bids += ins.totalBids || 2;
+        counts[mName].bids += (ins.totalBids || 0);
       }
     });
 
-    return activeMonths.map((m) => ({
+    return months.map((m) => ({
       month: m,
-      bids: counts[m].bids || Math.floor(Math.random() * 20) + 15,
-      auctions: counts[m].auctions || Math.floor(Math.random() * 3) + 1
+      bids: counts[m].bids,
+      auctions: counts[m].auctions
     }));
   }, [inspections]);
+
+  // Working Export Operations Report handler
+  const handleExportReport = () => {
+    try {
+      const headers = ["ID", "Vehicle Number", "Vehicle Details", "Owner", "Inspector", "Status", "Submitted At"];
+      const rows = inspections.map((ins, index) => [
+        index + 1,
+        `"${ins.vehicleNumber || ''}"`,
+        `"${ins.brand || ''} ${ins.model || ''} ${ins.variant || ''}"`,
+        `"${ins.ownerName || ''}"`,
+        `"${ins.inspectorName || ''}"`,
+        `"${ins.status || ''}"`,
+        `"${ins.submittedAt ? new Date(ins.submittedAt).toLocaleString("en-IN") : 'N/A'}"`,
+      ]);
+
+      const csvContent = [
+        "CARYANAM BIDDING - ENTERPRISE OPERATIONS SUMMARY REPORT",
+        `Generated On: ${new Date().toLocaleString("en-IN")}`,
+        `Total Inventory: ${totalInventory} | Approved: ${approvedCount} | Live Rooms: ${runningAuctions} | Pending Review: ${pendingApprovals} | Registered Dealers: ${totalDealers}`,
+        "",
+        headers.join(","),
+        ...rows.map((r) => r.join(",")),
+      ].join("\n");
+
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `caryanam_operations_report_${new Date().toISOString().slice(0, 10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast.success("Operations Summary Report downloaded successfully!");
+    } catch (err) {
+      console.error("Export report error", err);
+      toast.error("Failed to generate report.");
+    }
+  };
 
   return (
     <AppShell
@@ -307,7 +267,7 @@ export function AdminDashboard() {
             <Zap className="size-6 fill-current" />
           </div>
           <div>
-            <h2 className="text-xl font-extrabold tracking-tight">
+            <h2 className="text-xl font-extrabold text-white tracking-tight">
               Enterprise Operations
             </h2>
             <p className="text-xs font-semibold text-white/70 mt-0.5">
@@ -316,16 +276,16 @@ export function AdminDashboard() {
             </p>
           </div>
         </div>
-        <button
-          onClick={() => toast.success("Live network report generated")}
-          className="rounded-2xl bg-[#FFC700] hover:bg-[#FFD633] px-5 py-3 text-xs font-extrabold text-[#0D0E12] shadow-[0_4px_16px_rgba(255,199,0,0.35)] transition-all hover:scale-[1.02] cursor-pointer"
+        <Link
+          to="/admin/live-bidding"
+          className="rounded-2xl bg-[#FFC700] hover:bg-[#FFD633] px-6 py-3 text-xs font-extrabold text-[#0D0E12] shadow-[0_4px_16px_rgba(255,199,0,0.35)] transition-all hover:scale-[1.02] cursor-pointer flex items-center gap-2"
         >
-          Export Operations Report
-        </button>
+          <Zap className="size-4 fill-current" /> Live Bidding
+        </Link>
       </div>
 
       {/* Primary KPI Metrics */}
-      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
         <StatCard
           label="Total Inventory"
           value={loading ? "..." : totalInventory.toString()}
@@ -363,19 +323,92 @@ export function AdminDashboard() {
           delta="Onboarded buyers"
           icon={Store}
         />
-        <StatCard
-          label="Highest Valuation"
-          value={loading ? "..." : highestPrice > 0 ? inr(highestPrice) : "N/A"}
-          delta="In active inventory"
-          icon={IndianRupee}
-        />
-        <StatCard
-          label="Revenue Target (MTD)"
-          value="₹10.00 Cr"
-          delta="Operations projection"
-          icon={TrendingUp}
-        />
       </div>
+
+      {/* Quick Action Navigation Grid */}
+      <Panel title="Quick Admin Actions" description="Fast operational shortcuts">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Link
+            to="/admin/live-bidding"
+            className="group card-lift flex items-center justify-between rounded-2xl border border-border bg-card p-4 hover:border-[#FFC700] transition-all shadow-soft"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                <Zap className="size-5" />
+              </div>
+              <div>
+                <p className="text-sm font-extrabold text-foreground group-hover:text-[#FFC700] transition-colors">
+                  Live Bidding
+                </p>
+                <p className="text-xs text-muted-foreground font-medium">
+                  {runningAuctions} active rooms
+                </p>
+              </div>
+            </div>
+            <ChevronRight className="size-4 text-muted-foreground group-hover:text-[#FFC700] group-hover:translate-x-1 transition-all" />
+          </Link>
+
+          <Link
+            to="/admin/vehicles"
+            className="group card-lift flex items-center justify-between rounded-2xl border border-border bg-card p-4 hover:border-[#FFC700] transition-all shadow-soft"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-[#FFC700]/10 text-[#FFC700] border border-[#FFC700]/20">
+                <Car className="size-5" />
+              </div>
+              <div>
+                <p className="text-sm font-extrabold text-foreground group-hover:text-[#FFC700] transition-colors">
+                  Manage Vehicles
+                </p>
+                <p className="text-xs text-muted-foreground font-medium">
+                  {pendingApprovals} pending review
+                </p>
+              </div>
+            </div>
+            <ChevronRight className="size-4 text-muted-foreground group-hover:text-[#FFC700] group-hover:translate-x-1 transition-all" />
+          </Link>
+
+          <Link
+            to="/admin/auctions"
+            className="group card-lift flex items-center justify-between rounded-2xl border border-border bg-card p-4 hover:border-[#FFC700] transition-all shadow-soft"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                <Gavel className="size-5" />
+              </div>
+              <div>
+                <p className="text-sm font-extrabold text-foreground group-hover:text-[#FFC700] transition-colors">
+                  Auctions Control
+                </p>
+                <p className="text-xs text-muted-foreground font-medium">
+                  Schedule & start rooms
+                </p>
+              </div>
+            </div>
+            <ChevronRight className="size-4 text-muted-foreground group-hover:text-[#FFC700] group-hover:translate-x-1 transition-all" />
+          </Link>
+
+          <Link
+            to="/admin/dealers"
+            className="group card-lift flex items-center justify-between rounded-2xl border border-border bg-card p-4 hover:border-[#FFC700] transition-all shadow-soft"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-500 border border-blue-500/20">
+                <Store className="size-5" />
+              </div>
+              <div>
+                <p className="text-sm font-extrabold text-foreground group-hover:text-[#FFC700] transition-colors">
+                  Dealer Network
+                </p>
+                <p className="text-xs text-muted-foreground font-medium">
+                  {totalDealers} registered dealers
+                </p>
+              </div>
+            </div>
+            <ChevronRight className="size-4 text-muted-foreground group-hover:text-[#FFC700] group-hover:translate-x-1 transition-all" />
+          </Link>
+        </div>
+      </Panel>
 
       {/* Main Telemetry Charts */}
       <div className="grid gap-5 xl:grid-cols-3">
@@ -386,41 +419,24 @@ export function AdminDashboard() {
         >
           <div className="h-[295px] pt-2">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart
-                data={monthlyData}
-              >
+              <AreaChart data={monthlyData}>
                 <defs>
                   <linearGradient id="yellowGlow" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="#FFC700" stopOpacity={0.45} />
-                    <stop
-                      offset="100%"
-                      stopColor="#FFC700"
-                      stopOpacity={0.02}
-                    />
+                    <stop offset="100%" stopColor="#FFC700" stopOpacity={0.0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid
-                  vertical={false}
-                  stroke="#E2E4E9"
-                  strokeDasharray="3 3"
-                />
+                <CartesianGrid vertical={false} stroke="#E2E4E9" strokeDasharray="3 3" />
                 <XAxis dataKey="month" {...chartAxis} />
-                <YAxis {...chartAxis} width={36} />
+                <YAxis {...chartAxis} width={30} />
                 <Tooltip contentStyle={tooltipStyle} />
                 <Area
                   type="monotone"
                   dataKey="bids"
                   stroke="#FFC700"
                   strokeWidth={3}
+                  fillOpacity={1}
                   fill="url(#yellowGlow)"
-                />
-                <Area
-                  type="monotone"
-                  dataKey="auctions"
-                  stroke="#0D0E12"
-                  strokeDasharray="4 4"
-                  strokeWidth={2}
-                  fill="none"
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -428,12 +444,12 @@ export function AdminDashboard() {
         </Panel>
 
         <Panel
-          title="Inspection Quality Breakdown"
-          description="Fleet quality status"
+          title="Inspection Pipeline"
+          description="Status ratio breakdown"
         >
-          {inspectionBreakdownData.length === 0 ? (
-            <div className="flex h-[250px] items-center justify-center text-xs font-semibold text-muted-foreground">
-              No inventory records present.
+          {loading ? (
+            <div className="flex h-[250px] items-center justify-center">
+              <span className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
             </div>
           ) : (
             <>
@@ -442,19 +458,17 @@ export function AdminDashboard() {
                   <PieChart>
                     <Pie
                       data={inspectionBreakdownData}
-                      dataKey="value"
-                      nameKey="name"
-                      innerRadius={50}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={55}
                       outerRadius={80}
                       paddingAngle={4}
-                      stroke="var(--card)"
+                      dataKey="value"
                     >
-                      {inspectionBreakdownData.map((_, i) => (
+                      {inspectionBreakdownData.map((_, index) => (
                         <Cell
-                          key={i}
-                          fill={
-                            [`#FFC700`, `#38BDF8`, `#EF4444`, `#94A3B8`][i % 4]
-                          }
+                          key={`cell-${index}`}
+                          fill={COLORS[index % COLORS.length]}
                         />
                       ))}
                     </Pie>
@@ -462,25 +476,18 @@ export function AdminDashboard() {
                   </PieChart>
                 </ResponsiveContainer>
               </div>
-              <ul className="mt-2 grid grid-cols-2 gap-2 text-[10px] font-bold">
-                {inspectionBreakdownData.map((s, i) => (
-                  <li
-                    key={s.name}
-                    className="flex items-center gap-1.5 text-muted-foreground"
-                  >
-                    <span
-                      className="size-2 rounded-full shadow-sm"
-                      style={{
-                        background: [
-                          `#FFC700`,
-                          `#38BDF8`,
-                          `#EF4444`,
-                          `#94A3B8`,
-                        ][i % 4],
-                      }}
-                    />
-                    <span className="text-foreground truncate">{s.name}</span> ·{" "}
-                    {s.value}
+
+              <ul className="mt-2 space-y-1 text-xs font-bold text-muted-foreground">
+                {inspectionBreakdownData.map((s, idx) => (
+                  <li key={s.name} className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="size-2.5 rounded-full"
+                        style={{ backgroundColor: COLORS[idx % COLORS.length] }}
+                      />
+                      <span>{s.name}</span>
+                    </div>
+                    <span className="text-foreground font-black">{s.value}</span>
                   </li>
                 ))}
               </ul>
@@ -489,117 +496,35 @@ export function AdminDashboard() {
         </Panel>
       </div>
 
-      <div className="grid gap-5 xl:grid-cols-3">
-        <Panel
-          title="KYC Application Volume"
-          description="New dealer enrollments"
-        >
-          <div className="h-[250px] pt-2">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={[
-                  { month: "Jan", dealers: 12 },
-                  { month: "Feb", dealers: 18 },
-                  { month: "Mar", dealers: 25 },
-                  { month: "Apr", dealers: 32 },
-                  { month: "May", dealers: 28 },
-                  { month: "Jun", dealers: totalDealers || 4 },
-                ]}
-              >
-                <CartesianGrid
-                  vertical={false}
-                  stroke="#E2E4E9"
-                  strokeDasharray="3 3"
-                />
-                <XAxis dataKey="month" {...chartAxis} />
-                <YAxis {...chartAxis} width={30} />
-                <Tooltip
-                  contentStyle={tooltipStyle}
-                  cursor={{ fill: "rgba(255, 199, 0, 0.08)" }}
-                />
-                <Bar
-                  dataKey="dealers"
-                  fill="#FFC700"
-                  radius={[8, 8, 0, 0]}
-                  barSize={28}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </Panel>
-
-        <Panel title="Live Operations Activity" description="Network event log">
-          <ol className="space-y-4">
-            <li className="relative pl-6">
-              <span className="absolute top-1.5 left-0 size-2.5 rounded-full bg-emerald-500 ring-4 ring-emerald-500/20" />
-              <span className="absolute top-4 left-[4.5px] h-full w-px bg-border" />
-              <p className="text-sm font-extrabold text-foreground">
-                Total registered dealers loaded
-              </p>
-              <p className="text-xs font-semibold text-muted-foreground">
-                {totalDealers} active buying nodes connected
-              </p>
-              <p className="mt-0.5 text-[11px] font-bold text-[#FFC700]">
-                Synced Just Now
-              </p>
-            </li>
-            <li className="relative pl-6">
-              <span className="absolute top-1.5 left-0 size-2.5 rounded-full bg-[#FFC700] ring-4 ring-[#FFC700]/20" />
-              <p className="text-sm font-extrabold text-foreground">
-                Live inventory audit synced
-              </p>
-              <p className="text-xs font-semibold text-muted-foreground">
-                {totalInventory} total inspections registered
-              </p>
-              <p className="mt-0.5 text-[11px] font-bold text-[#FFC700]">
-                Realtime Data
-              </p>
-            </li>
-          </ol>
-        </Panel>
-
-        <div className="space-y-5">
-          <Panel title="Quick Operations">
-            <div className="space-y-3">
-              {["Audit Pending Vehicles", "Deploy Operational Reports"].map(
-                (label) => (
-                  <button
-                    key={label}
-                    onClick={() => toast.success(`${label} initialized`)}
-                    className="w-full rounded-2xl border border-border bg-card hover:border-[#FFC700]/60 hover:bg-secondary px-5 py-3.5 text-xs font-extrabold transition-all cursor-pointer shadow-sm"
-                  >
-                    {label}
-                  </button>
-                ),
-              )}
-            </div>
-          </Panel>
-
-          <Panel
-            title="Alert Notifications"
-            action={<Bell className="size-4 text-[#FFC700]" />}
-          >
-            <ul className="space-y-3 text-xs font-semibold">
-              <li className="border-b border-border pb-3 last:border-0">
-                <p className="font-extrabold text-foreground text-sm">
-                  {pendingApprovals} vehicles pending approval
-                </p>
-                <p className="text-muted-foreground mt-0.5">
-                  Please review submissions in Vehicles tab.
-                </p>
-              </li>
-              <li>
-                <p className="font-extrabold text-foreground text-sm">
-                  {runningAuctions} live bidding rooms running
-                </p>
-                <p className="text-muted-foreground mt-0.5">
-                  Operating normally without lag.
-                </p>
-              </li>
-            </ul>
-          </Panel>
-        </div>
-      </div>
+      {/* Live Operations Log */}
+      <Panel title="Live Operations Activity" description="Network event log">
+        <ol className="grid gap-4 sm:grid-cols-2">
+          <li className="relative pl-6 bg-secondary/40 p-4 rounded-2xl border border-border">
+            <span className="absolute top-4 left-3 size-2.5 rounded-full bg-emerald-500 ring-4 ring-emerald-500/20" />
+            <p className="text-sm font-extrabold text-foreground ml-2">
+              Registered Dealers Sync
+            </p>
+            <p className="text-xs font-semibold text-muted-foreground ml-2 mt-0.5">
+              {totalDealers} active buying nodes connected
+            </p>
+            <p className="mt-1 text-[10px] font-black text-[#FFC700] uppercase tracking-wider ml-2">
+              Synced Realtime
+            </p>
+          </li>
+          <li className="relative pl-6 bg-secondary/40 p-4 rounded-2xl border border-border">
+            <span className="absolute top-4 left-3 size-2.5 rounded-full bg-[#FFC700] ring-4 ring-[#FFC700]/20" />
+            <p className="text-sm font-extrabold text-foreground ml-2">
+              Live Vehicle Audit
+            </p>
+            <p className="text-xs font-semibold text-muted-foreground ml-2 mt-0.5">
+              {totalInventory} total inspections registered
+            </p>
+            <p className="mt-1 text-[10px] font-black text-[#FFC700] uppercase tracking-wider ml-2">
+              Active Network
+            </p>
+          </li>
+        </ol>
+      </Panel>
 
       <Panel title="Active Auction Rooms" description="Live bidding feeds">
         {liveAuctions.length === 0 ? (

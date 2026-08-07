@@ -18,7 +18,7 @@ export function DealerFavourites() {
           const mapped = res.data.map((item: any) => {
             const basePrice = item.suggestedPrice || 350000;
             const bidCount = item.totalBids || 0;
-            const highestBid = item.currentHighestBid || basePrice;
+            const highestBid = item.currentHighestBid || 0;
             
             let fuelType: "Petrol" | "Diesel" | "CNG" | "Electric" = "Petrol";
             const f = (item.fuel || "").toLowerCase();
@@ -39,8 +39,8 @@ export function DealerFavourites() {
               year: item.year || 2020,
               fuel: fuelType,
               transmission: transmissionType,
-              odometer: item.odometer || 45000,
-              owner: item.ownerName,
+              odometer: item.odometer ?? 0,
+              owner: item.ownerName || "1st Owner",
               score: 88 + (item.inspectionId % 10),
               basePrice,
               highestBid,

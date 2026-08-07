@@ -507,7 +507,7 @@ export function AppShell({
                       </div>
                     </div>
 
-                    <div className="mt-3 max-h-[360px] sm:max-h-[420px] overflow-y-auto space-y-2 pr-1">
+                    <div className="mt-3 max-h-[340px] sm:max-h-[400px] overflow-y-auto space-y-2 pr-1.5 overscroll-contain [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-secondary/30 [&::-webkit-scrollbar-thumb]:bg-[#FFC700]/50 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-[#FFC700]">
                       {notificationItems.length === 0 ? (
                         <div className="py-8 text-center text-muted-foreground">
                           <BellOff className="size-8 mx-auto opacity-30 mb-2" />

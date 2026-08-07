@@ -119,7 +119,7 @@ export function InspectorVehicles() {
     {
       key: "inspectionId",
       header: "ID",
-      cell: (v) => <span className="font-extrabold text-xs">#{v.inspectionId}</span>,
+      cell: (_, idx) => <span className="font-extrabold text-xs">#{idx}</span>,
     },
     {
       key: "vehicle",
@@ -240,20 +240,37 @@ export function InspectorVehicles() {
     return v.status.toUpperCase() === statusFilter.toUpperCase();
   });
 
+  const getStatusCount = (status: string) => {
+    if (status === "All") return inspections.length;
+    if (status === "Draft") {
+      return inspections.filter((v) => v.status === "DRAFT" || v.status === "IN_PROGRESS").length;
+    }
+    return inspections.filter((v) => v.status.toUpperCase() === status.toUpperCase()).length;
+  };
+
   const actionButtons = (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2">
       {["All", "Draft", "Submitted", "Approved", "Rejected"].map((status) => {
         const active = statusFilter === status;
+        const count = getStatusCount(status);
         return (
           <button
             key={status}
             onClick={() => setStatusFilter(status)}
-            className={`rounded-2xl border px-3.5 py-2 text-xs font-extrabold transition-all cursor-pointer ${active
+            className={`rounded-2xl border px-3.5 py-2 text-xs font-extrabold transition-all cursor-pointer flex items-center gap-2 ${active
               ? "bg-[#FFC700] border-[#FFC700] text-[#0D0E12] shadow-sm"
               : "border-border bg-card text-foreground hover:bg-secondary"
               }`}
           >
-            {status}
+            <span>{status}</span>
+            <span
+              className={`rounded-full px-2 py-0.5 text-[10px] font-black ${active
+                ? "bg-[#0D0E12]/15 text-[#0D0E12]"
+                : "bg-secondary text-muted-foreground"
+                }`}
+            >
+              {count}
+            </span>
           </button>
         );
       })}
@@ -317,7 +334,7 @@ export function InspectorVehicles() {
                   )}
                 </div>
                 <p className="text-xs font-semibold text-muted-foreground mt-1">
-                  Inspection Report #{previewId} • Submitted on {previewData?.submittedAt ? new Date(previewData.submittedAt).toLocaleDateString() : "Draft"}
+                  Inspection Report  • Submitted on {previewData?.submittedAt ? new Date(previewData.submittedAt).toLocaleDateString() : "Draft"}
                 </p>
               </div>
             </div>
@@ -422,12 +439,16 @@ export function InspectorVehicles() {
                   >
                     <div className="grid gap-4.5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                       <div className="rounded-2xl border border-border bg-secondary/30 p-4">
-                        <span className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">Customer / Owner Name</span>
-                        <span className="font-extrabold text-foreground text-sm">{previewData.vehicleDetails?.customerName || previewData.vehicleDetails?.ownerName || "N/A"}</span>
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">Customer Name</span>
+                        <span className="font-extrabold text-foreground text-sm">{previewData.vehicleDetails?.customerName || "N/A"}</span>
                       </div>
                       <div className="rounded-2xl border border-border bg-secondary/30 p-4">
                         <span className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">Customer Mobile</span>
                         <span className="font-extrabold text-foreground text-sm">{previewData.vehicleDetails?.customerMobileNumber || "N/A"}</span>
+                      </div>
+                      <div className="rounded-2xl border border-border bg-secondary/30 p-4">
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">Owner Profile Status</span>
+                        <span className="font-extrabold text-foreground text-sm">{previewData.vehicleDetails?.ownerName || "1st Owner"}</span>
                       </div>
                       <div className="rounded-2xl border border-border bg-secondary/30 p-4">
                         <span className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">Registration Number</span>
