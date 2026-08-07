@@ -50,6 +50,13 @@ export interface AdminInspectionSummary {
   currentHighestBidder?: string;
   auctionEndTime?: number;
   totalBids?: number;
+  year?: number;
+  fuel?: string;
+  sellerAgreed?: boolean;
+  sellerCounterPrice?: number;
+  sellerMessage?: string;
+  adminDealerMessage?: string;
+  dealerReplyMessage?: string;
 }
 
 export const getSubmittedInspections = async () => {
@@ -175,4 +182,19 @@ export const downloadAdminInspectionPdf = async (id: number) => {
   link.click();
   link.remove();
   window.URL.revokeObjectURL(url);
+};
+
+export const sendAdminDealerMessage = async (id: number, message: string): Promise<{ success: boolean }> => {
+  const res = await adminApiClient.post(`/api/admin/inspection/${id}/dealer-message`, { message });
+  return res.data;
+};
+
+export const updateInspectionVehicleStatus = async (id: number, vehicleStatus: string): Promise<{ success: boolean; message?: string }> => {
+  const res = await adminApiClient.put(`/api/admin/inspection/${id}/vehicle-status`, { vehicleStatus });
+  return res.data;
+};
+
+export const getAdminNotifications = async (): Promise<{ success: boolean; data: any[] }> => {
+  const res = await adminApiClient.get("/api/admin/notifications");
+  return res.data;
 };

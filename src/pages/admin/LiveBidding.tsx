@@ -6,6 +6,8 @@ import { StatusChip } from "@/components/premium";
 import {
   getSubmittedInspections,
   getAdminBidHistory,
+  updateInspectionVehicleStatus,
+  sendAdminDealerMessage,
   type AdminInspectionSummary,
 } from "@/lib/api/admin-api";
 import { inr, timeLeft } from "@/lib/mock-data";
@@ -19,6 +21,7 @@ import {
   Car,
   CheckCircle2,
   Clock,
+  Copy,
   DollarSign,
   Eye,
   Flame,
@@ -29,6 +32,7 @@ import {
   Radio,
   RefreshCw,
   Search,
+  Send,
   ShieldCheck,
   Sparkles,
   Tag,
@@ -63,7 +67,58 @@ export function AdminLiveBidding() {
   const [bidHistory, setBidHistory] = useState<LiveBidRecord[]>([]);
   const [remaining, setRemaining] = useState<string>("");
 
+  const [adminDealerMsgText, setAdminDealerMsgText] = useState("");
+  const [sellerResp, setSellerResp] = useState<any>(null);
+  const [dealerReply, setDealerReply] = useState<any>(null);
+
   const wsRef = useRef<WebSocket | null>(null);
+
+  const selectedRoom = inspections.find((r) => r.inspectionId === selectedId);
+
+  useEffect(() => {
+    if (!selectedRoom) return;
+    if (selectedRoom.sellerAgreed !== undefined && selectedRoom.sellerAgreed !== null) {
+      setSellerResp({ agreed: selectedRoom.sellerAgreed, counterPrice: selectedRoom.sellerCounterPrice, message: selectedRoom.sellerMessage });
+    } else {
+      setSellerResp(null);
+    }
+    if (selectedRoom.dealerReplyMessage) {
+      setDealerReply({ reply: selectedRoom.dealerReplyMessage });
+    } else {
+      setDealerReply(null);
+    }
+  }, [selectedRoom]);
+
+  const handleSendDealerMsg = async () => {
+    if (!selectedId || !adminDealerMsgText.trim()) {
+      toast.error("Please enter a message for the dealer.");
+      return;
+    }
+    try {
+      const res = await sendAdminDealerMessage(selectedId, adminDealerMsgText);
+      if (res.success) {
+        toast.success("Message sent to winning dealer!");
+        setAdminDealerMsgText("");
+      } else {
+        toast.error("Failed to send message.");
+      }
+    } catch (err) {
+      toast.error("Error sending message to dealer.");
+    }
+  };
+
+  const handleMarkAsSoldOutManual = async () => {
+    if (!selectedId) return;
+    const res = await updateInspectionVehicleStatus(selectedId, "SOLD OUT");
+    if (res.success) {
+      setStatus("SOLD OUT");
+      toast.success(`Vehicle #${selectedId} status manually updated to SOLD OUT!`);
+    } else {
+      toast.error("Failed to update status.");
+    }
+  };
+
+
 
   const fetchRooms = async (showToast = false) => {
     if (showToast) setRefreshing(true);
@@ -109,8 +164,6 @@ export function AdminLiveBidding() {
         i.vehicleNumber?.toLowerCase().includes(q),
     );
   }, [inspections, searchQuery]);
-
-  const selectedRoom = inspections.find((r) => r.inspectionId === selectedId);
 
   // Initialize selected card details
   useEffect(() => {
@@ -192,10 +245,19 @@ export function AdminLiveBidding() {
           data.type === "AUCTION_ENDED" &&
           Number(data.inspectionId) === Number(selectedId)
         ) {
-          setStatus("SOLD OUT");
+          setStatus("ENDED");
           setHighestBid(data.winningBid);
           setHighestBidder(data.winner || "No winner");
           toast.info(`Auction ended: Winner is ${data.winner}`);
+        } else if (data.type === "SELLER_RESPONSE" && Number(data.inspectionId) === Number(selectedId)) {
+          setSellerResp({ agreed: data.sellerAgreed, counterPrice: data.sellerCounterPrice, message: data.sellerMessage });
+          toast.success("Seller response received!");
+        } else if (data.type === "DEALER_REPLY" && Number(data.inspectionId) === Number(selectedId)) {
+          setDealerReply({ reply: data.dealerReplyMessage || data.reply });
+          toast.success("Dealer reply received!");
+        } else if (data.type === "VEHICLE_STATUS_UPDATE" && Number(data.inspectionId) === Number(selectedId)) {
+          setStatus(data.vehicleStatus);
+          toast.info(`Status updated to ${data.vehicleStatus}`);
         }
       } catch (err) {
         console.error("Error parsing websocket message in Admin Monitor", err);
@@ -399,29 +461,46 @@ export function AdminLiveBidding() {
                     </p>
                   </div>
 
-                  {/* Real-time Countdown Digital Pill */}
-                  {status === "LIVE" && (
-                    <div
-                      className={cn(
-                        "flex items-center gap-3 rounded-2xl border px-4 py-3 transition-all shadow-sm",
-                        isTimeLow
-                          ? "border-rose-500/50 bg-rose-500/10 text-rose-500 animate-pulse"
-                          : "border-[#FFC700]/30 bg-[#FFC700]/10 text-[#FFC700]",
-                      )}
-                    >
-                      <div className="grid size-9 place-items-center rounded-xl bg-card border border-border shadow-inner">
-                        <Clock className={cn("size-5", isTimeLow ? "text-rose-500" : "text-[#FFC700]")} />
+                  <div className="flex flex-wrap items-center gap-2">
+                    {status === "LIVE" && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const link = `${window.location.origin}/public-bid/${selectedRoom.inspectionId}`;
+                          navigator.clipboard.writeText(link);
+                          toast.success(`Public Bidding Link copied for ${selectedRoom.brand} ${selectedRoom.model}!`);
+                        }}
+                        className="rounded-2xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/20 px-3.5 py-2.5 text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 shadow-xs"
+                      >
+                        <Copy className="size-3.5" />
+                        Copy Public Link
+                      </button>
+                    )}
+
+                    {/* Real-time Countdown Digital Pill */}
+                    {status === "LIVE" && (
+                      <div
+                        className={cn(
+                          "flex items-center gap-3 rounded-2xl border px-4 py-3 transition-all shadow-sm",
+                          isTimeLow
+                            ? "border-rose-500/50 bg-rose-500/10 text-rose-500 animate-pulse"
+                            : "border-[#FFC700]/30 bg-[#FFC700]/10 text-[#FFC700]",
+                        )}
+                      >
+                        <div className="grid size-9 place-items-center rounded-xl bg-card border border-border shadow-inner">
+                          <Clock className={cn("size-5", isTimeLow ? "text-rose-500" : "text-[#FFC700]")} />
+                        </div>
+                        <div>
+                          <span className="text-[9px] font-black uppercase tracking-widest block opacity-80">
+                            Time Remaining
+                          </span>
+                          <span className="font-mono text-lg font-black tracking-wider block">
+                            {remaining}
+                          </span>
+                        </div>
                       </div>
-                      <div>
-                        <span className="text-[9px] font-black uppercase tracking-widest block opacity-80">
-                          Time Remaining
-                        </span>
-                        <span className="font-mono text-lg font-black tracking-wider block">
-                          {remaining}
-                        </span>
-                      </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
 
                 {/* 4 Metric Cards */}
@@ -501,43 +580,106 @@ export function AdminLiveBidding() {
                   </div>
                 </div>
 
-                {/* Bidding Outcome Banner (When Auction Ends or Sold Out) */}
-                {(status === "SOLD OUT" || status === "ENDED") && (
-                  <div
-                    className={cn(
-                      "rounded-2xl border p-5 relative overflow-hidden transition-all shadow-soft",
-                      totalBids === 0
-                        ? "border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-200"
-                        : "border-emerald-500/30 bg-emerald-500/10 text-emerald-900 dark:text-emerald-200",
-                    )}
-                  >
-                    <div className="flex items-start gap-3">
-                      <div
-                        className={cn(
-                          "grid size-10 place-items-center rounded-xl shrink-0",
-                          totalBids === 0
-                            ? "bg-amber-500/20 text-amber-600"
-                            : "bg-emerald-500/20 text-emerald-600",
-                        )}
-                      >
-                        {totalBids === 0 ? (
-                          <AlertTriangle className="size-5" />
-                        ) : (
-                          <CheckCircle2 className="size-5" />
-                        )}
+                {/* Bidding Outcome Banner & Post-Auction Control Panel */}
+                {(status === "SOLD OUT" || status === "ENDED" || status === "AUCTION ENDED") && (
+                  <div className="space-y-4">
+                    <div
+                      className={cn(
+                        "rounded-2xl border p-5 relative overflow-hidden transition-all shadow-soft",
+                        totalBids === 0
+                          ? "border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-200"
+                          : "border-emerald-500/30 bg-emerald-500/10 text-emerald-900 dark:text-emerald-200",
+                      )}
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div className="flex items-start gap-3">
+                          <div
+                            className={cn(
+                              "grid size-10 place-items-center rounded-xl shrink-0",
+                              totalBids === 0
+                                ? "bg-amber-500/20 text-amber-600"
+                                : "bg-emerald-500/20 text-emerald-600",
+                            )}
+                          >
+                            {totalBids === 0 ? (
+                              <AlertTriangle className="size-5" />
+                            ) : (
+                              <CheckCircle2 className="size-5" />
+                            )}
+                          </div>
+                          <div>
+                            <h4 className="text-sm font-black uppercase tracking-wider flex items-center gap-2">
+                              {totalBids === 0
+                                ? "Bidding Concluded - Unsold"
+                                : `Bidding Concluded - Status: ${status}`}
+                            </h4>
+                            <p className="text-xs font-semibold mt-1 leading-relaxed opacity-90">
+                              {totalBids === 0
+                                ? "The bidding timer expired without receiving any bids from dealers."
+                                : `Top winning dealer: '${highestBidder}' with highest bid of ${inr(highestBid)}.`}
+                            </p>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={handleMarkAsSoldOutManual}
+                          className="rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black px-4 py-2 text-xs shadow-md transition-all cursor-pointer shrink-0"
+                        >
+                          Mark Status as SOLD OUT
+                        </button>
                       </div>
-                      <div>
-                        <h4 className="text-sm font-black uppercase tracking-wider flex items-center gap-2">
-                          {totalBids === 0
-                            ? "Bidding Concluded - Unsold"
-                            : "Bidding Concluded - Vehicle Sold Out"}
-                        </h4>
-                        <p className="text-xs font-semibold mt-1 leading-relaxed opacity-90">
-                          {totalBids === 0
-                            ? "The bidding timer expired without receiving any bids from dealers. The vehicle status remains active for re-listing."
-                            : `Auction concluded successfully. The vehicle has been awarded to dealer '${highestBidder}' for a winning price of ${inr(highestBid)}.`}
+                    </div>
+
+                    {/* Seller Response Box */}
+                    <div className="rounded-2xl bg-amber-500/10 border border-amber-500/30 p-4 text-xs text-amber-900 dark:text-amber-200 space-y-1">
+                      <div className="flex items-center justify-between font-black text-amber-700 dark:text-amber-400">
+                        <span>Seller Price Confirmation Response:</span>
+                        <span>{sellerResp ? "Response Submitted" : "Pending Seller Response"}</span>
+                      </div>
+                      {sellerResp ? (
+                        <p className="font-semibold mt-1">
+                          Question: "Are you agree for this price for sell?" ➔{" "}
+                          <strong className="text-amber-600 dark:text-amber-300">
+                            {sellerResp.agreed ? "YES (Agreed to sell)" : `NO (Wants counter ₹${sellerResp.counterPrice?.toLocaleString("en-IN") || 'N/A'})`}
+                          </strong>
+                          {sellerResp.message && <span className="block italic opacity-90 mt-0.5">Message: "{sellerResp.message}"</span>}
                         </p>
+                      ) : (
+                        <p className="italic opacity-80 mt-1">Awaiting seller response from public link or vehicle detail page.</p>
+                      )}
+                    </div>
+
+                    {/* Send Message to Winning Dealer */}
+                    <div className="rounded-2xl bg-card border border-border p-4 space-y-2">
+                      <label className="block text-xs font-extrabold text-foreground">
+                        Send Message to Winning Dealer ({highestBidder}):
+                      </label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          placeholder="e.g. Seller agreed to sell at ₹4.25L. Please confirm payment..."
+                          value={adminDealerMsgText}
+                          onChange={(e) => setAdminDealerMsgText(e.target.value)}
+                          className="flex-1 rounded-xl border border-border bg-secondary px-3 py-2 text-xs font-semibold text-foreground focus:outline-none focus:border-amber-400"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleSendDealerMsg}
+                          className="rounded-xl bg-[#FFC700] hover:bg-[#FFD633] text-[#0D0E12] font-black px-4 py-2 text-xs shadow-sm cursor-pointer flex items-center gap-1 shrink-0"
+                        >
+                          <Send className="size-3.5" /> Send Message
+                        </button>
                       </div>
+
+                      {dealerReply && (
+                        <div className="mt-3 rounded-xl bg-blue-500/10 border border-blue-500/30 p-3 text-xs text-blue-900 dark:text-blue-200">
+                          <span className="font-black text-blue-600 dark:text-blue-400 block mb-1">
+                            Dealer Reply Received:
+                          </span>
+                          <p className="font-semibold">"{dealerReply.reply}"</p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}

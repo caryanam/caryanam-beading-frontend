@@ -24,6 +24,11 @@ import {
   Share2,
   CheckCircle2,
   Camera,
+  LogIn,
+  UserPlus,
+  Phone,
+  Mail,
+  MapPin,
 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
@@ -32,14 +37,17 @@ import { Panel, ScoreBadge, StatusChip } from "@/components/premium";
 import { inr, timeLeft } from "@/lib/mock-data";
 import {
   getMarketplaceInspectionDetails,
+  getPublicInspectionDetails,
   placeDealerBid,
   getDealerWishlist,
   addToWishlist,
   removeFromWishlist,
+  submitSellerResponse,
+  submitDealerReply,
 } from "@/lib/api/dealer-api";
 import { API_BASE_URL } from "@/lib/api";
 import { readSession } from "@/lib/session";
-import { cn } from "@/lib/utils";
+import { cn, maskDealerName } from "@/lib/utils";
 
 export function DealerVehicleDetail() {
   const { vehicleId } = useParams<{ vehicleId: string }>();
@@ -53,6 +61,119 @@ export function DealerVehicleDetail() {
   const [isFavourite, setIsFavourite] = useState(false);
   const [bidHistory, setBidHistory] = useState<any[]>([]);
 
+  const [sellerAgreed, setSellerAgreed] = useState<boolean>(true);
+  const [sellerCounterPrice, setSellerCounterPrice] = useState<number | null>(null);
+  const [sellerMessage, setSellerMessage] = useState("");
+  const [dealerReplyText, setDealerReplyText] = useState("");
+  const [submittingSeller, setSubmittingSeller] = useState(false);
+  const [submittingReply, setSubmittingReply] = useState(false);
+
+  useEffect(() => {
+    if (vehicle) {
+      if (vehicle.sellerAgreed !== undefined && vehicle.sellerAgreed !== null) {
+        setSellerAgreed(vehicle.sellerAgreed);
+      }
+      if (vehicle.sellerCounterPrice) setSellerCounterPrice(vehicle.sellerCounterPrice);
+      if (vehicle.sellerMessage) setSellerMessage(vehicle.sellerMessage);
+    }
+  }, [vehicle]);
+
+  useEffect(() => {
+    if (!vehicleId) return;
+    const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const host = window.location.host.includes(":") ? window.location.host.split(":")[0] + ":8080" : window.location.host;
+    const wsUrl = `${wsProtocol}//${host}/ws/auction?inspectionId=${vehicleId}`;
+    let ws: WebSocket | null = null;
+    try {
+      ws = new WebSocket(wsUrl);
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === "SELLER_RESPONSE") {
+            setVehicle((prev: any) =>
+              prev
+                ? {
+                    ...prev,
+                    sellerAgreed: data.sellerAgreed,
+                    sellerCounterPrice: data.sellerCounterPrice,
+                    sellerMessage: data.sellerMessage,
+                  }
+                : prev
+            );
+          } else if (data.type === "ADMIN_DEALER_MESSAGE") {
+            setVehicle((prev: any) =>
+              prev ? { ...prev, adminDealerMessage: data.adminDealerMessage || data.message } : prev
+            );
+          } else if (data.type === "DEALER_REPLY") {
+            setVehicle((prev: any) =>
+              prev ? { ...prev, dealerReplyMessage: data.dealerReplyMessage || data.reply } : prev
+            );
+          } else if (data.type === "VEHICLE_STATUS_UPDATE" || data.type === "AUCTION_ENDED") {
+            setVehicle((prev: any) =>
+              prev ? { ...prev, vehicleStatus: data.vehicleStatus || "ENDED" } : prev
+            );
+          }
+        } catch (e) {}
+      };
+    } catch (e) {}
+
+    return () => {
+      if (ws) ws.close();
+    };
+  }, [vehicleId]);
+
+  const handleSendSellerResponse = async () => {
+    if (!vehicleId) return;
+    setSubmittingSeller(true);
+    try {
+      const res = await submitSellerResponse(Number(vehicleId), {
+        agreed: sellerAgreed,
+        counterPrice: sellerCounterPrice || undefined,
+        message: sellerMessage,
+      });
+      if (res.success) {
+        toast.success("Seller decision submitted successfully!");
+        setVehicle((prev: any) => ({
+          ...prev,
+          sellerAgreed,
+          sellerCounterPrice,
+          sellerMessage,
+        }));
+      } else {
+        toast.error("Failed to submit seller decision.");
+      }
+    } catch (err) {
+      toast.error("Error submitting seller decision.");
+    } finally {
+      setSubmittingSeller(false);
+    }
+  };
+
+  const handleSendDealerReply = async () => {
+    if (!vehicleId || !dealerReplyText.trim()) {
+      toast.error("Please enter a reply message.");
+      return;
+    }
+    setSubmittingReply(true);
+    try {
+      const res = await submitDealerReply(Number(vehicleId), dealerReplyText);
+      if (res.success) {
+        toast.success("Reply sent to Admin!");
+        setVehicle((prev: any) => ({
+          ...prev,
+          dealerReplyMessage: dealerReplyText,
+        }));
+        setDealerReplyText("");
+      } else {
+        toast.error("Failed to send reply.");
+      }
+    } catch (err) {
+      toast.error("Error sending reply.");
+    } finally {
+      setSubmittingReply(false);
+    }
+  };
+
   useEffect(() => {
     if (!vehicle?.id) return;
     const checkWishlist = async () => {
@@ -61,20 +182,12 @@ export function DealerVehicleDetail() {
         if (res.success && res.data) {
           setIsFavourite(
             res.data.some(
-              (item: any) => String(item.inspectionId) === String(vehicle.id),
+              (item: any) => String(item.inspectionId || item.id) === String(vehicle.id),
             ),
           );
         }
       } catch (err) {
-        console.error("Failed to fetch wishlist status", err);
-        const session = readSession("dealer");
-        const email = session?.email || "default_dealer";
-        const favList = JSON.parse(
-          localStorage.getItem(`dealer_${email}_favourites`) || "[]",
-        );
-        setIsFavourite(
-          favList.some((item: any) => String(item.id) === String(vehicle.id)),
-        );
+        console.error("Failed to fetch wishlist status from API", err);
       }
     };
     checkWishlist();
@@ -121,7 +234,7 @@ export function DealerVehicleDetail() {
               };
             });
             setBidHistory(data.bidHistory || []);
-            setAmount(data.currentHighestBid + 25000);
+            setAmount(data.currentHighestBid + 2000);
             if (data.type === "GO_LIVE") {
               toast.success("Auction is now live!");
             }
@@ -190,24 +303,8 @@ export function DealerVehicleDetail() {
         }
       }
     } catch (err: any) {
-      console.error("Error updating watchlist:", err);
-      const session = readSession("dealer");
-      const email = session?.email || "default_dealer";
-      const key = `dealer_${email}_favourites`;
-      let favList = JSON.parse(localStorage.getItem(key) || "[]");
-
-      if (isFavourite) {
-        favList = favList.filter(
-          (item: any) => String(item.id) !== String(vehicle.id),
-        );
-        setIsFavourite(false);
-        toast.success("Removed from watchlist.");
-      } else {
-        favList.push(vehicle);
-        setIsFavourite(true);
-        toast.success("Added to favourites watchlist!");
-      }
-      localStorage.setItem(key, JSON.stringify(favList));
+      console.error("Error updating watchlist via API:", err);
+      toast.error("Could not update watchlist.");
     }
   };
 
@@ -234,7 +331,7 @@ export function DealerVehicleDetail() {
           highestBid: amount,
           bids: (prev.bids || 0) + 1,
         }));
-        setAmount(amount + 25000);
+        setAmount(amount + 2000);
       } else {
         toast.error(res.message || "Failed to place bid.");
       }
@@ -343,21 +440,30 @@ export function DealerVehicleDetail() {
               v.vehicleStatus === "LIVE"
                 ? "live"
                 : v.vehicleStatus === "SOLD OUT" ||
-                  v.vehicleStatus === "SOLD" ||
-                  v.vehicleStatus === "ENDED"
-                  ? "completed"
-                  : "scheduled",
+                  v.vehicleStatus === "SOLD_OUT" ||
+                  v.vehicleStatus === "SOLD"
+                  ? "sold out"
+                  : v.vehicleStatus === "ENDED" ||
+                    v.vehicleStatus === "AUCTION ENDED" ||
+                    v.vehicleStatus === "AUCTION_ENDED"
+                    ? "ended"
+                    : "scheduled",
             image: primaryImage,
             images: finalImages,
             videos: videoList,
             endsAt: endsAtTime,
             inspector: raw.inspectorName || "Certified Inspector",
             vehicleStatus: v.vehicleStatus,
+            sellerAgreed: v.sellerAgreed,
+            sellerCounterPrice: v.sellerCounterPrice,
+            sellerMessage: v.sellerMessage,
+            adminDealerMessage: v.adminDealerMessage,
+            dealerReplyMessage: v.dealerReplyMessage,
           };
           setVehicle(mapped);
           setBidHistory(raw.bidHistory || []);
           const startAmount =
-            highestBid > 0 ? highestBid + 25000 : basePrice || 50000;
+            highestBid > 0 ? highestBid + 2000 : basePrice || 2000;
           setAmount(startAmount);
           setRemaining(timeLeft(endsAtTime));
         }
@@ -463,12 +569,7 @@ export function DealerVehicleDetail() {
 
   if (loading) {
     return (
-      <AppShell
-        role="dealer"
-        nav={dealerNav}
-        title="Loading Vehicle..."
-        breadcrumb={["Dealer", "Marketplace"]}
-      >
+      <AppShell role="dealer" nav={dealerNav} title="Loading Vehicle..." breadcrumb={["Dealer", "Marketplace"]}>
         <div className="flex h-96 flex-col items-center justify-center gap-4 bg-card border border-border rounded-3xl shadow-soft">
           <span className="h-12 w-12 animate-spin rounded-full border-4 border-[#FFC700] border-t-transparent" />
           <p className="text-sm font-extrabold text-muted-foreground animate-pulse">
@@ -481,12 +582,7 @@ export function DealerVehicleDetail() {
 
   if (!vehicle) {
     return (
-      <AppShell
-        role="dealer"
-        nav={dealerNav}
-        title="Not Found"
-        breadcrumb={["Dealer", "Marketplace"]}
-      >
+      <AppShell role="dealer" nav={dealerNav} title="Not Found" breadcrumb={["Dealer", "Marketplace"]}>
         <div className="rounded-3xl border border-dashed border-border bg-card p-16 text-center shadow-soft">
           <p className="font-extrabold text-foreground text-lg">
             Vehicle details not found.
@@ -509,9 +605,12 @@ export function DealerVehicleDetail() {
   const exteriorPanels = rawDetails?.exteriorPanelDetails || [];
   const videos = vehicle.videos || [];
 
-  const session = readSession("dealer");
-  const myName = session?.name || "";
-  const myEmail = session?.email || "";
+  const session: any = readSession("dealer");
+  const myName = (session?.name || "").toLowerCase().trim();
+  const myEmail = (session?.email || "").toLowerCase().trim();
+  const myDealership = (session?.dealershipName || "").toLowerCase().trim();
+
+  const myId = session?.dealerId || session?.id;
 
   const isLive = vehicle.auction === "live";
   const isComingSoon =
@@ -531,26 +630,45 @@ export function DealerVehicleDetail() {
       vehicle.highestBidder === "No bids" ||
       vehicle.bids === 0);
 
+  const topBid = bidHistory[0];
+  const topBidderStr = (
+    vehicle?.highestBidder ||
+    rawDetails?.vehicleDetails?.currentHighestBidder ||
+    rawDetails?.currentHighestBidder?.dealershipName ||
+    rawDetails?.currentHighestBidder?.ownerName ||
+    rawDetails?.currentHighestBidder?.email ||
+    topBid?.dealer ||
+    topBid?.dealerName ||
+    topBid?.dealershipName ||
+    ""
+  ).toLowerCase().trim();
+
   const isWinner =
     vehicle &&
     !noBids &&
-    (vehicle.highestBidder === myName ||
-      vehicle.highestBidder === myEmail ||
-      (rawDetails?.currentHighestBidder &&
-        (rawDetails.currentHighestBidder === myName ||
-          rawDetails.currentHighestBidder === myEmail ||
-          rawDetails.currentHighestBidder?.dealershipName === myName ||
-          rawDetails.currentHighestBidder?.ownerName === myName ||
-          rawDetails.currentHighestBidder?.email === myEmail)));
+    Boolean(
+      session &&
+      (
+        (myId && topBid?.dealerId && String(topBid.dealerId) === String(myId)) ||
+        (myId && rawDetails?.vehicleDetails?.currentHighestBidderId && String(rawDetails.vehicleDetails.currentHighestBidderId) === String(myId)) ||
+        (myEmail && topBid?.dealerEmail && topBid.dealerEmail.toLowerCase().trim() === myEmail) ||
+        (myEmail && rawDetails?.vehicleDetails?.currentHighestBidderEmail && rawDetails.vehicleDetails.currentHighestBidderEmail.toLowerCase().trim() === myEmail) ||
+        (myName && topBidderStr.length > 0 && topBidderStr.includes(myName)) ||
+        (myEmail && topBidderStr.length > 0 && topBidderStr.includes(myEmail)) ||
+        (myDealership && topBidderStr.length > 0 && topBidderStr.includes(myDealership))
+      )
+    );
 
   const participated =
     vehicle &&
-    bidHistory.some(
-      (b: any) =>
-        b.dealer === myName ||
-        b.dealer === myEmail ||
-        b.dealerName === myName,
-    );
+    bidHistory.some((b: any) => {
+      const bd = (b.dealer || b.dealerName || b.dealershipName || b.dealerEmail || "").toLowerCase().trim();
+      return (
+        (myName && bd.includes(myName)) ||
+        (myEmail && bd.includes(myEmail)) ||
+        (myDealership && bd.includes(myDealership))
+      );
+    });
 
   const detailSteps = [
     { id: "overview", title: "Step 1: Vehicle Specs", subtitle: "Specs, insurance & primary photos" },
@@ -560,13 +678,8 @@ export function DealerVehicleDetail() {
     { id: "interior", title: "Step 5: Interior & Electrical", subtitle: "Cabin, electricals & remarks" },
   ];
 
-  return (
-    <AppShell
-      role="dealer"
-      nav={dealerNav}
-      title={`${vehicle.brand} ${vehicle.model}`}
-      breadcrumb={["Dealer", "Marketplace", vehicle.id]}
-    >
+  const mainContent = (
+    <>
       <div className="space-y-6">
         {/* Top Hero Breadcrumb & Header Bar */}
         <div className="flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-border bg-card p-5 shadow-soft">
@@ -615,7 +728,6 @@ export function DealerVehicleDetail() {
                     : "text-muted-foreground",
                 )}
               />
-
             </button>
           </div>
         </div>
@@ -1355,6 +1467,43 @@ export function DealerVehicleDetail() {
                       </p>
                     </>
                   )}
+                  {/* Admin Message for Winning Dealer */}
+                  {vehicle.adminDealerMessage && isWinner && (
+                    <div className="mt-4 border-t border-white/10 pt-3 text-left space-y-2">
+                      <div className="flex items-center gap-1.5 text-blue-400 font-extrabold text-xs">
+                        <Sparkles className="size-3.5" />
+                        <span>Admin Message to Dealer:</span>
+                      </div>
+                      <p className="text-xs text-white/90 font-semibold bg-blue-500/10 p-2.5 rounded-xl border border-blue-500/30">
+                        "{vehicle.adminDealerMessage}"
+                      </p>
+
+                      <div className="space-y-2 pt-1">
+                        <input
+                          type="text"
+                          placeholder="Type reply back to Admin..."
+                          value={dealerReplyText}
+                          onChange={(e) => setDealerReplyText(e.target.value)}
+                          className="w-full rounded-xl bg-black/40 border border-white/20 px-3 py-2 text-xs font-semibold text-white placeholder:text-white/40 focus:outline-none focus:border-blue-400"
+                        />
+                        <button
+                          type="button"
+                          disabled={submittingReply}
+                          onClick={handleSendDealerReply}
+                          className="w-full rounded-xl bg-blue-500 hover:bg-blue-400 text-white font-black py-2 text-xs shadow-md cursor-pointer disabled:opacity-50"
+                        >
+                          {submittingReply ? "Sending..." : "Send Reply to Admin"}
+                        </button>
+                      </div>
+
+                      {vehicle.dealerReplyMessage && (
+                        <div className="rounded-xl bg-emerald-400/10 border border-emerald-400/30 p-2 text-[11px] font-semibold text-emerald-300">
+                          <span className="font-extrabold block">Your Reply Sent to Admin:</span>
+                          "{vehicle.dealerReplyMessage}"
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="relative z-10 space-y-4">
@@ -1365,16 +1514,16 @@ export function DealerVehicleDetail() {
                     </label>
                     <div className="grid grid-cols-4 gap-2">
                       {[
-                        { label: "+10k", val: 10000 },
-                        { label: "+25k", val: 25000 },
-                        { label: "+50k", val: 50000 },
-                        { label: "+1L", val: 100000 },
+                        { label: "+500", val: 500 },
+                        { label: "+1k", val: 1000 },
+                        { label: "+1.5k", val: 1500 },
+                        { label: "+2k", val: 2000 },
                       ].map((preset) => (
                         <button
                           key={preset.label}
                           type="button"
                           onClick={() => addQuickIncrement(preset.val)}
-                          className="rounded-xl border border-white/20 bg-[#101216] hover:bg-[#FFC700] hover:text-[#0D0E12] hover:border-[#FFC700] py-2 text-xs font-black transition-all cursor-pointer"
+                          className="rounded-xl border border-[#FFC700]/30 bg-[#101216] hover:bg-[#FFC700] hover:text-[#0D0E12] hover:border-[#FFC700] py-2 text-xs font-black transition-all cursor-pointer text-[#FFC700]"
                         >
                           {preset.label}
                         </button>
@@ -1394,7 +1543,7 @@ export function DealerVehicleDetail() {
                       <input
                         type="number"
                         value={amount}
-                        step={10000}
+                        step={500}
                         onChange={(e) => setAmount(Number(e.target.value))}
                         className="w-full rounded-2xl border border-[#FFC700]/40 bg-white/10 pl-9 pr-4 py-3.5 text-lg font-black text-white outline-none focus:border-[#FFC700] focus:ring-2 focus:ring-[#FFC700]/40"
                       />
@@ -1412,9 +1561,9 @@ export function DealerVehicleDetail() {
             </div>
 
             {/* Live Bid Stream / Activity Feed */}
-            <div className="rounded-3xl border border-border bg-card p-5 shadow-soft space-y-4">
+            <div className="rounded-3xl border border-border bg-card p-5 space-y-4 shadow-soft">
               <div className="flex items-center justify-between border-b border-border pb-3">
-                <h3 className="text-xs font-extrabold uppercase text-foreground tracking-wider flex items-center gap-1.5">
+                <h3 className="text-sm font-black uppercase tracking-wider text-foreground flex items-center gap-2">
                   <TrendingUp className="size-4 text-[#FFC700]" /> Bid Activity Stream
                 </h3>
                 <span className="text-[10px] font-bold text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
@@ -1427,17 +1576,26 @@ export function DealerVehicleDetail() {
                   {bidHistory.map((bid: any, idx: number) => {
                     const isTop = idx === 0;
                     const bAmount = bid.amount || bid.bidAmount || 0;
+                    const nextLowerBid = bidHistory[idx + 1];
+                    const lowerAmount = nextLowerBid
+                      ? nextLowerBid.amount || nextLowerBid.bidAmount || 0
+                      : vehicle?.basePrice || 0;
+                    const diff = bAmount > lowerAmount ? bAmount - lowerAmount : 0;
+
                     const bDealer =
                       bid.dealer ||
                       bid.dealerName ||
                       bid.dealershipName ||
                       "Registered Dealer";
-                    const bTime = bid.createdAt
-                      ? new Date(bid.createdAt).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })
-                      : "Just now";
+                    const bTime =
+                      bid.time ||
+                      bid.bidTime ||
+                      (bid.createdAt
+                        ? new Date(bid.createdAt).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })
+                        : "Just now");
 
                     return (
                       <div
@@ -1458,20 +1616,30 @@ export function DealerVehicleDetail() {
                           />
                           <div>
                             <p className="font-bold truncate max-w-[130px] text-foreground">
-                              {bDealer}
+                              {maskDealerName(bDealer)}
                             </p>
                             <p className="text-[10px] text-muted-foreground">
                               {bTime}
                             </p>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <p className="font-black text-sm text-foreground">
+                        <div className="text-right flex flex-col items-end">
+                          <p
+                            className={cn(
+                              "font-black text-sm",
+                              isTop ? "text-[#FFC700]" : "text-foreground",
+                            )}
+                          >
                             {inr(bAmount)}
                           </p>
+                          {diff > 0 && (
+                            <p className="flex items-center gap-0.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">
+                              <TrendingUp className="size-3.5" /> +{inr(diff)}
+                            </p>
+                          )}
                           {isTop && (
-                            <span className="text-[9px] font-extrabold uppercase text-[#FFC700]">
-                              Highest Bid
+                            <span className="text-[9px] font-extrabold uppercase text-[#FFC700] mt-0.5">
+                              HIGHEST BID
                             </span>
                           )}
                         </div>
@@ -1591,6 +1759,17 @@ export function DealerVehicleDetail() {
           </div>,
           document.body,
         )}
+    </>
+  );
+
+  return (
+    <AppShell
+      role="dealer"
+      nav={dealerNav}
+      title={`${vehicle.brand} ${vehicle.model}`}
+      breadcrumb={["Dealer", "Marketplace", vehicle.id]}
+    >
+      {mainContent}
     </AppShell>
   );
 }

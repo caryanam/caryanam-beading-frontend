@@ -9,63 +9,78 @@ export function DealerFavourites() {
   const [favourites, setFavourites] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchFavourites = async () => {
-      setLoading(true);
-      try {
-        const res = await getDealerWishlist();
-        if (res.success && res.data) {
-          const mapped = res.data.map((item: any) => {
-            const basePrice = item.suggestedPrice || 350000;
-            const bidCount = item.totalBids || 0;
-            const highestBid = item.currentHighestBid || 0;
-            
-            let fuelType: "Petrol" | "Diesel" | "CNG" | "Electric" = "Petrol";
-            const f = (item.fuel || "").toLowerCase();
-            if (f.includes("diesel")) fuelType = "Diesel";
-            else if (f.includes("cng")) fuelType = "CNG";
-            else if (f.includes("electric") || f.includes("ev")) fuelType = "Electric";
+  const fetchFavourites = async (showLoading = true) => {
+    if (showLoading) setLoading(true);
+    try {
+      const res = await getDealerWishlist();
+      if (res.success && res.data) {
+        const mapped = res.data.map((item: any) => {
+          const basePrice = item.suggestedPrice || 350000;
+          const bidCount = item.totalBids || 0;
+          const highestBid = item.currentHighestBid || 0;
+          
+          let fuelType: "Petrol" | "Diesel" | "CNG" | "Electric" = "Petrol";
+          const f = (item.fuel || "").toLowerCase();
+          if (f.includes("diesel")) fuelType = "Diesel";
+          else if (f.includes("cng")) fuelType = "CNG";
+          else if (f.includes("electric") || f.includes("ev")) fuelType = "Electric";
 
-            let transmissionType: "Manual" | "Automatic" = "Manual";
-            const t = (item.transmission || "").toLowerCase();
-            if (t.includes("auto")) transmissionType = "Automatic";
+          let transmissionType: "Manual" | "Automatic" = "Manual";
+          const t = (item.transmission || "").toLowerCase();
+          if (t.includes("auto")) transmissionType = "Automatic";
 
-            return {
-              id: String(item.inspectionId),
-              regNo: item.vehicleNumber,
-              brand: item.brand,
-              model: item.model,
-              variant: item.variant,
-              year: item.year || 2020,
-              fuel: fuelType,
-              transmission: transmissionType,
-              odometer: item.odometer ?? 0,
-              owner: item.ownerName || "1st Owner",
-              score: 88 + (item.inspectionId % 10),
-              basePrice,
-              highestBid,
-              bids: bidCount,
-              status: "approved" as const,
-              auction: item.vehicleStatus === "LIVE" ? ("live" as const) : (item.vehicleStatus === "SOLD OUT" || item.vehicleStatus === "SOLD_OUT" || item.vehicleStatus === "SOLD" || item.vehicleStatus === "ENDED") ? ("sold out" as const) : ("scheduled" as const),
-              image: item.vehicleImage || "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=400&q=80",
-              endsAt: item.auctionEndTime || (Date.now() + 1000 * 60 * 60 * 24),
-            };
-          });
-          setFavourites(mapped);
-        }
-      } catch (err) {
-        console.error("Failed to load wishlist from API, using local storage fallback", err);
-        const session = readSession("dealer");
-        const email = session?.email || "default_dealer";
-        const key = `dealer_${email}_favourites`;
-        const favList = JSON.parse(localStorage.getItem(key) || "[]");
-        setFavourites(favList);
-      } finally {
-        setLoading(false);
+          return {
+            id: String(item.inspectionId),
+            regNo: item.vehicleNumber,
+            brand: item.brand,
+            model: item.model,
+            variant: item.variant,
+            year: item.year || 2020,
+            fuel: fuelType,
+            transmission: transmissionType,
+            odometer: item.odometer ?? 0,
+            owner: item.ownerName || "1st Owner",
+            score: 88 + (item.inspectionId % 10),
+            basePrice,
+            highestBid,
+            bids: bidCount,
+            status: "approved" as const,
+            auction:
+              item.vehicleStatus === "LIVE"
+                ? ("live" as const)
+                : (item.vehicleStatus === "SOLD OUT" || item.vehicleStatus === "SOLD_OUT" || item.vehicleStatus === "SOLD")
+                ? ("sold out" as const)
+                : (item.vehicleStatus === "ENDED" || item.vehicleStatus === "AUCTION ENDED" || item.vehicleStatus === "AUCTION_ENDED")
+                ? ("ended" as const)
+                : ("scheduled" as const),
+            image: item.vehicleImage || "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=400&q=80",
+            endsAt: item.auctionEndTime || (Date.now() + 1000 * 60 * 60 * 24),
+          };
+        });
+        setFavourites(mapped);
       }
+    } catch (err) {
+      console.error("Failed to load wishlist from API", err);
+      setFavourites([]);
+    } finally {
+      if (showLoading) setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchFavourites(true);
+
+    const handleUpdate = () => {
+      fetchFavourites(false);
     };
-    fetchFavourites();
+
+    window.addEventListener("wishlist-updated", handleUpdate);
+    return () => window.removeEventListener("wishlist-updated", handleUpdate);
   }, []);
+
+  const handleRemoveItem = (id: string) => {
+    setFavourites((prev) => prev.filter((item) => String(item.id) !== String(id)));
+  };
 
   return (
     <AppShell role="dealer" nav={dealerNav} title="Favourites" breadcrumb={["Dealer", "Favourites"]}>
@@ -81,7 +96,12 @@ export function DealerFavourites() {
       ) : (
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
           {favourites.map((v) => (
-            <VehicleCard key={v.id} vehicle={v} />
+            <VehicleCard
+              key={v.id}
+              vehicle={v}
+              isFavourite={true}
+              onToggleFavourite={() => handleRemoveItem(v.id)}
+            />
           ))}
         </div>
       )}

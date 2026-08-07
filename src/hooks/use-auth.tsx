@@ -43,7 +43,9 @@ export function useAuth() {
 
         const newSession: Session = {
           id: authData.id,
+          dealerId: authData.id,
           name: authData.fullName || decoded?.fullName || authData.email.split("@")[0],
+          dealershipName: authData.dealershipName || authData.fullName,
           email: authData.email,
           role: role,
           mobileNumber: authData.mobileNumber,

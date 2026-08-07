@@ -10,6 +10,7 @@ import {
   getDealerWishlist,
   getDealerBidsHistory,
   getVehicleBidHistory,
+  getDealerProfile,
   type DealerInspectionSummary,
 } from "@/lib/api/dealer-api";
 import { readSession } from "@/lib/session";
@@ -19,6 +20,7 @@ export function DealerDashboard() {
   const [loading, setLoading] = useState(true);
   const [bidsCount, setBidsCount] = useState(0);
   const [favCount, setFavCount] = useState(0);
+  const [wonBidsCount, setWonBidsCount] = useState(0);
 
   const session = readSession("dealer");
   const dealerName = session?.name || session?.email || "Valued Dealer";
@@ -26,17 +28,18 @@ export function DealerDashboard() {
   useEffect(() => {
     const fetchBidsCount = async () => {
       try {
-        const res = await getDealerBidsHistory();
-        if (res.success && res.data) {
-          setBidsCount(res.data.length);
+        const [bidsRes, profileRes] = await Promise.all([
+          getDealerBidsHistory(),
+          getDealerProfile(),
+        ]);
+        if (bidsRes.success && bidsRes.data) {
+          setBidsCount(bidsRes.data.length);
+        }
+        if (profileRes.success && profileRes.data) {
+          setWonBidsCount((profileRes.data as any).wonBidsCount || 0);
         }
       } catch (err) {
-        console.error("Failed to load bids history count", err);
-        const email = session?.email || "default_dealer";
-        const bidsList = JSON.parse(
-          localStorage.getItem(`dealer_${email}_bids`) || "[]",
-        );
-        setBidsCount(bidsList.length);
+        console.error("Failed to load bids history count from API", err);
       }
     };
     fetchBidsCount();
@@ -198,7 +201,7 @@ export function DealerDashboard() {
       </div>
 
       {/* Primary KPI Metrics */}
-      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-5">
         <StatCard
           label="Live Bidding Rooms"
           value={loading ? "..." : live.length.toString()}
@@ -207,10 +210,16 @@ export function DealerDashboard() {
           accent
         />
         <StatCard
+          label="Auctions Won"
+          value={wonBidsCount.toString()}
+          delta="Assigned won vehicles"
+          icon={Trophy}
+        />
+        <StatCard
           label="Upcoming Auctions"
           value={loading ? "..." : upcoming.length.toString()}
           delta="Coming Soon rooms"
-          icon={Trophy}
+          icon={Car}
         />
         <StatCard
           label="My Bids Placed"

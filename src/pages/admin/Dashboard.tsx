@@ -13,6 +13,12 @@ import {
   Download,
   ShieldCheck,
   ClipboardList,
+  Copy,
+  MessageSquare,
+  Send,
+  Clock,
+  CheckCircle,
+  AlertCircle,
 } from "lucide-react";
 import {
   AreaChart,
@@ -34,6 +40,8 @@ import { Panel, StatCard, StatusChip } from "@/components/premium";
 import {
   getSubmittedInspections,
   getRegisteredDealers,
+  updateInspectionVehicleStatus,
+  sendAdminDealerMessage,
   type AdminInspectionSummary,
   type AdminDealer,
 } from "@/lib/api/admin-api";
@@ -60,66 +68,257 @@ const tooltipStyle = {
 
 function AdminLiveRoomCard({ room }: { room: AdminInspectionSummary }) {
   const highestBid = room.currentHighestBid || room.suggestedPrice || 0;
-  const highestBidder = room.currentHighestBidder || (room as any).highestBidderName || "No Bids Yet";
+  const highestBidder = room.currentHighestBidder || "No bids placed";
   const totalBids = room.totalBids || 0;
 
+  const copyPublicLink = () => {
+    const link = `${window.location.origin}/public-bid/${room.inspectionId}`;
+    navigator.clipboard.writeText(link);
+    toast.success(`Public Bidding Link copied for ${room.brand} ${room.model}!`);
+  };
+
   return (
-    <div className="card-lift relative overflow-hidden rounded-3xl border border-border bg-card p-5 shadow-soft hover:border-[#FFC700]/60 transition-all">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <span className="relative flex size-2.5 shrink-0">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full size-2.5 bg-emerald-500"></span>
+    <div className="rounded-3xl border border-emerald-500/40 bg-card p-5 shadow-soft hover:shadow-glow-emerald transition-all space-y-3 relative overflow-hidden">
+      <div className="flex items-center justify-between">
+        <span className="rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 px-3 py-1 text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5">
+          <span className="relative flex size-2">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex size-2 rounded-full bg-emerald-500"></span>
           </span>
-          <span className="text-xs font-black text-emerald-500 uppercase tracking-widest">
-            LIVE BIDDING
-          </span>
-        </div>
-        <Link
-          to={`/admin/live-bidding?room=${room.inspectionId}`}
-          className="rounded-xl bg-[#FFC700]/10 hover:bg-[#FFC700] text-[#FFC700] hover:text-[#0D0E12] px-3 py-1.5 text-[11px] font-black transition-all cursor-pointer flex items-center gap-1"
-        >
-          View Room <ChevronRight className="size-3" />
-        </Link>
-      </div>
-
-      <p className="mt-4 font-extrabold text-foreground text-base truncate">
-        {room.brand} {room.model}
-      </p>
-      <p className="text-xs font-semibold text-muted-foreground mt-0.5 truncate">
-        {room.variant} · {room.vehicleNumber}
-      </p>
-
-      <div className="grid grid-cols-2 gap-3 mt-4 border-t border-b border-border/80 py-3.5 text-xs">
-        <div>
-          <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block">
-            Start price
-          </span>
-          <span className="truncate font-semibold text-muted-foreground block mt-0.5">
-            {room.suggestedPrice ? inr(room.suggestedPrice) : "N/A"}
-          </span>
-        </div>
-        <div>
-          <span className="text-[9px] font-bold text-[#FFC700] uppercase tracking-wider block">
-            Highest Bid
-          </span>
-          <span className="truncate font-black text-foreground block mt-0.5">
-            {inr(highestBid)}
-          </span>
-        </div>
-      </div>
-
-      <div className="mt-4 flex items-center justify-between text-xs">
-        <div className="flex items-center gap-1.5 min-w-0">
-          <User className="size-3.5 text-muted-foreground shrink-0" />
-          <span className="truncate font-semibold text-muted-foreground">
-            {highestBidder}
-          </span>
-        </div>
-        <span className="shrink-0 bg-secondary px-2.5 py-1 rounded-lg font-bold text-[10px] text-muted-foreground">
-          {totalBids} bid{totalBids === 1 ? "" : "s"}
+          🔥 LIVE AUCTION
+        </span>
+        <span className="text-xs font-bold text-muted-foreground">
+          #{room.inspectionId}
         </span>
       </div>
+
+      <div>
+        <h4 className="text-base font-black text-foreground">
+          {room.brand} {room.model} {room.variant}
+        </h4>
+        <p className="text-xs font-semibold text-muted-foreground">
+          {room.vehicleNumber} · {room.year} · {room.fuel}
+        </p>
+      </div>
+
+      <div className="rounded-2xl bg-secondary/50 p-3">
+        <div className="grid grid-cols-2 gap-2 text-xs">
+          <div>
+            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block">
+              Start price
+            </span>
+            <span className="truncate font-semibold text-muted-foreground block mt-0.5">
+              {room.suggestedPrice ? inr(room.suggestedPrice) : "N/A"}
+            </span>
+          </div>
+          <div>
+            <span className="text-[9px] font-bold text-[#FFC700] uppercase tracking-wider block">
+              Highest Bid
+            </span>
+            <span className="truncate font-black text-foreground block mt-0.5">
+              {inr(highestBid)}
+            </span>
+          </div>
+        </div>
+
+        <div className="mt-3 flex items-center justify-between text-xs pt-3 border-t border-border/50">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <User className="size-3.5 text-muted-foreground shrink-0" />
+            <span className="truncate font-semibold text-muted-foreground">
+              {highestBidder}
+            </span>
+          </div>
+          <span className="shrink-0 bg-secondary px-2.5 py-1 rounded-lg font-bold text-[10px] text-muted-foreground">
+            {totalBids} bid{totalBids === 1 ? "" : "s"}
+          </span>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        onClick={copyPublicLink}
+        className="w-full rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/20 py-2 text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+      >
+        <Copy className="size-3.5" />
+        Copy Public Bidding Link
+      </button>
+    </div>
+  );
+}
+
+function AdminPostAuctionNegotiationCard({
+  room,
+  onStatusChange,
+}: {
+  room: AdminInspectionSummary;
+  onStatusChange: (id: number, status: string) => void;
+}) {
+  const [adminMsg, setAdminMsg] = useState("");
+  const [sendingMsg, setSendingMsg] = useState(false);
+  const [roomData, setRoomData] = useState<AdminInspectionSummary>(room);
+
+  useEffect(() => {
+    setRoomData(room);
+  }, [room]);
+
+  useEffect(() => {
+    const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const host = window.location.host.includes(":") ? window.location.host.split(":")[0] + ":8080" : window.location.host;
+    const wsUrl = `${wsProtocol}//${host}/ws/auction?inspectionId=${room.inspectionId}`;
+    let ws: WebSocket | null = null;
+    try {
+      ws = new WebSocket(wsUrl);
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === "SELLER_RESPONSE") {
+            setRoomData((prev) => ({
+              ...prev,
+              sellerAgreed: data.sellerAgreed,
+              sellerCounterPrice: data.sellerCounterPrice,
+              sellerMessage: data.sellerMessage,
+            }));
+          } else if (data.type === "DEALER_REPLY") {
+            setRoomData((prev) => ({
+              ...prev,
+              dealerReplyMessage: data.dealerReplyMessage || data.reply,
+            }));
+          } else if (data.type === "ADMIN_DEALER_MESSAGE") {
+            setRoomData((prev) => ({
+              ...prev,
+              adminDealerMessage: data.adminDealerMessage || data.message,
+            }));
+          } else if (data.type === "VEHICLE_STATUS_UPDATE") {
+            setRoomData((prev) => ({
+              ...prev,
+              vehicleStatus: data.vehicleStatus,
+            }));
+          }
+        } catch (e) {}
+      };
+    } catch (e) {}
+
+    return () => {
+      if (ws) ws.close();
+    };
+  }, [room.inspectionId]);
+
+  const handleSendMsgToDealer = async () => {
+    if (!adminMsg.trim()) {
+      toast.error("Please enter a message for the winning dealer.");
+      return;
+    }
+    setSendingMsg(true);
+    try {
+      const res = await sendAdminDealerMessage(room.inspectionId, adminMsg);
+      if (res.success) {
+        toast.success(`Message sent to winning dealer for ${room.brand} ${room.model}!`);
+        setRoomData((prev) => ({ ...prev, adminDealerMessage: adminMsg }));
+        setAdminMsg("");
+      } else {
+        toast.error("Failed to send message to dealer.");
+      }
+    } catch (err) {
+      toast.error("Error sending message to dealer.");
+    } finally {
+      setSendingMsg(false);
+    }
+  };
+
+  const handleMarkSoldOut = async () => {
+    const res = await updateInspectionVehicleStatus(room.inspectionId, "SOLD OUT");
+    if (res.success) {
+      toast.success(`Vehicle #${room.inspectionId} (${room.brand} ${room.model}) status manually changed to SOLD OUT!`);
+      onStatusChange(room.inspectionId, "SOLD OUT");
+    } else {
+      toast.error("Failed to update status.");
+    }
+  };
+
+  const highestBid = roomData.currentHighestBid || roomData.suggestedPrice || 0;
+  const winner = roomData.currentHighestBidder || "No Bids";
+  const hasSellerResp = roomData.sellerAgreed !== undefined && roomData.sellerAgreed !== null;
+
+  return (
+    <div className="rounded-3xl border border-amber-500/30 bg-card p-5 shadow-soft space-y-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <span className="rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 px-3 py-1 text-[10px] font-black uppercase tracking-wider border border-amber-500/20">
+            AUCTION ENDED · SELLER & DEALER NEGOTIATION
+          </span>
+          <h4 className="mt-2 text-base font-black text-foreground">
+            {roomData.brand} {roomData.model} {roomData.variant}
+          </h4>
+          <p className="text-xs text-muted-foreground font-semibold">
+            {roomData.vehicleNumber} · Winner: <strong className="text-foreground">{winner}</strong> ({inr(highestBid)})
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={handleMarkSoldOut}
+          className="rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black px-4 py-2 text-xs shadow-md transition-all cursor-pointer shrink-0"
+        >
+          Mark Status as SOLD OUT
+        </button>
+      </div>
+
+      {/* Seller Response Box */}
+      <div className="rounded-2xl bg-amber-500/10 border border-amber-500/30 p-3.5 text-xs text-amber-900 dark:text-amber-200 space-y-1">
+        <div className="flex items-center justify-between font-black text-amber-700 dark:text-amber-400">
+          <span>Seller Confirmation Response:</span>
+          <span>{hasSellerResp ? "Response Received" : "Awaiting Seller"}</span>
+        </div>
+        {hasSellerResp ? (
+          <p className="font-semibold">
+            Question: "Are you agree for this price for sell?" ➔{" "}
+            <strong className="text-amber-600 dark:text-amber-300">
+              {roomData.sellerAgreed ? "YES (Agreed to sell)" : `NO (Wants ₹${roomData.sellerCounterPrice?.toLocaleString("en-IN") || 'N/A'})`}
+            </strong>
+            {roomData.sellerMessage && <span className="block italic opacity-90 mt-0.5">Message: "{roomData.sellerMessage}"</span>}
+          </p>
+        ) : (
+          <p className="italic opacity-80">Awaiting seller response from public link or vehicle detail page.</p>
+        )}
+      </div>
+
+      {/* Send Message to Dealer */}
+      <div className="space-y-2">
+        <label className="block text-xs font-extrabold text-foreground">
+          Send Message to Winning Dealer ({winner}):
+        </label>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            placeholder="e.g. Seller agreed to sell at ₹4.25L. Please confirm..."
+            value={adminMsg}
+            onChange={(e) => setAdminMsg(e.target.value)}
+            className="flex-1 rounded-xl border border-border bg-secondary px-3 py-2 text-xs font-semibold text-foreground focus:outline-none focus:border-amber-400"
+          />
+          <button
+            type="button"
+            disabled={sendingMsg}
+            onClick={handleSendMsgToDealer}
+            className="rounded-xl bg-[#FFC700] hover:bg-[#FFD633] text-[#0D0E12] font-black px-4 py-2 text-xs shadow-sm cursor-pointer flex items-center gap-1 shrink-0 disabled:opacity-50"
+          >
+            <Send className="size-3.5" /> {sendingMsg ? "Sending..." : "Send"}
+          </button>
+        </div>
+        {roomData.adminDealerMessage && (
+          <p className="text-[11px] font-semibold text-blue-500 opacity-90">
+            Last Message Sent to Dealer: "{roomData.adminDealerMessage}"
+          </p>
+        )}
+      </div>
+
+      {/* Dealer Reply Box */}
+      {roomData.dealerReplyMessage && (
+        <div className="rounded-2xl bg-blue-500/10 border border-blue-500/30 p-3 text-xs text-blue-900 dark:text-blue-200">
+          <span className="font-black text-blue-600 dark:text-blue-400 block mb-1">
+            Winning Dealer Reply Received:
+          </span>
+          <p className="font-semibold">"{roomData.dealerReplyMessage}"</p>
+        </div>
+      )}
     </div>
   );
 }
@@ -526,7 +725,9 @@ export function AdminDashboard() {
         </ol>
       </Panel>
 
-      <Panel title="Active Auction Rooms" description="Live bidding feeds">
+
+
+      <Panel title="Active Auction Rooms" description="Live bidding feeds with shareable public links">
         {liveAuctions.length === 0 ? (
           <div className="rounded-3xl border border-dashed border-border bg-card p-12 text-center shadow-soft">
             <p className="text-sm font-semibold text-muted-foreground">
@@ -541,6 +742,35 @@ export function AdminDashboard() {
             {liveAuctions.map((v) => (
               <AdminLiveRoomCard key={v.inspectionId} room={v} />
             ))}
+          </div>
+        )}
+      </Panel>
+
+      {/* Post-Auction Negotiation & Status Control Center */}
+      <Panel title="Auction Ended - Seller & Dealer Negotiation Center" description="Review seller agreement, communicate with winning dealer, and manually update status to SOLD OUT">
+        {inspections.filter((ins) => ins.vehicleStatus === "ENDED" || ins.vehicleStatus === "AUCTION ENDED" || ins.vehicleStatus === "AUCTION_ENDED" || ins.vehicleStatus === "COMPLETED").length === 0 ? (
+          <div className="rounded-3xl border border-dashed border-border bg-card p-8 text-center shadow-soft">
+            <p className="text-xs font-semibold text-muted-foreground">
+              No vehicles currently in post-auction negotiation status.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {inspections
+              .filter((ins) => ins.vehicleStatus === "ENDED" || ins.vehicleStatus === "AUCTION ENDED" || ins.vehicleStatus === "AUCTION_ENDED" || ins.vehicleStatus === "COMPLETED")
+              .map((room) => (
+                <AdminPostAuctionNegotiationCard
+                  key={room.inspectionId}
+                  room={room}
+                  onStatusChange={(id, newStatus) => {
+                    setInspections((prev) =>
+                      prev.map((item) =>
+                        item.inspectionId === id ? { ...item, vehicleStatus: newStatus } : item
+                      )
+                    );
+                  }}
+                />
+              ))}
           </div>
         )}
       </Panel>

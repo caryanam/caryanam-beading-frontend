@@ -8,6 +8,7 @@ import {
   getSubmittedInspections,
   startLiveAuction,
   stopLiveAuction,
+  updateInspectionVehicleStatus,
   type AdminInspectionSummary,
 } from "@/lib/api/admin-api";
 import { inr, timeLeft } from "@/lib/mock-data";
@@ -15,6 +16,7 @@ import {
   Activity,
   CheckCircle2,
   Clock,
+  Copy,
   Crown,
   Eye,
   Flame,
@@ -33,6 +35,16 @@ export function AdminAuctions() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [, setNow] = useState(Date.now());
+
+  const handleMarkAsSoldOut = async (id: number, vehicleName: string) => {
+    const res = await updateInspectionVehicleStatus(id, "SOLD OUT");
+    if (res.success) {
+      toast.success(`Vehicle ${vehicleName} status manually updated to SOLD OUT!`);
+      fetchAuctions();
+    } else {
+      toast.error("Failed to update status.");
+    }
+  };
 
   const fetchAuctions = async (showToast = false) => {
     if (showToast) setRefreshing(true);
@@ -280,6 +292,17 @@ export function AdminAuctions() {
             {isLive && (
               <>
                 <button
+                  onClick={() => {
+                    const link = `${window.location.origin}/public-bid/${v.inspectionId}`;
+                    navigator.clipboard.writeText(link);
+                    toast.success(`Public Bidding Link copied for ${v.brand} ${v.model}!`);
+                  }}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20 px-3 py-1.5 text-xs font-black text-blue-600 dark:text-blue-400 transition-all cursor-pointer shadow-sm"
+                  title="Copy Public Bidding Room Link"
+                >
+                  <Copy className="size-3.5" /> Copy Link
+                </button>
+                <button
                   onClick={() => navigate("/admin/live-bidding")}
                   className="inline-flex items-center gap-1.5 rounded-xl border border-[#FFC700]/30 bg-[#FFC700]/15 hover:bg-[#FFC700]/25 px-3 py-1.5 text-xs font-extrabold text-[#FFC700] transition-all cursor-pointer shadow-sm"
                   title="Monitor Bidding Room"
@@ -297,12 +320,21 @@ export function AdminAuctions() {
             )}
 
             {!isLive && !isSold && (
-              <button
-                onClick={() => handleGoLive(v.inspectionId)}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-[#FFC700] hover:bg-[#FFD633] px-3.5 py-1.5 text-xs font-extrabold text-[#0D0E12] transition-all cursor-pointer shadow-sm"
-              >
-                <PlayCircle className="size-3.5" /> Go Live
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleGoLive(v.inspectionId)}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-[#FFC700] hover:bg-[#FFD633] px-3.5 py-1.5 text-xs font-extrabold text-[#0D0E12] transition-all cursor-pointer shadow-sm"
+                >
+                  <PlayCircle className="size-3.5" /> Go Live
+                </button>
+                <button
+                  onClick={() => handleMarkAsSoldOut(v.inspectionId, `${v.brand} ${v.model}`)}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 text-xs font-extrabold text-white transition-all cursor-pointer shadow-sm"
+                  title="Manually Change Status to SOLD OUT"
+                >
+                  <CheckCircle2 className="size-3.5" /> Mark SOLD OUT
+                </button>
+              </div>
             )}
           </div>
         );

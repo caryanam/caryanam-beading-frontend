@@ -17,8 +17,8 @@ import { cn } from "@/lib/utils";
 import { clearSession, readSession, type Session } from "@/lib/session";
 import type { Role } from "@/lib/mock-data";
 import { getMyInspections } from "@/lib/api/inspector-api";
-import { getSubmittedInspections } from "@/lib/api/admin-api";
-import { getMarketplaceInspections } from "@/lib/api/dealer-api";
+import { getSubmittedInspections, getAdminNotifications } from "@/lib/api/admin-api";
+import { getMarketplaceInspections, getDealerNotifications } from "@/lib/api/dealer-api";
 
 export interface NavItem {
   label: string;
@@ -136,79 +136,117 @@ export function AppShell({
           setUnreadCount(list.filter((n) => !currentReadIds.includes(n.rawId)).length);
         }
       } else if (role === "dealer") {
-        const res = await getMarketplaceInspections();
-        if (res.success && res.data) {
-          const list: NotificationPopupItem[] = res.data.map((ins) => {
-            const carName = `${ins.brand || ""} ${ins.model || ""} ${ins.variant || ""}`.trim();
-            let notifTitle = "";
-            let notifMeta = "";
-            const vStatus = ins.vehicleStatus || "READY_FOR_AUCTION";
+        try {
+          const notifRes = await getDealerNotifications();
+          if (notifRes.success && notifRes.data && notifRes.data.length > 0) {
+            const list: NotificationPopupItem[] = notifRes.data.map((n: any) => ({
+              id: n.id,
+              rawId: n.id,
+              title: n.title,
+              meta: n.message,
+              time: n.createdAt,
+              status: n.type,
+              link: n.inspectionId ? `/dealer/vehicles/${n.inspectionId}` : `/dealer/marketplace`,
+            }));
+            setNotificationItems(list);
+            setUnreadCount(list.filter((n) => !currentReadIds.includes(n.rawId)).length);
+          } else {
+            const res = await getMarketplaceInspections();
+            if (res.success && res.data) {
+              const list: NotificationPopupItem[] = res.data.map((ins) => {
+                const carName = `${ins.brand || ""} ${ins.model || ""} ${ins.variant || ""}`.trim();
+                let notifTitle = "";
+                let notifMeta = "";
+                const vStatus = ins.vehicleStatus || "READY_FOR_AUCTION";
 
-            if (vStatus === "AUCTION_LIVE") {
-              notifTitle = `🔥 Live Auction: ${carName}`;
-              notifMeta = `Bidding is LIVE now for vehicle ${ins.vehicleNumber}! Highest bid: ₹${ins.currentHighestBid || ins.suggestedPrice || 0}`;
-            } else if (vStatus === "AUCTION_COMPLETED") {
-              notifTitle = `Auction Closed: ${carName}`;
-              notifMeta = `Bidding has completed for vehicle ${ins.vehicleNumber}.`;
-            } else {
-              notifTitle = `🚗 New Vehicle: ${carName}`;
-              notifMeta = `Vehicle ${ins.vehicleNumber} added to marketplace. Suggested price: ₹${ins.suggestedPrice || 0}`;
+                if (vStatus === "AUCTION_LIVE") {
+                  notifTitle = `🔥 Live Auction: ${carName}`;
+                  notifMeta = `Bidding is LIVE now for vehicle ${ins.vehicleNumber}! Highest bid: ₹${ins.currentHighestBid || ins.suggestedPrice || 0}`;
+                } else if (vStatus === "AUCTION_COMPLETED") {
+                  notifTitle = `Auction Closed: ${carName}`;
+                  notifMeta = `Bidding has completed for vehicle ${ins.vehicleNumber}.`;
+                } else {
+                  notifTitle = `🚗 New Vehicle: ${carName}`;
+                  notifMeta = `Vehicle ${ins.vehicleNumber} added to marketplace. Suggested price: ₹${ins.suggestedPrice || 0}`;
+                }
+
+                const timeStr = ins.submittedAt
+                  ? new Date(ins.submittedAt).toLocaleString("en-IN", {
+                      month: "short",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
+                  : "Recently";
+
+                return {
+                  id: ins.inspectionId,
+                  rawId: ins.inspectionId,
+                  title: notifTitle,
+                  meta: notifMeta,
+                  time: timeStr,
+                  status: vStatus,
+                  link: `/dealer/marketplace`,
+                };
+              });
+
+              list.sort((a, b) => b.rawId - a.rawId);
+              setNotificationItems(list);
+              setUnreadCount(list.filter((n) => !currentReadIds.includes(n.rawId)).length);
             }
-
-            const timeStr = ins.submittedAt
-              ? new Date(ins.submittedAt).toLocaleString("en-IN", {
-                  month: "short",
-                  day: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })
-              : "Recently";
-
-            return {
-              id: ins.inspectionId,
-              rawId: ins.inspectionId,
-              title: notifTitle,
-              meta: notifMeta,
-              time: timeStr,
-              status: vStatus,
-              link: `/dealer/marketplace`,
-            };
-          });
-
-          list.sort((a, b) => b.rawId - a.rawId);
-          setNotificationItems(list);
-          setUnreadCount(list.filter((n) => !currentReadIds.includes(n.rawId)).length);
+          }
+        } catch (e) {
+          console.error("Failed to load dealer backend notifications", e);
         }
       } else if (role === "admin") {
-        const res = await getSubmittedInspections();
-        if (res.success && res.data) {
-          const list: NotificationPopupItem[] = res.data
-            .filter((ins: any) => ins.status === "SUBMITTED")
-            .map((ins: any) => {
-              const carName = `${ins.brand || ""} ${ins.model || ""} ${ins.variant || ""}`.trim();
-              const timeStr = ins.submittedAt
-                ? new Date(ins.submittedAt).toLocaleString("en-IN", {
-                    month: "short",
-                    day: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })
-                : "Recently";
+        try {
+          const notifRes = await getAdminNotifications();
+          if (notifRes.success && notifRes.data && notifRes.data.length > 0) {
+            const list: NotificationPopupItem[] = notifRes.data.map((n: any) => ({
+              id: n.id,
+              rawId: n.id,
+              title: n.title,
+              meta: n.message,
+              time: n.createdAt,
+              status: n.type,
+              link: n.inspectionId ? `/admin/auctions/${n.inspectionId}` : `/admin/vehicles`,
+            }));
+            setNotificationItems(list);
+            setUnreadCount(list.filter((n) => !currentReadIds.includes(n.rawId)).length);
+          } else {
+            const res = await getSubmittedInspections();
+            if (res.success && res.data) {
+              const list: NotificationPopupItem[] = res.data
+                .filter((ins: any) => ins.status === "SUBMITTED")
+                .map((ins: any) => {
+                  const carName = `${ins.brand || ""} ${ins.model || ""} ${ins.variant || ""}`.trim();
+                  const timeStr = ins.submittedAt
+                    ? new Date(ins.submittedAt).toLocaleString("en-IN", {
+                        month: "short",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })
+                    : "Recently";
 
-              return {
-                id: ins.inspectionId,
-                rawId: ins.inspectionId,
-                title: `Pending Approval: ${carName}`,
-                meta: `Vehicle ${ins.vehicleNumber} submitted by ${ins.inspectorName || "Inspector"} requires approval.`,
-                time: timeStr,
-                status: ins.status,
-                link: "/admin/vehicles",
-              };
-            });
+                  return {
+                    id: ins.inspectionId,
+                    rawId: ins.inspectionId,
+                    title: `Pending Approval: ${carName}`,
+                    meta: `Vehicle ${ins.vehicleNumber} submitted by ${ins.inspectorName || "Inspector"} requires approval.`,
+                    time: timeStr,
+                    status: ins.status,
+                    link: "/admin/vehicles",
+                  };
+                });
 
-          list.sort((a, b) => b.rawId - a.rawId);
-          setNotificationItems(list);
-          setUnreadCount(list.filter((n) => !currentReadIds.includes(n.rawId)).length);
+              list.sort((a, b) => b.rawId - a.rawId);
+              setNotificationItems(list);
+              setUnreadCount(list.filter((n) => !currentReadIds.includes(n.rawId)).length);
+            }
+          }
+        } catch (e) {
+          console.error("Failed to load admin backend notifications", e);
         }
       }
     } catch (err) {

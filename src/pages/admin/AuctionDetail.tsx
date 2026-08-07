@@ -8,6 +8,8 @@ import {
   getAdminBidHistory,
   startLiveAuction,
   stopLiveAuction,
+  sendAdminDealerMessage,
+  updateInspectionVehicleStatus,
 } from "@/lib/api/admin-api";
 import { inr, timeLeft } from "@/lib/mock-data";
 import { API_BASE_URL } from "@/lib/api";
@@ -29,6 +31,8 @@ import {
   TrendingUp,
   ShieldCheck,
   User,
+  Copy,
+  Send,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { StatusChip } from "@/components/premium";
@@ -41,6 +45,8 @@ export function AdminAuctionDetail() {
   const [bidHistory, setBidHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [remaining, setRemaining] = useState("");
+  const [adminMsg, setAdminMsg] = useState("");
+  const [sendingMsg, setSendingMsg] = useState(false);
 
   const fetchDetail = async () => {
     if (!id) return;
@@ -106,6 +112,21 @@ export function AdminAuctionDetail() {
               };
             });
             toast.info(`New bid of ${inr(data.currentHighestBid)} placed!`);
+          } else if (data.type === "SELLER_RESPONSE") {
+            setInspection((prev: any) => {
+              if (!prev) return prev;
+              const v = prev.vehicleDetails || prev.vehicle || {};
+              return {
+                ...prev,
+                vehicleDetails: {
+                  ...v,
+                  sellerAgreed: data.sellerAgreed,
+                  sellerCounterPrice: data.sellerCounterPrice,
+                  sellerMessage: data.sellerMessage,
+                },
+              };
+            });
+            toast.success("Received new seller price decision response!");
           } else if (data.type === "AUCTION_ENDED") {
             fetchDetail();
             toast.info("Live auction ended.");
@@ -172,6 +193,56 @@ export function AdminAuctionDetail() {
       }
     } catch (err) {
       toast.error("Failed to stop auction.");
+    }
+  };
+
+  const copyPublicLink = () => {
+    if (!id) return;
+    const publicUrl = `${window.location.origin}/public-bid/${id}`;
+    navigator.clipboard.writeText(publicUrl);
+    toast.success("Public Bidding Room link copied to clipboard!");
+  };
+
+  const handleSendMsgToDealer = async () => {
+    if (!adminMsg.trim() || !id) {
+      toast.error("Please enter a message for the winning dealer.");
+      return;
+    }
+    setSendingMsg(true);
+    try {
+      const res = await sendAdminDealerMessage(Number(id), adminMsg);
+      if (res.success) {
+        toast.success("Message sent to winning dealer!");
+        setInspection((prev: any) => ({
+          ...prev,
+          vehicleDetails: {
+            ...(prev.vehicleDetails || prev.vehicle || {}),
+            adminDealerMessage: adminMsg,
+          },
+        }));
+        setAdminMsg("");
+      } else {
+        toast.error("Failed to send message.");
+      }
+    } catch (err) {
+      toast.error("Error sending message.");
+    } finally {
+      setSendingMsg(false);
+    }
+  };
+
+  const handleMarkSoldOut = async () => {
+    if (!id) return;
+    try {
+      const res = await updateInspectionVehicleStatus(Number(id), "SOLD OUT");
+      if (res.success) {
+        toast.success("Vehicle status updated to SOLD OUT!");
+        fetchDetail();
+      } else {
+        toast.error("Failed to update status.");
+      }
+    } catch (err) {
+      toast.error("Error updating vehicle status.");
     }
   };
 
@@ -296,6 +367,15 @@ export function AdminAuctionDetail() {
 
           {/* Action Control Buttons */}
           <div className="flex flex-wrap items-center gap-2">
+            {isLive && (
+              <button
+                onClick={copyPublicLink}
+                className="inline-flex items-center gap-2 rounded-2xl border border-[#FFC700]/40 bg-[#FFC700]/10 hover:bg-[#FFC700]/20 px-4 py-2.5 text-xs font-black text-[#FFC700] transition-all cursor-pointer shadow-sm"
+              >
+                <Copy className="size-4 text-[#FFC700]" /> Copy Public Link
+              </button>
+            )}
+
             <button
               onClick={fetchDetail}
               className="inline-flex items-center gap-1.5 rounded-2xl border border-border bg-secondary hover:bg-secondary/80 px-4 py-2.5 text-xs font-extrabold text-foreground transition-all cursor-pointer shadow-sm"
@@ -330,6 +410,109 @@ export function AdminAuctionDetail() {
             )}
           </div>
         </div>
+
+        {/* Auction Ended - Seller & Dealer Negotiation Center */}
+        {(isEnded || isSold) && (
+          <div className="rounded-3xl border border-amber-500/30 bg-card p-6 shadow-soft space-y-4">
+            <div>
+              <h3 className="text-base font-black text-foreground tracking-tight">
+                Auction Ended - Seller & Dealer Negotiation Center
+              </h3>
+              <p className="text-xs text-muted-foreground font-semibold">
+                Review seller agreement, communicate with winning dealer, and manually update status to SOLD OUT
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-5 space-y-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <span className="rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 px-3 py-1 text-[10px] font-black uppercase tracking-wider border border-amber-500/20">
+                    AUCTION ENDED · SELLER & DEALER NEGOTIATION
+                  </span>
+                  <h4 className="mt-2.5 text-base font-black text-foreground">
+                    {v.brand} {v.model} {v.variant}
+                  </h4>
+                  <p className="text-xs text-muted-foreground font-semibold">
+                    {v.vehicleNumber} · Winner: <strong className="text-foreground">{topBidder}</strong> ({inr(topBid)})
+                  </p>
+                </div>
+                {!isSold && (
+                  <button
+                    type="button"
+                    onClick={handleMarkSoldOut}
+                    className="rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black px-5 py-2.5 text-xs shadow-md transition-all cursor-pointer shrink-0"
+                  >
+                    Mark Status as SOLD OUT
+                  </button>
+                )}
+              </div>
+
+              {/* Seller Response Box */}
+              <div className="rounded-2xl bg-amber-500/10 border border-amber-500/30 p-4 text-xs text-amber-900 dark:text-amber-200 space-y-1.5">
+                <div className="flex items-center justify-between font-black text-amber-700 dark:text-amber-400">
+                  <span>Seller Confirmation Response:</span>
+                  <span>{v.sellerAgreed !== undefined && v.sellerAgreed !== null ? "Response Received" : "Awaiting Seller Response"}</span>
+                </div>
+                {v.sellerAgreed !== undefined && v.sellerAgreed !== null ? (
+                  <p className="font-semibold text-xs leading-relaxed">
+                    Question: "Are you agree for this price for sell?" ➔{" "}
+                    <strong className="text-amber-600 dark:text-amber-300 font-black">
+                      {v.sellerAgreed
+                        ? "YES (Agreed to sell)"
+                        : `NO (Wants ${v.sellerCounterPrice ? inr(v.sellerCounterPrice) : "Higher Price"})`}
+                    </strong>
+                    {v.sellerMessage && (
+                      <span className="block italic opacity-90 mt-1">
+                        Note to Admin: "{v.sellerMessage}"
+                      </span>
+                    )}
+                  </p>
+                ) : (
+                  <p className="italic opacity-80">Awaiting seller response from public link or vehicle detail page.</p>
+                )}
+              </div>
+
+              {/* Send Message to Winning Dealer */}
+              <div className="space-y-2">
+                <label className="block text-xs font-black text-foreground">
+                  Send Message to Winning Dealer ({topBidder}):
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="e.g. Seller agreed to sell at ₹4.25L. Please confirm..."
+                    value={adminMsg}
+                    onChange={(e) => setAdminMsg(e.target.value)}
+                    className="flex-1 rounded-xl border border-border bg-secondary px-3.5 py-2.5 text-xs font-semibold text-foreground focus:outline-none focus:border-amber-400"
+                  />
+                  <button
+                    type="button"
+                    disabled={sendingMsg}
+                    onClick={handleSendMsgToDealer}
+                    className="rounded-xl bg-[#FFC700] hover:bg-[#FFD633] text-[#0D0E12] font-black px-5 py-2.5 text-xs shadow-sm cursor-pointer flex items-center gap-1.5 shrink-0 disabled:opacity-50"
+                  >
+                    <Send className="size-3.5" /> {sendingMsg ? "Sending..." : "Send"}
+                  </button>
+                </div>
+                {v.adminDealerMessage && (
+                  <p className="text-[11px] font-semibold text-blue-500 opacity-90 mt-1">
+                    Last Message Sent to Dealer: "{v.adminDealerMessage}"
+                  </p>
+                )}
+              </div>
+
+              {/* Dealer Reply Box */}
+              {v.dealerReplyMessage && (
+                <div className="rounded-2xl bg-blue-500/10 border border-blue-500/30 p-3.5 text-xs text-blue-900 dark:text-blue-200">
+                  <span className="font-black text-blue-600 dark:text-blue-400 block mb-1">
+                    Winning Dealer Reply Received:
+                  </span>
+                  <p className="font-semibold">"{v.dealerReplyMessage}"</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* 4 Summary Stat Cards */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -426,6 +609,12 @@ export function AdminAuctionDetail() {
                 {bidHistory.map((bid: any, idx: number) => {
                   const isTop = idx === 0;
                   const bAmount = bid.amount || bid.bidAmount || 0;
+                  const nextLowerBid = bidHistory[idx + 1];
+                  const lowerAmount = nextLowerBid
+                    ? nextLowerBid.amount || nextLowerBid.bidAmount || 0
+                    : inspection?.vehicleDetails?.suggestedPrice || 0;
+                  const diff = bAmount > lowerAmount ? bAmount - lowerAmount : 0;
+
                   const bDealer =
                     bid.dealer ||
                     bid.dealerName ||
@@ -433,11 +622,12 @@ export function AdminAuctionDetail() {
                     "Registered Dealer";
                   const bTime =
                     bid.time ||
+                    bid.bidTime ||
                     (bid.createdAt
                       ? new Date(bid.createdAt).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })
                       : "Just now");
 
                   return (
@@ -478,14 +668,21 @@ export function AdminAuctionDetail() {
                         </div>
                       </div>
 
-                      <span
-                        className={cn(
-                          "font-black text-base tracking-tight",
-                          isTop ? "text-[#FFC700]" : "text-foreground",
+                      <div className="text-right flex flex-col items-end">
+                        <span
+                          className={cn(
+                            "font-black text-base tracking-tight",
+                            isTop ? "text-[#FFC700]" : "text-foreground",
+                          )}
+                        >
+                          {inr(bAmount)}
+                        </span>
+                        {diff > 0 && (
+                          <p className="flex items-center gap-0.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">
+                            <TrendingUp className="size-3.5" /> +{inr(diff)}
+                          </p>
                         )}
-                      >
-                        {inr(bAmount)}
-                      </span>
+                      </div>
                     </div>
                   );
                 })}
@@ -549,6 +746,58 @@ export function AdminAuctionDetail() {
                 >
                   <PlayCircle className="size-4" /> Launch Live Auction Room
                 </button>
+              )}
+            </div>
+
+            {/* Seller Price Decision Response Card */}
+            <div className="rounded-3xl border border-amber-500/40 bg-card p-5 shadow-soft space-y-3">
+              <div className="flex items-center gap-2 font-black text-sm text-foreground border-b border-border pb-3">
+                <ShieldCheck className="size-5 text-amber-500 shrink-0" />
+                <span>Seller Price Decision Response</span>
+              </div>
+              {v.sellerAgreed !== undefined && v.sellerAgreed !== null ? (
+                <div className="space-y-2.5 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="font-extrabold text-muted-foreground">Seller Decision:</span>
+                    <span
+                      className={cn(
+                        "font-black px-2.5 py-0.5 rounded-full border text-[11px]",
+                        v.sellerAgreed
+                          ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-600 dark:text-emerald-400"
+                          : "bg-rose-500/15 border-rose-500/30 text-rose-600 dark:text-rose-400",
+                      )}
+                    >
+                      {v.sellerAgreed
+                        ? "YES (Agreed to Top Bid)"
+                        : "NO (Wants Higher Price)"}
+                    </span>
+                  </div>
+
+                  {!v.sellerAgreed && v.sellerCounterPrice && (
+                    <div className="flex items-center justify-between">
+                      <span className="font-extrabold text-muted-foreground">Expected Counter Price:</span>
+                      <span className="font-mono font-black text-foreground text-sm">
+                        {inr(v.sellerCounterPrice)}
+                      </span>
+                    </div>
+                  )}
+
+                  {v.sellerMessage && (
+                    <div className="rounded-xl bg-secondary/50 p-3 border border-border mt-2 space-y-0.5">
+                      <span className="text-[10px] font-extrabold text-muted-foreground block uppercase">
+                        Optional Note to Admin:
+                      </span>
+                      <p className="italic text-foreground font-semibold">
+                        "{v.sellerMessage}"
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-dashed border-border bg-secondary/30 p-4 text-xs text-muted-foreground font-semibold text-center flex items-center justify-center gap-2">
+                  <Clock className="size-4 text-amber-500 shrink-0" />
+                  <span>No seller decision response submitted yet.</span>
+                </div>
               )}
             </div>
 

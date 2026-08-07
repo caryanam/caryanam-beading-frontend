@@ -86,8 +86,10 @@ export function DealerMarketplace() {
         auction:
           v.vehicleStatus === "LIVE"
             ? ("live" as const)
-            : (v.vehicleStatus === "SOLD OUT" || v.vehicleStatus === "SOLD_OUT" || v.vehicleStatus === "SOLD" || v.vehicleStatus === "ENDED")
+            : (v.vehicleStatus === "SOLD OUT" || v.vehicleStatus === "SOLD_OUT" || v.vehicleStatus === "SOLD")
             ? ("sold out" as const)
+            : (v.vehicleStatus === "ENDED" || v.vehicleStatus === "AUCTION ENDED" || v.vehicleStatus === "AUCTION_ENDED")
+            ? ("ended" as const)
             : ("scheduled" as const),
         image:
           v.vehicleImage ||

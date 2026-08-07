@@ -4,6 +4,7 @@ import { Toaster } from "@/components/ui/sonner";
 
 import { LandingPage } from "@/pages/LandingPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
+import { PublicBiddingPage } from "@/pages/PublicBiddingPage";
 
 // Admin Pages
 import { AdminLayout } from "@/pages/admin/AdminLayout";
@@ -61,6 +62,7 @@ export function App() {
         <Route path="/login" element={<LandingPage page="auth" initialMode="login" />} />
         <Route path="/register" element={<LandingPage page="auth" initialMode="signup" />} />
         <Route path="/signup" element={<LandingPage page="auth" initialMode="signup" />} />
+        <Route path="/public-bid/:vehicleId" element={<PublicBiddingPage />} />
 
         {/* Admin Routes */}
         <Route path="/admin" element={<AdminLayout />}>

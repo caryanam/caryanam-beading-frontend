@@ -118,3 +118,31 @@ export const getDealerBidsHistory = async (): Promise<{ success: boolean; data: 
   const res = await dealerApiClient.get("/api/dealer/bids");
   return res.data;
 };
+
+export const submitSellerResponse = async (
+  id: number,
+  payload: { agreed: boolean; counterPrice?: number; message?: string }
+): Promise<{ success: boolean }> => {
+  try {
+    const res = await dealerApiClient.post(`/api/dealer/inspection/${id}/seller-response`, payload);
+    return res.data;
+  } catch (err) {
+    const res = await axios.post(`${API_BASE_URL}/api/public/inspection/${id}/seller-response`, payload);
+    return res.data;
+  }
+};
+
+export const submitDealerReply = async (id: number, reply: string): Promise<{ success: boolean }> => {
+  const res = await dealerApiClient.post(`/api/dealer/inspection/${id}/reply`, { reply });
+  return res.data;
+};
+
+export const getPublicInspectionDetails = async (id: number): Promise<{ success: boolean; data: any }> => {
+  const res = await axios.get(`${API_BASE_URL}/api/public/inspection/${id}`);
+  return res.data;
+};
+
+export const getDealerNotifications = async (): Promise<{ success: boolean; data: any[] }> => {
+  const res = await dealerApiClient.get("/api/dealer/notifications");
+  return res.data;
+};
