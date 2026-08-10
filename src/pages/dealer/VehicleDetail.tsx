@@ -203,7 +203,7 @@ export function DealerVehicleDetail() {
     let reconnectTimeout: any = null;
 
     const connectWebSocket = () => {
-      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+      const protocol = API_BASE_URL.startsWith("https") || window.location.protocol === "https:" ? "wss:" : "ws:";
       let host = "localhost:8080";
       if (API_BASE_URL && API_BASE_URL.includes("://")) {
         host = API_BASE_URL.split("://")[1];
