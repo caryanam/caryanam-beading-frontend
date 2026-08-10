@@ -4,6 +4,7 @@ import { AppShell } from "@/components/app-shell";
 import { inspectorNav } from "@/components/nav-config";
 import { DataTable, type Column } from "@/components/data-table";
 import { StatusChip, Panel } from "@/components/premium";
+import { ConfirmModal } from "@/components/confirm-modal";
 import { cn } from "@/lib/utils";
 import {
   getMyInspections,
@@ -29,6 +30,8 @@ export function InspectorVehicles() {
   const [previewId, setPreviewId] = useState<number | null>(null);
   const [previewData, setPreviewData] = useState<any | null>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [activeDetailStep, setActiveDetailStep] = useState(0);
 
   const detailSteps = [
@@ -100,18 +103,20 @@ export function InspectorVehicles() {
     setSearchParams({});
   };
 
-  const handleDelete = async (id: number) => {
-    if (!window.confirm("Are you sure you want to delete this inspection draft? This action is permanent.")) {
-      return;
-    }
+  const handleDelete = async () => {
+    if (!deleteTargetId) return;
+    setDeleting(true);
     try {
-      const res = await deleteInspectionDraft(id);
+      const res = await deleteInspectionDraft(deleteTargetId);
       if (res.success) {
         toast.success("Inspection draft deleted successfully.");
         fetchInspections();
       }
     } catch (err: any) {
       toast.error(err.response?.data?.message || "Failed to delete draft.");
+    } finally {
+      setDeleting(false);
+      setDeleteTargetId(null);
     }
   };
 
@@ -180,12 +185,11 @@ export function InspectorVehicles() {
       key: "actions" as any,
       header: "Actions",
       cell: (v) => {
-        const canEdit = v.status !== "APPROVED"; // Draft, Submitted, Rejected can be edited to correct/resubmit
+        const canEdit = v.status !== "APPROVED"; 
         const canDelete = v.status === "DRAFT" || v.status === "REJECTED";
 
         return (
           <div className="flex items-center gap-1.5">
-            {/* 1. Preview Action */}
             <button
               onClick={() => openPreview(v.inspectionId)}
               className="grid size-8 place-items-center rounded-xl bg-card border border-border text-foreground hover:border-[#FFC700] hover:text-[#FFC700] transition-colors shadow-soft cursor-pointer"
@@ -194,7 +198,6 @@ export function InspectorVehicles() {
               <Eye className="size-3.5" />
             </button>
 
-            {/* 2. Edit Action */}
             {canEdit && (
               <Link
                 to={`/inspector/add-vehicle?id=${v.inspectionId}`}
@@ -205,7 +208,6 @@ export function InspectorVehicles() {
               </Link>
             )}
 
-            {/* 3. PDF Download Action */}
             <a
               href={`${API_BASE_URL}/api/inspector/inspection/${v.inspectionId}/pdf`}
               target="_blank"
@@ -216,10 +218,9 @@ export function InspectorVehicles() {
               <Download className="size-3.5" />
             </a>
 
-            {/* 4. Delete Action */}
             {canDelete && (
               <button
-                onClick={() => handleDelete(v.inspectionId)}
+                onClick={() => setDeleteTargetId(v.inspectionId)}
                 className="grid size-8 place-items-center rounded-xl bg-card border border-border text-rose-500 hover:border-rose-500/50 hover:bg-rose-500/10 transition-colors shadow-soft cursor-pointer"
                 title="Delete Draft"
               >
@@ -652,13 +653,22 @@ export function InspectorVehicles() {
                         { label: "Driveline / Axle", val: previewData.mechanicalDetails?.axle },
                         { label: "Engine / Motor Noise", val: previewData.mechanicalDetails?.engineNoise },
                       ].map((item, idx) => {
-                        const matchedPhoto = (previewData.inspectionPhotos || []).find(
-                          (p: any) =>
-                            p.photoType?.toUpperCase() === item.label.toUpperCase() ||
-                            p.imageCategory?.toUpperCase() === item.label.toUpperCase() ||
-                            p.displayName?.toUpperCase() === item.label.toUpperCase()
-                        );
-                        const imgUrl = matchedPhoto?.imageUrl;
+                        const matchedPhoto = [
+                          ...(previewData.inspectionPhotos || []),
+                          ...(previewData.inspectionVideos || []),
+                        ]
+                          .filter((p: any) => p && (p.imageUrl || p.videoUrl || p.url))
+                          .find(
+                            (p: any) =>
+                              p.photoType?.toUpperCase() === item.label.toUpperCase() ||
+                              p.imageCategory?.toUpperCase() === item.label.toUpperCase() ||
+                              p.displayName?.toUpperCase() === item.label.toUpperCase() ||
+                              (item.label.includes("Noise") && (p.imageCategory?.toUpperCase().includes("NOISE") || p.displayName?.toUpperCase().includes("NOISE")))
+                          );
+                        const rawUrl = matchedPhoto?.imageUrl || matchedPhoto?.videoUrl || matchedPhoto?.url;
+                        const imgUrl = rawUrl && !rawUrl.startsWith("http") && !rawUrl.startsWith("data:")
+                          ? `${API_BASE_URL.replace(/\/+$/, "")}${rawUrl.startsWith("/") ? rawUrl : `/${rawUrl}`}`
+                          : rawUrl;
 
                         return (
                           <div key={idx} className="rounded-2xl border border-border bg-card p-3.5 shadow-soft flex flex-col gap-2.5">
@@ -670,19 +680,31 @@ export function InspectorVehicles() {
                             </div>
 
                             {imgUrl && (
-                              <div className="relative group aspect-[16/10] w-full overflow-hidden rounded-xl border border-border bg-secondary shadow-inner">
-                                <img
-                                  src={imgUrl}
-                                  alt={item.label}
-                                  className="size-full object-cover transition-transform duration-300 group-hover:scale-105"
-                                />
-                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                              <div className="relative group aspect-[16/10] w-full overflow-hidden rounded-xl border border-border bg-black shadow-inner">
+                                {item.label === "Engine / Motor Noise" || imgUrl.includes(".mp4") || imgUrl.includes(".webm") || imgUrl.includes(".mov") || imgUrl.includes(".avi") || imgUrl.includes("video") ? (
+                                  <video
+                                    src={imgUrl}
+                                    controls
+                                    preload="metadata"
+                                    playsInline
+                                    className="size-full object-cover rounded-xl"
+                                  >
+                                    <source src={imgUrl} type="video/mp4" />
+                                  </video>
+                                ) : (
+                                  <img
+                                    src={imgUrl}
+                                    alt={item.label}
+                                    className="size-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                  />
+                                )}
+                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
                                   <button
                                     type="button"
                                     onClick={() => window.open(imgUrl, "_blank")}
-                                    className="inline-flex items-center gap-1 rounded-xl bg-[#FFC700] text-[#0D0E12] px-3 py-1.5 text-[11px] font-black shadow-md hover:bg-[#FFD633] transition-all cursor-pointer"
+                                    className="inline-flex items-center gap-1 rounded-xl bg-[#FFC700] text-[#0D0E12] px-3 py-1.5 text-[11px] font-black shadow-md hover:bg-[#FFD633] transition-all cursor-pointer pointer-events-auto"
                                   >
-                                    <Eye className="size-3.5" /> View Photo
+                                    <Eye className="size-3.5" /> {item.label === "Engine / Motor Noise" || imgUrl.includes("video") ? "View Video" : "View Photo"}
                                   </button>
                                 </div>
                               </div>
@@ -997,22 +1019,18 @@ export function InspectorVehicles() {
 
                   <Panel
                     title="Interior & Cabin Mandatory Photos"
-                    description="Odometer reading, AC panel, cluster and infotainment photos."
+                    description="Odometer reading and AC panel photos."
                   >
                     <div className="grid gap-4.5 sm:grid-cols-2 lg:grid-cols-4">
                       {[
                         { type: "ODOMETER_IMAGE", label: "ODOMETER READING PHOTO" },
                         { type: "AC_CONTROL_IMAGE", label: "AC CONTROL PANEL PHOTO" },
-                        { type: "INSTRUMENT_CLUSTER_IMAGE", label: "INSTRUMENT CLUSTER PHOTO" },
-                        { type: "MUSIC_SYSTEM_IMAGE", label: "MUSIC SYSTEM PHOTO" },
                       ].map((slot) => {
                         const matchedPhoto = (previewData.inspectionPhotos || []).find((p: any) => {
                           if (p.photoType?.toUpperCase() === slot.type) return true;
                           const cat = (p.imageCategory || p.displayName || "").toUpperCase().replace(/[^A-Z]/g, "");
                           if (slot.type === "ODOMETER_IMAGE") return cat.includes("ODOMETER");
                           if (slot.type === "AC_CONTROL_IMAGE") return cat.includes("AC");
-                          if (slot.type === "INSTRUMENT_CLUSTER_IMAGE") return cat.includes("CLUSTER");
-                          if (slot.type === "MUSIC_SYSTEM_IMAGE") return cat.includes("MUSIC") || cat.includes("INFOTAINMENT");
                           return false;
                         });
                         const imgUrl = matchedPhoto?.imageUrl;
@@ -1080,6 +1098,18 @@ export function InspectorVehicles() {
           )}
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={deleteTargetId !== null}
+        onClose={() => setDeleteTargetId(null)}
+        onConfirm={handleDelete}
+        title="Delete Inspection Draft"
+        description="Are you sure you want to delete this inspection draft? This action is permanent and cannot be undone."
+        confirmText="Delete Draft"
+        cancelText="Cancel"
+        variant="danger"
+        loading={deleting}
+      />
     </AppShell>
   );
 }

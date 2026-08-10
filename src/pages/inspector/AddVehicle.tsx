@@ -13,6 +13,7 @@ import {
   ShieldCheck,
   Star,
   Trash2,
+  Video,
   Wrench,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -191,8 +192,6 @@ const slotToCategoryMap: Record<string, string> = {
   tyresGeneralImg: "Tyres",
   odometerImg: "Odometer",
   acImg: "AC Control",
-  clusterImg: "Instrument Cluster",
-  musicSystemImg: "Music System",
 };
 
 const photoTypeToSlotKeyMap: Record<string, string> = {
@@ -211,8 +210,6 @@ const photoTypeToSlotKeyMap: Record<string, string> = {
   TYRES_OVERVIEW: "tyresGeneralImg",
   ODOMETER_IMAGE: "odometerImg",
   AC_CONTROL_IMAGE: "acImg",
-  INSTRUMENT_CLUSTER_IMAGE: "clusterImg",
-  MUSIC_SYSTEM_IMAGE: "musicSystemImg",
 };
 
 const mapCondition = (cond: string): string => {
@@ -359,22 +356,6 @@ const imageSlotsConfig = [
     pdfSection: "INTERIOR AND ELECTRICAL",
     sample:
       "https://images.unsplash.com/photo-1502877338535-766e1452684a?auto=format&fit=crop&w=800&q=80",
-  },
-  {
-    key: "clusterImg",
-    label: "INSTRUMENT CLUSTER IMG",
-    step: 4,
-    pdfSection: "INTERIOR AND ELECTRICAL",
-    sample:
-      "https://images.unsplash.com/photo-1517524008697-84bbe3c3fd98?auto=format&fit=crop&w=800&q=80",
-  },
-  {
-    key: "musicSystemImg",
-    label: "MUSIC SYSTEM IMG",
-    step: 4,
-    pdfSection: "INTERIOR AND ELECTRICAL",
-    sample:
-      "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?auto=format&fit=crop&w=800&q=80",
   },
 ];
 
@@ -536,6 +517,7 @@ export function InspectorAddVehicle() {
     setActiveUploadPanel(panelName);
     if (panelFileRef.current) {
       panelFileRef.current.value = "";
+      panelFileRef.current.accept = panelName === "Engine / Motor Noise" ? "video/*" : "image/*";
       panelFileRef.current.click();
     }
   };
@@ -544,6 +526,20 @@ export function InspectorAddVehicle() {
     if (!files || !files[0] || !activeUploadPanel) return;
     const file = files[0];
     const panelName = activeUploadPanel;
+
+    if (panelName === "Engine / Motor Noise") {
+      const isVideo = file.type.startsWith("video/") || /\.(mp4|webm|mov|avi|mkv|3gp|flv|wmv)$/i.test(file.name);
+      if (!isVideo) {
+        toast.error("Invalid file format. Please upload a video file for Engine / Motor Noise.");
+        return;
+      }
+    } else {
+      const isImage = file.type.startsWith("image/") || /\.(jpg|jpeg|png|webp|gif|heic|bmp|tiff)$/i.test(file.name);
+      if (!isImage) {
+        toast.error("Invalid file format. Please upload an image file.");
+        return;
+      }
+    }
 
     let currentId = inspectionId;
     if (!currentId) {
@@ -565,7 +561,8 @@ export function InspectorAddVehicle() {
     if (!currentId) return;
 
     try {
-      toast.info(`Uploading photo for ${panelName}...`);
+      const isVideo = panelName === "Engine / Motor Noise" || file.type.startsWith("video/");
+      toast.info(`Uploading ${isVideo ? "video" : "photo"} for ${panelName}...`);
       const res = await uploadInspectionImage(currentId, panelName, file);
       if (res.success && res.data) {
         setPanelImages((prev) => ({
@@ -579,10 +576,10 @@ export function InspectorAddVehicle() {
             return copy;
           });
         }
-        toast.success(`Photo uploaded for ${panelName}!`);
+        toast.success(`${isVideo ? "Video" : "Photo"} uploaded for ${panelName}!`);
       }
     } catch (err: any) {
-      toast.error(err.response?.data?.message || "Failed to upload panel image.");
+      toast.error(err.response?.data?.message || "Failed to upload panel media.");
     }
   };
   const [saving, setSaving] = useState(false);
@@ -737,7 +734,7 @@ export function InspectorAddVehicle() {
       if (!electricalState["Full Battery Number"]) newErrors["Full Battery Number"] = "Full Battery Number is required.";
       if (!electricalState["AC"]) newErrors["AC"] = "AC Cooling Performance is required.";
 
-      const intSlots = ["odometerImg", "acImg", "clusterImg", "musicSystemImg"];
+      const intSlots = ["odometerImg", "acImg"];
       intSlots.forEach((slot) => {
         if (!partImages[slot]) {
           const config = imageSlotsConfig.find((c) => c.key === slot);
@@ -1117,6 +1114,21 @@ export function InspectorAddVehicle() {
   };
 
   const handleImageUpload = async (key: string, file: File) => {
+    const category = slotToCategoryMap[key] || key;
+    if (category === "Engine / Motor Noise") {
+      const isVideo = file.type.startsWith("video/") || /\.(mp4|webm|mov|avi|mkv|3gp|flv|wmv)$/i.test(file.name);
+      if (!isVideo) {
+        toast.error("Invalid file format. Please upload a video file for Engine / Motor Noise.");
+        return;
+      }
+    } else {
+      const isImage = file.type.startsWith("image/") || /\.(jpg|jpeg|png|webp|gif|heic|bmp|tiff)$/i.test(file.name);
+      if (!isImage) {
+        toast.error("Invalid file format. Please upload an image file.");
+        return;
+      }
+    }
+
     let currentId = inspectionId;
     if (!currentId) {
       // Create draft first
@@ -1140,8 +1152,7 @@ export function InspectorAddVehicle() {
     if (!currentId) return;
 
     try {
-      const category = slotToCategoryMap[key] || key;
-      toast.info(`Uploading image for ${category}...`);
+      toast.info(`Uploading media for ${category}...`);
       const res = await uploadInspectionImage(currentId, category, file);
       if (res.success && res.data) {
         setSlotImg(key, res.data);
@@ -1893,20 +1904,32 @@ export function InspectorAddVehicle() {
                               )}
                             </div>
 
-                            {/* Large Image Preview Card */}
-                            <div className="relative group w-full aspect-[16/10] rounded-xl overflow-hidden border border-border bg-secondary cursor-pointer shadow-inner">
-                              <img
-                                src={panelImages[item.name]}
-                                alt={item.name}
-                                className="size-full object-cover transition-transform duration-300 group-hover:scale-102"
-                              />
-                              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                            {/* Large Image / Video Preview Card */}
+                            <div className="relative group w-full aspect-[16/10] rounded-xl overflow-hidden border border-border bg-black cursor-pointer shadow-inner">
+                              {item.name === "Engine / Motor Noise" || panelImages[item.name]?.startsWith("data:video") || panelImages[item.name]?.includes(".mp4") || panelImages[item.name]?.includes(".webm") || panelImages[item.name]?.includes(".mov") || panelImages[item.name]?.includes(".avi") || panelImages[item.name]?.includes("video") ? (
+                                <video
+                                  src={panelImages[item.name]}
+                                  controls
+                                  preload="metadata"
+                                  playsInline
+                                  className="size-full object-cover rounded-xl"
+                                >
+                                  <source src={panelImages[item.name]} type="video/mp4" />
+                                </video>
+                              ) : (
+                                <img
+                                  src={panelImages[item.name]}
+                                  alt={item.name}
+                                  className="size-full object-cover transition-transform duration-300 group-hover:scale-102"
+                                />
+                              )}
+                              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 pointer-events-none">
                                 <button
                                   type="button"
                                   onClick={() =>
                                     window.open(panelImages[item.name], "_blank")
                                   }
-                                  className="grid size-8 place-items-center rounded-xl bg-white/20 text-white backdrop-blur-md hover:bg-white/40 cursor-pointer"
+                                  className="grid size-8 place-items-center rounded-xl bg-white/20 text-white backdrop-blur-md hover:bg-white/40 cursor-pointer pointer-events-auto"
                                   title="View Fullscreen"
                                 >
                                   <Eye className="size-4" />
@@ -1920,7 +1943,7 @@ export function InspectorAddVehicle() {
                                       return copy;
                                     });
                                   }}
-                                  className="grid size-8 place-items-center rounded-xl bg-rose-600/80 text-white backdrop-blur-md hover:bg-rose-600 cursor-pointer"
+                                  className="grid size-8 place-items-center rounded-xl bg-rose-600/80 text-white backdrop-blur-md hover:bg-rose-600 cursor-pointer pointer-events-auto"
                                   title="Remove Photo"
                                 >
                                   <Trash2 className="size-4" />
@@ -1974,9 +1997,13 @@ export function InspectorAddVehicle() {
                                       ? "border-red-500 text-red-500 bg-red-500/10 hover:bg-red-500/20"
                                       : "border-border hover:border-[#FFC700] hover:bg-[#FFC700]/10 text-muted-foreground hover:text-[#FFC700]"
                                   )}
-                                  title="Upload Photo"
+                                  title={item.name === "Engine / Motor Noise" ? "Upload Video" : "Upload Photo"}
                                 >
-                                  <Camera className="size-3.5" />
+                                  {item.name === "Engine / Motor Noise" ? (
+                                    <Video className="size-3.5" />
+                                  ) : (
+                                    <Camera className="size-3.5" />
+                                  )}
                                 </button>
                               </div>
                             </div>
@@ -2153,7 +2180,7 @@ export function InspectorAddVehicle() {
             <div className="space-y-8">
               <Panel
                 title="Cabin & Electrical Components"
-                description="Upload odometer, AC control, instrument cluster, and music system photo slots."
+                description="Upload odometer and AC control photo slots."
               >
                 <div className="grid gap-4.5 sm:grid-cols-2 lg:grid-cols-3">
                   {imageSlotsConfig

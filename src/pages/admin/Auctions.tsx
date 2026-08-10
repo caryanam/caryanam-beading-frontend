@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
 import { adminNav } from "@/components/nav-config";
 import { DataTable, type Column } from "@/components/data-table";
+import { ConfirmModal } from "@/components/confirm-modal";
 import {
   getSubmittedInspections,
   startLiveAuction,
@@ -35,6 +36,17 @@ export function AdminAuctions() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [, setNow] = useState(Date.now());
+  const [stopModal, setStopModal] = useState<{
+    isOpen: boolean;
+    auctionId: number | null;
+    vehicleName: string;
+    loading: boolean;
+  }>({
+    isOpen: false,
+    auctionId: null,
+    vehicleName: "",
+    loading: false,
+  });
 
   const handleMarkAsSoldOut = async (id: number, vehicleName: string) => {
     const res = await updateInspectionVehicleStatus(id, "SOLD OUT");
@@ -94,15 +106,23 @@ export function AdminAuctions() {
     }
   };
 
-  const handleStopAuction = async (id: number, vehicleName: string) => {
-    if (!window.confirm(`Are you sure you want to stop the live auction for ${vehicleName}?`)) {
-      return;
-    }
+  const openStopModal = (id: number, vehicleName: string) => {
+    setStopModal({
+      isOpen: true,
+      auctionId: id,
+      vehicleName,
+      loading: false,
+    });
+  };
+
+  const handleConfirmStopAuction = async () => {
+    if (!stopModal.auctionId) return;
+    setStopModal((prev) => ({ ...prev, loading: true }));
     try {
-      toast.info(`Stopping auction for ${vehicleName}...`);
-      const res = await stopLiveAuction(id);
+      toast.info(`Stopping auction for ${stopModal.vehicleName}...`);
+      const res = await stopLiveAuction(stopModal.auctionId);
       if (res.success) {
-        toast.success(`Auction stopped for ${vehicleName}.`);
+        toast.success(`Auction stopped for ${stopModal.vehicleName}.`);
         fetchAuctions();
       } else {
         toast.error("Failed to stop auction.");
@@ -110,6 +130,8 @@ export function AdminAuctions() {
     } catch (err: any) {
       console.error("Error stopping auction", err);
       toast.error(err.response?.data?.message || "Failed to stop auction.");
+    } finally {
+      setStopModal({ isOpen: false, auctionId: null, vehicleName: "", loading: false });
     }
   };
 
@@ -310,7 +332,7 @@ export function AdminAuctions() {
                   <Activity className="size-3.5" /> Monitor
                 </button>
                 <button
-                  onClick={() => handleStopAuction(v.inspectionId, `${v.brand} ${v.model}`)}
+                  onClick={() => openStopModal(v.inspectionId, `${v.brand} ${v.model}`)}
                   className="inline-flex items-center gap-1.5 rounded-xl border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 px-3 py-1.5 text-xs font-extrabold text-rose-600 dark:text-rose-400 transition-all cursor-pointer shadow-sm"
                   title="Stop Live Auction"
                 >
@@ -454,6 +476,18 @@ export function AdminAuctions() {
           actions={null}
         />
       )}
+
+      <ConfirmModal
+        isOpen={stopModal.isOpen}
+        onClose={() => setStopModal({ isOpen: false, auctionId: null, vehicleName: "", loading: false })}
+        onConfirm={handleConfirmStopAuction}
+        title="Stop Live Auction"
+        description={`Are you sure you want to stop the live auction for ${stopModal.vehicleName}?`}
+        confirmText="Stop Auction"
+        cancelText="Cancel"
+        variant="danger"
+        loading={stopModal.loading}
+      />
     </AppShell>
   );
 }

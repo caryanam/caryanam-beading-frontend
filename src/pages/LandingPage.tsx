@@ -112,7 +112,7 @@ export function LandingPage({ page = "home", initialMode = "login" }: LandingPag
                 to="/register"
                 className="inline-flex items-center gap-2 rounded-2xl bg-[#FFC700] hover:bg-[#FFD633] text-[#0D0E12] px-5 py-2.5 text-sm font-black shadow-[0_4px_16px_rgba(255,199,0,0.3)] hover:shadow-[0_6px_20px_rgba(255,199,0,0.45)] transition-all cursor-pointer"
               >
-                <UserPlus className="size-4" /> Register Dealer
+                <UserPlus className="size-4" /> Register
               </Link>
             </div>
 
@@ -165,7 +165,7 @@ export function LandingPage({ page = "home", initialMode = "login" }: LandingPag
               onClick={() => setMobileMenuOpen(false)}
               className="w-full text-center rounded-2xl bg-[#FFC700] hover:bg-[#FFD633] text-[#0D0E12] py-3.5 text-sm font-black shadow-md transition-all"
             >
-              Register Dealer Account
+              Register
             </Link>
           </div>
         </div>

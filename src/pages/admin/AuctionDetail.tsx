@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
+import { ConfirmModal } from "@/components/confirm-modal";
 import { adminNav } from "@/components/nav-config";
 import {
   getInspectionById,
@@ -47,6 +48,8 @@ export function AdminAuctionDetail() {
   const [remaining, setRemaining] = useState("");
   const [adminMsg, setAdminMsg] = useState("");
   const [sendingMsg, setSendingMsg] = useState(false);
+  const [stopModalOpen, setStopModalOpen] = useState(false);
+  const [stoppingAuction, setStoppingAuction] = useState(false);
 
   const fetchDetail = async () => {
     if (!id) return;
@@ -171,17 +174,9 @@ export function AdminAuctionDetail() {
     }
   };
 
-  const handleStopAuction = async () => {
+  const handleConfirmStopAuction = async () => {
     if (!id || !inspection) return;
-    const v = inspection.vehicleDetails || inspection.vehicle || {};
-    const vehicleName = `${v.brand || ""} ${v.model || ""}`;
-    if (
-      !window.confirm(
-        `Are you sure you want to stop the live auction for ${vehicleName}?`,
-      )
-    ) {
-      return;
-    }
+    setStoppingAuction(true);
     try {
       toast.info("Stopping live auction...");
       const res = await stopLiveAuction(Number(id));
@@ -193,6 +188,9 @@ export function AdminAuctionDetail() {
       }
     } catch (err) {
       toast.error("Failed to stop auction.");
+    } finally {
+      setStoppingAuction(false);
+      setStopModalOpen(false);
     }
   };
 
@@ -392,7 +390,7 @@ export function AdminAuctionDetail() {
                   <Activity className="size-4 animate-pulse" /> Monitor Live Room
                 </button>
                 <button
-                  onClick={handleStopAuction}
+                  onClick={() => setStopModalOpen(true)}
                   className="inline-flex items-center gap-2 rounded-2xl border border-rose-500/40 bg-rose-500/15 hover:bg-rose-500/25 px-5 py-2.5 text-xs font-black text-rose-600 dark:text-rose-400 transition-all cursor-pointer shadow-sm"
                 >
                   <Square className="size-4 fill-current text-rose-500" /> Stop Auction
@@ -729,7 +727,7 @@ export function AdminAuctionDetail() {
                     </div>
                   )}
                   <button
-                    onClick={handleStopAuction}
+                    onClick={() => setStopModalOpen(true)}
                     className="w-full rounded-2xl bg-rose-500 hover:bg-rose-600 py-3.5 text-xs font-black text-white shadow-md transition-all cursor-pointer flex items-center justify-center gap-2"
                   >
                     <Square className="size-3.5 fill-current" /> Stop Live Auction
@@ -879,6 +877,18 @@ export function AdminAuctionDetail() {
           </div>
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={stopModalOpen}
+        onClose={() => setStopModalOpen(false)}
+        onConfirm={handleConfirmStopAuction}
+        title="Stop Live Auction"
+        description={`Are you sure you want to stop the live auction for ${v.brand || ""} ${v.model || ""}?`}
+        confirmText="Stop Auction"
+        cancelText="Cancel"
+        variant="danger"
+        loading={stoppingAuction}
+      />
     </AppShell>
   );
 }
