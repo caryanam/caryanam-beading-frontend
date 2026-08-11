@@ -3,6 +3,7 @@ import { AppShell } from "@/components/app-shell";
 import { inspectorNav } from "@/components/nav-config";
 import { Panel } from "@/components/premium";
 import { getMyInspections } from "@/lib/api/inspector-api";
+import { formatIndianDateTime } from "@/lib/utils";
 
 interface NotificationItem {
   id: number;
@@ -30,14 +31,7 @@ export function InspectorNotifications() {
           .map((ins) => {
             let title = "";
             let meta = "";
-            const time = ins.submittedAt
-              ? new Date(ins.submittedAt).toLocaleString("en-IN", {
-                  day: "2-digit",
-                  month: "short",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })
-              : "Just now";
+            const time = formatIndianDateTime(ins.submittedAt);
 
             const carName = `${ins.brand || ""} ${ins.model || ""} ${ins.variant || ""}`.trim();
 

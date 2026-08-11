@@ -22,7 +22,7 @@ import { toast } from "sonner";
 import { API_BASE_URL } from "@/lib/api";
 import { getPublicInspectionDetails, submitSellerResponse } from "@/lib/api/dealer-api";
 import { inr, timeLeft } from "@/lib/mock-data";
-import { cn, maskDealerName } from "@/lib/utils";
+import { cn, maskDealerName, formatIndianDateTime } from "@/lib/utils";
 import { StatusChip } from "@/components/premium";
 
 export function PublicBiddingPage() {
@@ -63,8 +63,18 @@ export function PublicBiddingPage() {
         const inspectionId = raw.inspectionId || Number(vehicleId);
 
         const basePrice = v.suggestedPrice || 0;
-        const highestBid = v.currentHighestBid && v.currentHighestBid > 0 ? v.currentHighestBid : 0;
-        const bidCount = v.totalBids || 0;
+        const history = raw.bidHistory || [];
+        const topBidInHistory = history.length > 0 ? (history[0].amount || history[0].bidAmount || 0) : 0;
+        const topBidderInHistory = history.length > 0 ? (history[0].dealerName || history[0].dealer || history[0].dealershipName) : null;
+
+        const highestBid = Math.max(
+          v.currentHighestBid && v.currentHighestBid > 0 ? v.currentHighestBid : 0,
+          topBidInHistory
+        );
+        const bidCount = Math.max(v.totalBids || 0, history.length);
+        const highestBidder = topBidderInHistory || (v.currentHighestBidder
+          ? v.currentHighestBidder.dealershipName || v.currentHighestBidder
+          : null);
 
         let fuelType = "Petrol";
         const f = (v.fuelType || "").toLowerCase();
@@ -124,9 +134,7 @@ export function PublicBiddingPage() {
           score: calculatedScore,
           basePrice,
           highestBid,
-          highestBidder: v.currentHighestBidder
-            ? v.currentHighestBidder.dealershipName || v.currentHighestBidder
-            : null,
+          highestBidder,
           bids: bidCount,
           status: "approved",
           auction:
@@ -581,7 +589,7 @@ export function PublicBiddingPage() {
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="font-extrabold text-foreground text-xs">
-                            {maskDealerName(bid.dealerName || bid.dealershipName || "Dealer Bidder")}
+                            {maskDealerName(bid.dealer || bid.dealerName || bid.dealershipName || "Dealer Bidder")}
                           </span>
                           {isTopBid && (
                             <span className="rounded-md bg-[#FFC700]/20 text-[#FFC700] px-1.5 py-0.5 text-[9px] font-black uppercase">
@@ -589,8 +597,8 @@ export function PublicBiddingPage() {
                             </span>
                           )}
                         </div>
-                        <span className="text-[10px] text-muted-foreground">
-                          {bid.time || bid.bidTime || (bid.createdAt ? new Date(bid.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "Just now")}
+                        <span className="text-[10px] font-medium text-muted-foreground">
+                          {formatIndianDateTime(bid.createdAt || bid.time || bid.bidTime)}
                         </span>
                       </div>
                     </div>

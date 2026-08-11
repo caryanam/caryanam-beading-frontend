@@ -47,6 +47,7 @@ import {
 } from "@/lib/api/admin-api";
 import { inr } from "@/lib/mock-data";
 import { toast } from "sonner";
+import { formatIndianDateTime } from "@/lib/utils";
 
 const COLORS = ["#10B981", "#FFC700", "#EF4444", "#696974"];
 
@@ -425,12 +426,12 @@ export function AdminDashboard() {
         `"${ins.ownerName || ''}"`,
         `"${ins.inspectorName || ''}"`,
         `"${ins.status || ''}"`,
-        `"${ins.submittedAt ? new Date(ins.submittedAt).toLocaleString("en-IN") : 'N/A'}"`,
+        `"${formatIndianDateTime(ins.submittedAt)}"`,
       ]);
 
       const csvContent = [
         "CARYANAM BIDDING - ENTERPRISE OPERATIONS SUMMARY REPORT",
-        `Generated On: ${new Date().toLocaleString("en-IN")}`,
+        `Generated On: ${formatIndianDateTime(new Date())}`,
         `Total Inventory: ${totalInventory} | Approved: ${approvedCount} | Live Rooms: ${runningAuctions} | Pending Review: ${pendingApprovals} | Registered Dealers: ${totalDealers}`,
         "",
         headers.join(","),

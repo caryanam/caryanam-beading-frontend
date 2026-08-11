@@ -5,7 +5,7 @@ import { inspectorNav } from "@/components/nav-config";
 import { DataTable, type Column } from "@/components/data-table";
 import { StatusChip, Panel } from "@/components/premium";
 import { ConfirmModal } from "@/components/confirm-modal";
-import { cn } from "@/lib/utils";
+import { cn, formatIndianDateTime } from "@/lib/utils";
 import {
   getMyInspections,
   getInspectionDetails,
@@ -162,13 +162,7 @@ export function InspectorVehicles() {
       header: "Submitted On",
       cell: (v) =>
         v.submittedAt
-          ? new Date(v.submittedAt).toLocaleDateString("en-IN", {
-            day: "numeric",
-            month: "short",
-            year: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-          })
+          ? formatIndianDateTime(v.submittedAt)
           : "Not Submitted",
     },
     {
@@ -352,7 +346,7 @@ export function InspectorVehicles() {
                   )}
                 </div>
                 <p className="text-xs font-semibold text-muted-foreground mt-1">
-                  Inspection Report  • Submitted on {previewData?.submittedAt ? new Date(previewData.submittedAt).toLocaleDateString() : "Draft"}
+                  Inspection Report  • Submitted on {previewData?.submittedAt ? formatIndianDateTime(previewData.submittedAt) : "Draft"}
                 </p>
               </div>
             </div>

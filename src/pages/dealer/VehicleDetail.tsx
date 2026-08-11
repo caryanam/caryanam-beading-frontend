@@ -48,7 +48,7 @@ import {
 } from "@/lib/api/dealer-api";
 import { API_BASE_URL } from "@/lib/api";
 import { readSession } from "@/lib/session";
-import { cn, maskDealerName } from "@/lib/utils";
+import { cn, maskDealerName, formatIndianDateTime } from "@/lib/utils";
 
 export function DealerVehicleDetail() {
   const { vehicleId } = useParams<{ vehicleId: string }>();
@@ -367,11 +367,18 @@ export function DealerVehicleDetail() {
           const inspectionId = raw.inspectionId || Number(vehicleId);
 
           const basePrice = v.suggestedPrice || 0;
-          const highestBid =
-            v.currentHighestBid && v.currentHighestBid > 0
-              ? v.currentHighestBid
-              : 0;
-          const bidCount = v.totalBids || 0;
+          const history = raw.bidHistory || [];
+          const topBidInHistory = history.length > 0 ? (history[0].amount || history[0].bidAmount || 0) : 0;
+          const topBidderInHistory = history.length > 0 ? (history[0].dealerName || history[0].dealer || history[0].dealershipName) : null;
+
+          const highestBid = Math.max(
+            v.currentHighestBid && v.currentHighestBid > 0 ? v.currentHighestBid : 0,
+            topBidInHistory
+          );
+          const bidCount = Math.max(v.totalBids || 0, history.length);
+          const highestBidder = topBidderInHistory || (v.currentHighestBidder
+            ? v.currentHighestBidder.dealershipName || v.currentHighestBidder
+            : null);
 
           let fuelType = "Petrol";
           const f = (v.fuelType || "").toLowerCase();
@@ -442,9 +449,7 @@ export function DealerVehicleDetail() {
             score: calculatedScore,
             basePrice,
             highestBid,
-            highestBidder: v.currentHighestBidder
-              ? v.currentHighestBidder.dealershipName || v.currentHighestBidder
-              : null,
+            highestBidder,
             bids: bidCount,
             status: "approved",
             auction:
@@ -1587,10 +1592,6 @@ export function DealerVehicleDetail() {
               {/* Header Status */}
               <div className="relative z-10 flex items-center justify-between gap-3 border-b border-white/10 pb-4">
                 <StatusChip status={vehicle.auction} />
-                <span className="text-xs font-extrabold text-[#FFC700] flex items-center gap-1.5 bg-[#FFC700]/10 px-3 py-1 rounded-full border border-[#FFC700]/30">
-                  <Zap className="size-3.5 fill-current animate-pulse" />{" "}
-                  {vehicle.bids || 0} Total Bids
-                </span>
               </div>
 
               {/* Price & Bid Display */}
@@ -1601,7 +1602,7 @@ export function DealerVehicleDetail() {
                       Highest Bid
                     </p>
                     <p className="mt-1 text-3xl font-black text-white tracking-tight">
-                      {isComingSoon || !vehicle.highestBid || vehicle.bids === 0
+                      {isComingSoon || !vehicle.highestBid
                         ? "No Bids Yet"
                         : inr(vehicle.highestBid)}
                     </p>
@@ -1784,99 +1785,7 @@ export function DealerVehicleDetail() {
               )}
             </div>
 
-            {/* Live Bid Stream / Activity Feed */}
-            <div className="rounded-3xl border border-border bg-card p-5 space-y-4 shadow-soft">
-              <div className="flex items-center justify-between border-b border-border pb-3">
-                <h3 className="text-sm font-black uppercase tracking-wider text-foreground flex items-center gap-2">
-                  <TrendingUp className="size-4 text-[#FFC700]" /> Bid Activity Stream
-                </h3>
-                <span className="text-[10px] font-bold text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
-                  Real-time
-                </span>
-              </div>
 
-              {bidHistory.length > 0 ? (
-                <div className="space-y-2 max-h-60 overflow-y-auto pr-1 no-scrollbar">
-                  {bidHistory.map((bid: any, idx: number) => {
-                    const isTop = idx === 0;
-                    const bAmount = bid.amount || bid.bidAmount || 0;
-                    const nextLowerBid = bidHistory[idx + 1];
-                    const lowerAmount = nextLowerBid
-                      ? nextLowerBid.amount || nextLowerBid.bidAmount || 0
-                      : vehicle?.basePrice || 0;
-                    const diff = bAmount > lowerAmount ? bAmount - lowerAmount : 0;
-
-                    const bDealer =
-                      bid.dealer ||
-                      bid.dealerName ||
-                      bid.dealershipName ||
-                      "Registered Dealer";
-                    const bTime =
-                      bid.time ||
-                      bid.bidTime ||
-                      (bid.createdAt
-                        ? new Date(bid.createdAt).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })
-                        : "Just now");
-
-                    return (
-                      <div
-                        key={bid.id || idx}
-                        className={cn(
-                          "flex items-center justify-between p-3 rounded-2xl border text-xs transition-all",
-                          isTop
-                            ? "bg-[#FFC700]/15 border-[#FFC700]/40 text-foreground font-bold"
-                            : "bg-secondary/40 border-border/60 text-muted-foreground",
-                        )}
-                      >
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={cn(
-                              "size-2 rounded-full",
-                              isTop ? "bg-[#FFC700]" : "bg-muted-foreground/40",
-                            )}
-                          />
-                          <div>
-                            <p className="font-bold truncate max-w-[130px] text-foreground">
-                              {maskDealerName(bDealer)}
-                            </p>
-                            <p className="text-[10px] text-muted-foreground">
-                              {bTime}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="text-right flex flex-col items-end">
-                          <p
-                            className={cn(
-                              "font-black text-sm",
-                              isTop ? "text-[#FFC700]" : "text-foreground",
-                            )}
-                          >
-                            {inr(bAmount)}
-                          </p>
-                          {diff > 0 && (
-                            <p className="flex items-center gap-0.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">
-                              <TrendingUp className="size-3.5" /> +{inr(diff)}
-                            </p>
-                          )}
-                          {isTop && (
-                            <span className="text-[9px] font-extrabold uppercase text-[#FFC700] mt-0.5">
-                              HIGHEST BID
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="p-6 text-center rounded-2xl bg-secondary/30 border border-dashed border-border text-xs text-muted-foreground font-medium">
-                  No live bids recorded yet. Place the first bid above!
-                </div>
-              )}
-            </div>
           </div>
         </div>
       </div>

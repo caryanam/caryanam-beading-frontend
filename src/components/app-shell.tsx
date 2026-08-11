@@ -13,7 +13,7 @@ import {
   Zap,
   type LucideIcon,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatIndianDateTime } from "@/lib/utils";
 import { clearSession, readSession, type Session } from "@/lib/session";
 import type { Role } from "@/lib/mock-data";
 import { getMyInspections } from "@/lib/api/inspector-api";
@@ -111,14 +111,7 @@ export function AppShell({
                 notifTitle = `Inspection Submitted: ${carName}`;
                 notifMeta = `Report for ${ins.vehicleNumber} submitted successfully and pending approval.`;
               }
-              const timeStr = ins.submittedAt
-                ? new Date(ins.submittedAt).toLocaleString("en-IN", {
-                    month: "short",
-                    day: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })
-                : "Recently";
+              const timeStr = formatIndianDateTime(ins.submittedAt);
 
               return {
                 id: ins.inspectionId,
@@ -144,7 +137,7 @@ export function AppShell({
               rawId: n.id,
               title: n.title,
               meta: n.message,
-              time: n.createdAt,
+              time: formatIndianDateTime(n.createdAt),
               status: n.type,
               link: n.inspectionId ? `/dealer/vehicles/${n.inspectionId}` : `/dealer/marketplace`,
             }));
@@ -170,14 +163,7 @@ export function AppShell({
                   notifMeta = `Vehicle ${ins.vehicleNumber} added to marketplace. Suggested price: ₹${ins.suggestedPrice || 0}`;
                 }
 
-                const timeStr = ins.submittedAt
-                  ? new Date(ins.submittedAt).toLocaleString("en-IN", {
-                      month: "short",
-                      day: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })
-                  : "Recently";
+                const timeStr = formatIndianDateTime(ins.submittedAt);
 
                 return {
                   id: ins.inspectionId,
@@ -207,7 +193,7 @@ export function AppShell({
               rawId: n.id,
               title: n.title,
               meta: n.message,
-              time: n.createdAt,
+              time: formatIndianDateTime(n.createdAt),
               status: n.type,
               link: n.inspectionId ? `/admin/auctions/${n.inspectionId}` : `/admin/vehicles`,
             }));
@@ -220,14 +206,7 @@ export function AppShell({
                 .filter((ins: any) => ins.status === "SUBMITTED")
                 .map((ins: any) => {
                   const carName = `${ins.brand || ""} ${ins.model || ""} ${ins.variant || ""}`.trim();
-                  const timeStr = ins.submittedAt
-                    ? new Date(ins.submittedAt).toLocaleString("en-IN", {
-                        month: "short",
-                        day: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })
-                    : "Recently";
+                  const timeStr = formatIndianDateTime(ins.submittedAt);
 
                   return {
                     id: ins.inspectionId,

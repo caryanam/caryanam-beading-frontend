@@ -7,6 +7,7 @@ import { StatusChip } from "@/components/premium";
 import { inr } from "@/lib/mock-data";
 import { Download, CheckCircle2, AlertTriangle, X, Loader2 } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api";
+import { formatIndianDateTime } from "@/lib/utils";
 import {
   getSubmittedInspections,
   approveInspection,
@@ -143,6 +144,11 @@ export function AdminVehicles() {
       key: "suggestedPrice",
       header: "Suggested Price",
       cell: (v) => (v.suggestedPrice ? inr(v.suggestedPrice) : "N/A"),
+    },
+    {
+      key: "submittedAt",
+      header: "Submitted On",
+      cell: (v) => formatIndianDateTime(v.submittedAt),
     },
     { key: "inspectorName", header: "Inspector", cell: (v) => v.inspectorName },
     {

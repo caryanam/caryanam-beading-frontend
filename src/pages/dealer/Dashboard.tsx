@@ -14,6 +14,7 @@ import {
   type DealerInspectionSummary,
 } from "@/lib/api/dealer-api";
 import { readSession } from "@/lib/session";
+import { formatIndianDateTime, maskDealerName } from "@/lib/utils";
 
 export function DealerDashboard() {
   const [inspections, setInspections] = useState<DealerInspectionSummary[]>([]);
@@ -292,12 +293,12 @@ export function DealerDashboard() {
                         : "COMING SOON"}
                     </span>
                     <p className="mt-1 truncate text-4xl font-black text-white tracking-tight">
-                      {featured.auction !== "live" || !featured.highestBid || featured.bids === 0
+                      {featured.auction !== "live" || !featured.highestBid
                         ? "No Bids Yet"
                         : inr(featured.highestBid)}
                     </p>
                     <p className="mt-2 text-sm font-bold text-white/80">
-                      {featured.brand} {featured.model} {featured.variant} · {featured.bids} active bids placed
+                      {featured.brand} {featured.model} {featured.variant}
                     </p>
                   </div>
                   {featured.auction === "live" && featured.endsAt && (
@@ -320,61 +321,6 @@ export function DealerDashboard() {
                     ? "Enter Live Bidding Room"
                     : "View Vehicle Inspection Report"}
                 </Link>
-              </div>
-
-              {/* Bids Log Table */}
-              <div className="mt-6">
-                <div className="flex items-center justify-between pb-3 border-b border-border">
-                  <p className="text-xs font-black uppercase tracking-wider text-muted-foreground">
-                    Live Bidding Feed ({featuredBids.length})
-                  </p>
-                  {featured.auction === "live" && (
-                    <span className="text-[11px] font-extrabold text-[#FFC700] flex items-center gap-1">
-                      <Clock className="size-3" /> Updating in Realtime
-                    </span>
-                  )}
-                </div>
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border/80 text-left text-[11px] font-black uppercase text-muted-foreground">
-                      <th className="py-3 font-black">Dealer / Bidder</th>
-                      <th className="py-3 text-right font-black">Bid Amount</th>
-                      <th className="py-3 text-right font-black">Submitted Time</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {featuredBids.length === 0 ? (
-                      <tr>
-                        <td colSpan={3} className="py-8 text-center text-xs font-bold text-muted-foreground">
-                          No active bids placed on this room yet. Be the first to place a bid!
-                        </td>
-                      </tr>
-                    ) : (
-                      featuredBids.slice(0, 5).map((b: any, i: number) => (
-                        <tr
-                          key={b.id || i}
-                          className="border-b border-border/60 last:border-0 hover:bg-secondary/50 transition-colors"
-                        >
-                          <td className="py-3.5 font-extrabold text-foreground flex items-center gap-2">
-                            <span className="size-2 rounded-full bg-[#FFC700]" />
-                            {b.dealerName || b.dealershipName || b.dealer || "Dealer"}
-                          </td>
-                          <td className="py-3.5 text-right font-black text-foreground">
-                            {inr(b.bidAmount || b.amount || 0)}
-                          </td>
-                          <td className="py-3.5 text-right text-xs font-extrabold text-muted-foreground">
-                            {b.createdAt || b.time
-                              ? new Date(b.createdAt || b.time).toLocaleTimeString("en-IN", {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })
-                              : "Recently"}
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
               </div>
             </>
           )}

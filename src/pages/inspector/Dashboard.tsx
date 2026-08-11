@@ -7,6 +7,7 @@ import { Panel, StatCard, StatusChip } from "@/components/premium";
 import { getMyInspections, getInspectorStats, type InspectionSummary } from "@/lib/api/inspector-api";
 import { inr } from "@/lib/mock-data";
 import { toast } from "sonner";
+import { formatIndianDateTime } from "@/lib/utils";
 
 export function InspectorDashboard() {
   const [inspections, setInspections] = useState<InspectionSummary[]>([]);
@@ -86,14 +87,7 @@ export function InspectorDashboard() {
     .map((ins) => {
       let title = "";
       const carName = `${ins.brand || ""} ${ins.model || ""} ${ins.variant || ""}`.trim();
-      const time = ins.submittedAt
-        ? new Date(ins.submittedAt).toLocaleString("en-IN", {
-            day: "2-digit",
-            month: "short",
-            hour: "2-digit",
-            minute: "2-digit",
-          })
-        : "Recently";
+      const time = formatIndianDateTime(ins.submittedAt);
 
       if (ins.status === "APPROVED") {
         title = `Inspection for ${carName} was approved`;

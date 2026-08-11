@@ -35,7 +35,7 @@ import {
   Copy,
   Send,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatIndianDateTime } from "@/lib/utils";
 import { StatusChip } from "@/components/premium";
 
 export function AdminAuctionDetail() {
@@ -618,15 +618,9 @@ export function AdminAuctionDetail() {
                     bid.dealerName ||
                     bid.dealershipName ||
                     "Registered Dealer";
-                  const bTime =
-                    bid.time ||
-                    bid.bidTime ||
-                    (bid.createdAt
-                      ? new Date(bid.createdAt).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })
-                      : "Just now");
+                  const bTime = formatIndianDateTime(
+                    bid.createdAt || bid.time || bid.bidTime
+                  );
 
                   return (
                     <div

@@ -42,7 +42,7 @@ import {
   Zap,
 } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api";
-import { cn } from "@/lib/utils";
+import { cn, formatIndianDateTime } from "@/lib/utils";
 
 interface LiveBidRecord {
   dealer: string;
@@ -789,7 +789,7 @@ export function AdminLiveBidding() {
                                   </td>
 
                                   <td className="px-4 py-3.5 text-right font-semibold text-muted-foreground text-xs">
-                                    {b.time}
+                                    {formatIndianDateTime(b.time)}
                                   </td>
                                 </tr>
                               );

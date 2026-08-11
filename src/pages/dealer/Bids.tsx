@@ -7,6 +7,7 @@ import { DataTable, type Column } from "@/components/data-table";
 import { StatusChip, StatCard } from "@/components/premium";
 import { inr } from "@/lib/mock-data";
 import { getDealerBidsHistory } from "@/lib/api/dealer-api";
+import { formatIndianDateTime } from "@/lib/utils";
 
 interface DealerBidRecord {
   id: string;
@@ -104,21 +105,13 @@ export function DealerBids() {
         <span className="font-medium text-muted-foreground">{inr(v.highestBid)}</span>
       ),
     },
-    {
-      key: "bids",
-      header: "Total Bids",
-      cell: (v) => (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-muted text-muted-foreground">
-          {v.totalBids} {v.totalBids === 1 ? "bid" : "bids"}
-        </span>
-      ),
-    },
+
     {
       key: "timestamp",
       header: "Bid Time",
       cell: (v) => (
         <span className="text-xs text-muted-foreground font-medium">
-          {v.timestamp || "Recent"}
+          {formatIndianDateTime(v.timestamp)}
         </span>
       ),
     },

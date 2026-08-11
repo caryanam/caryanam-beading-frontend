@@ -197,20 +197,22 @@ export const inspectionStatus = [
   { name: "Draft", value: 54 },
 ];
 
+const nowTime = Date.now();
+
 export const activity = [
-  { title: "Auction #A-2214 closed at ₹44.8L", meta: "Toyota Fortuner · Skyline Motors", time: "12 min ago" },
-  { title: "Vehicle V-1042 approved", meta: "Mercedes-Benz C-Class · Admin", time: "48 min ago" },
-  { title: "New dealer registered", meta: "Prime Wheels · Bengaluru", time: "2 h ago" },
-  { title: "Inspection report uploaded", meta: "Rahul Verma · 14 images, 1 PDF", time: "3 h ago" },
-  { title: "Bid increment updated to ₹5,000", meta: "Auction settings", time: "Yesterday" },
+  { title: "Auction #A-2214 closed at ₹44.8L", meta: "Toyota Fortuner · Skyline Motors", time: new Date(nowTime - 1000 * 60 * 12).toISOString() },
+  { title: "Vehicle V-1042 approved", meta: "Mercedes-Benz C-Class · Admin", time: new Date(nowTime - 1000 * 60 * 48).toISOString() },
+  { title: "New dealer registered", meta: "Prime Wheels · Bengaluru", time: new Date(nowTime - 1000 * 60 * 120).toISOString() },
+  { title: "Inspection report uploaded", meta: "Rahul Verma · 14 images, 1 PDF", time: new Date(nowTime - 1000 * 60 * 180).toISOString() },
+  { title: "Bid increment updated to ₹5,000", meta: "Auction settings", time: new Date(nowTime - 1000 * 60 * 60 * 24).toISOString() },
 ];
 
 export const bidHistory = [
-  { dealer: "Skyline Motors", amount: 3780000, time: "2 min ago" },
-  { dealer: "Apex Auto Hub", amount: 3745000, time: "9 min ago" },
-  { dealer: "Prime Wheels", amount: 3690000, time: "22 min ago" },
-  { dealer: "Velocity Cars", amount: 3610000, time: "41 min ago" },
-  { dealer: "Skyline Motors", amount: 3520000, time: "1 h ago" },
+  { dealer: "Skyline Motors", amount: 3780000, time: new Date(nowTime - 1000 * 60 * 2).toISOString() },
+  { dealer: "Apex Auto Hub", amount: 3745000, time: new Date(nowTime - 1000 * 60 * 9).toISOString() },
+  { dealer: "Prime Wheels", amount: 3690000, time: new Date(nowTime - 1000 * 60 * 22).toISOString() },
+  { dealer: "Velocity Cars", amount: 3610000, time: new Date(nowTime - 1000 * 60 * 41).toISOString() },
+  { dealer: "Skyline Motors", amount: 3520000, time: new Date(nowTime - 1000 * 60 * 60).toISOString() },
 ];
 
 export const inr = (n: number) =>
