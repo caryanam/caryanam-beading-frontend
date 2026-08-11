@@ -30,6 +30,19 @@ export function AdminVehicles() {
   const [reasonError, setReasonError] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
 
+  const [downloadingPdfId, setDownloadingPdfId] = useState<number | null>(null);
+
+  const handleDownloadPdf = async (id: number) => {
+    setDownloadingPdfId(id);
+    try {
+      await downloadAdminInspectionPdf(id);
+    } catch (err: any) {
+      console.error(err);
+    } finally {
+      setDownloadingPdfId(null);
+    }
+  };
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const inspectorParam = params.get("inspector");
@@ -181,15 +194,20 @@ export function AdminVehicles() {
               </>
             )}
             {v.status !== "DRAFT" && (
-              <a
-                href={`${API_BASE_URL}/api/admin/inspection/${v.inspectionId}/pdf`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1.5 rounded-xl border border-border bg-card px-3.5 py-2 text-xs font-extrabold text-foreground hover:border-[#FFC700] hover:text-[#FFC700] transition-colors shadow-soft"
+              <button
+                type="button"
+                disabled={downloadingPdfId === v.inspectionId}
+                onClick={() => handleDownloadPdf(v.inspectionId)}
+                className="flex items-center gap-1.5 rounded-xl border border-border bg-card px-3.5 py-2 text-xs font-extrabold text-foreground hover:border-[#FFC700] hover:text-[#FFC700] transition-colors shadow-soft cursor-pointer disabled:opacity-50"
                 title="Download Report PDF"
               >
-                <Download className="size-3.5" /> PDF
-              </a>
+                {downloadingPdfId === v.inspectionId ? (
+                  <Loader2 className="size-3.5 animate-spin text-[#FFC700]" />
+                ) : (
+                  <Download className="size-3.5" />
+                )}
+                PDF
+              </button>
             )}
           </div>
         );

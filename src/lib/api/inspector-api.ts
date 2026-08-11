@@ -1,4 +1,5 @@
 import axios from "axios";
+import { toast } from "sonner";
 import { API_BASE_URL } from "../api";
 import { readSession } from "../session";
 
@@ -233,4 +234,26 @@ export interface InspectorStats {
 export const getInspectorStats = async (): Promise<{ success: boolean; data: InspectorStats }> => {
   const res = await inspectorApiClient.get("/api/inspector/inspection/stats");
   return res.data;
+};
+
+export const downloadInspectorInspectionPdf = async (id: number) => {
+  const toastId = toast.loading("Generating & Downloading PDF report... Please wait...");
+  try {
+    const res = await inspectorApiClient.get(`/api/inspector/inspection/${id}/pdf`, {
+      responseType: "blob",
+    });
+    const blob = new Blob([res.data], { type: "application/pdf" });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `Inspection_Report_${id}.pdf`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+    toast.success("PDF report downloaded successfully!", { id: toastId });
+  } catch (err: any) {
+    toast.error(err?.response?.data?.message || "Failed to download PDF report.", { id: toastId });
+    throw err;
+  }
 };

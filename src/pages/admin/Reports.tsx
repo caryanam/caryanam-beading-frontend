@@ -1,15 +1,15 @@
 import { useEffect, useState } from "react";
-import { Download, FileText } from "lucide-react";
+import { Download, FileText, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
 import { adminNav } from "@/components/nav-config";
 import { Panel, StatusChip } from "@/components/premium";
 import { getSubmittedInspections, downloadAdminInspectionPdf, type AdminInspectionSummary } from "@/lib/api/admin-api";
-import { API_BASE_URL } from "@/lib/api";
 
 export function AdminReports() {
   const [inspections, setInspections] = useState<AdminInspectionSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [downloadingId, setDownloadingId] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchReports = async () => {
@@ -33,10 +33,15 @@ export function AdminReports() {
     fetchReports();
   }, []);
 
-  const downloadReport = (id: number) => {
-    const pdfUrl = `${API_BASE_URL}/api/admin/inspection/${id}/pdf`;
-    window.open(pdfUrl, "_blank");
-    toast.success("Opening PDF report in new tab...");
+  const downloadReport = async (id: number) => {
+    setDownloadingId(id);
+    try {
+      await downloadAdminInspectionPdf(id);
+    } catch (err: any) {
+      console.error(err);
+    } finally {
+      setDownloadingId(null);
+    }
   };
 
   return (
@@ -78,16 +83,26 @@ export function AdminReports() {
               </div>
               <div className="mt-5 flex gap-3">
                 <button
+                  disabled={downloadingId === v.inspectionId}
                   onClick={() => downloadReport(v.inspectionId)}
-                  className="flex-1 rounded-2xl border border-border py-2.5 text-xs font-bold hover:bg-secondary cursor-pointer transition-colors"
+                  className="flex-1 rounded-2xl border border-border py-2.5 text-xs font-bold hover:bg-secondary cursor-pointer transition-colors disabled:opacity-50"
                 >
                   Preview
                 </button>
                 <button
+                  disabled={downloadingId === v.inspectionId}
                   onClick={() => downloadReport(v.inspectionId)}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-primary py-2.5 text-xs font-bold text-primary-foreground hover:opacity-90 cursor-pointer transition-opacity"
+                  className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-primary py-2.5 text-xs font-bold text-primary-foreground hover:opacity-90 cursor-pointer transition-opacity disabled:opacity-50"
                 >
-                  <Download className="size-4" /> Download PDF
+                  {downloadingId === v.inspectionId ? (
+                    <>
+                      <Loader2 className="size-4 animate-spin" /> Downloading...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="size-4" /> Download PDF
+                    </>
+                  )}
                 </button>
               </div>
             </Panel>

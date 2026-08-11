@@ -704,7 +704,8 @@ export function InspectorAddVehicle() {
         }
       });
       exteriorPanels.forEach((panel) => {
-        if (!panelImages[panel]) {
+        const cond = exteriorState[panel] || "OK";
+        if (cond !== "NA" && cond !== "N/A" && !panelImages[panel]) {
           newErrors[panel] = `Photo is required for ${panel}.`;
         }
       });
@@ -717,7 +718,8 @@ export function InspectorAddVehicle() {
         }
       });
       mechanicalItems.forEach((item) => {
-        if (!panelImages[item.name]) {
+        const cond = mechanicalState[item.name];
+        if (cond !== "NA" && cond !== "N/A" && !panelImages[item.name]) {
           newErrors[item.name] = `Photo is required for ${item.name}.`;
         }
       });
@@ -742,7 +744,8 @@ export function InspectorAddVehicle() {
         }
       });
       electricalItems.forEach((item) => {
-        if (!panelImages[item]) {
+        const cond = electricalState[item];
+        if (cond !== "NA" && cond !== "N/A" && !panelImages[item]) {
           newErrors[item] = `Photo is required for ${item}.`;
         }
       });
@@ -1206,15 +1209,55 @@ export function InspectorAddVehicle() {
       });
     }
   };
-  const setExt = (panel: string, status: string) =>
+  const setExt = (panel: string, status: string) => {
     setExteriorState((p) => ({ ...p, [panel]: status }));
-  const setMech = (item: string, val: string) =>
+    if (status === "NA" || status === "N/A") {
+      setPanelImages((prev) => {
+        if (!prev[panel]) return prev;
+        const copy = { ...prev };
+        delete copy[panel];
+        return copy;
+      });
+      if (errors[panel]) {
+        setErrors((prev) => {
+          const copy = { ...prev };
+          delete copy[panel];
+          return copy;
+        });
+      }
+    }
+  };
+  const setMech = (item: string, val: string) => {
     setMechanicalState((p) => ({ ...p, [item]: val }));
+    if (val === "NA" || val === "N/A") {
+      setPanelImages((prev) => {
+        if (!prev[item]) return prev;
+        const copy = { ...prev };
+        delete copy[item];
+        return copy;
+      });
+      if (errors[item]) {
+        setErrors((prev) => {
+          const copy = { ...prev };
+          delete copy[item];
+          return copy;
+        });
+      }
+    }
+  };
   const setEmerg = (item: string, val: boolean) =>
     setEmergencyState((p) => ({ ...p, [item]: val }));
   const setElec = (item: string, val: string) => {
     setElectricalState((p) => ({ ...p, [item]: val }));
-    if (errors[item]) {
+    if (val === "NA" || val === "N/A") {
+      setPanelImages((prev) => {
+        if (!prev[item]) return prev;
+        const copy = { ...prev };
+        delete copy[item];
+        return copy;
+      });
+    }
+    if (errors[item] || val === "NA" || val === "N/A") {
       setErrors((prev) => {
         const copy = { ...prev };
         delete copy[item];
@@ -1760,10 +1803,9 @@ export function InspectorAddVehicle() {
                             </div>
                           </>
                         ) : (
-                          <>
-                            <div className="flex items-center justify-between gap-2 w-full">
+                          <>                             <div className="flex items-center justify-between gap-2 w-full">
                               <span className="text-xs font-bold text-foreground truncate min-w-0">
-                                {panel} <span className="text-rose-500">*</span>
+                                {panel} {value !== "NA" && value !== "N/A" && <span className="text-rose-500">*</span>}
                               </span>
                               <div className="flex items-center gap-2">
                                 <select
@@ -1781,19 +1823,25 @@ export function InspectorAddVehicle() {
                                   <option value="NA">NA</option>
                                 </select>
 
-                                <button
-                                  type="button"
-                                  onClick={() => triggerPanelImageUpload(panel)}
-                                  className={cn(
-                                    "size-9 rounded-full border transition-all cursor-pointer flex-shrink-0 flex items-center justify-center",
-                                    errorMsg
-                                      ? "border-red-500 text-red-500 bg-red-500/10 hover:bg-red-500/20"
-                                      : "border-border hover:border-[#FFC700] hover:bg-[#FFC700]/10 text-muted-foreground hover:text-[#FFC700]"
-                                  )}
-                                  title="Upload Panel Photo"
-                                >
-                                  <Camera className="size-3.5" />
-                                </button>
+                                {value !== "NA" && value !== "N/A" ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => triggerPanelImageUpload(panel)}
+                                    className={cn(
+                                      "size-9 rounded-full border transition-all cursor-pointer flex-shrink-0 flex items-center justify-center",
+                                      errorMsg
+                                        ? "border-red-500 text-red-500 bg-red-500/10 hover:bg-red-500/20"
+                                        : "border-border hover:border-[#FFC700] hover:bg-[#FFC700]/10 text-muted-foreground hover:text-[#FFC700]"
+                                    )}
+                                    title="Upload Panel Photo"
+                                  >
+                                    <Camera className="size-3.5" />
+                                  </button>
+                                ) : (
+                                  <span className="text-[10px] font-bold text-muted-foreground bg-secondary px-2 py-1 rounded-full border border-border">
+                                    N/A (No Photo)
+                                  </span>
+                                )}
                               </div>
                             </div>
                             {errorMsg && (
@@ -1955,7 +2003,7 @@ export function InspectorAddVehicle() {
                           <>
                             <div className="flex items-center justify-between gap-2 w-full">
                               <span className="text-xs font-bold text-foreground truncate min-w-0">
-                                {item.name} <span className="text-rose-500">*</span>
+                                {item.name} {value !== "N/A" && value !== "NA" && <span className="text-rose-500">*</span>}
                               </span>
                               <div className="flex items-center gap-2">
                                 {item.type === "fluid" ? (
@@ -1969,6 +2017,7 @@ export function InspectorAddVehicle() {
                                         {opt}
                                       </option>
                                     ))}
+                                    <option value="N/A">N/A</option>
                                   </select>
                                 ) : item.type === "text" ? (
                                   <input
@@ -1985,26 +2034,33 @@ export function InspectorAddVehicle() {
                                   >
                                     <option value="OK">OK</option>
                                     <option value="NOT OK">NOT OK</option>
+                                    <option value="N/A">N/A</option>
                                   </select>
                                 )}
 
-                                <button
-                                  type="button"
-                                  onClick={() => triggerPanelImageUpload(item.name)}
-                                  className={cn(
-                                    "size-9 rounded-full border transition-all cursor-pointer flex-shrink-0 flex items-center justify-center",
-                                    errorMsg
-                                      ? "border-red-500 text-red-500 bg-red-500/10 hover:bg-red-500/20"
-                                      : "border-border hover:border-[#FFC700] hover:bg-[#FFC700]/10 text-muted-foreground hover:text-[#FFC700]"
-                                  )}
-                                  title={item.name === "Engine / Motor Noise" ? "Upload Video" : "Upload Photo"}
-                                >
-                                  {item.name === "Engine / Motor Noise" ? (
-                                    <Video className="size-3.5" />
-                                  ) : (
-                                    <Camera className="size-3.5" />
-                                  )}
-                                </button>
+                                {value !== "N/A" && value !== "NA" ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => triggerPanelImageUpload(item.name)}
+                                    className={cn(
+                                      "size-9 rounded-full border transition-all cursor-pointer flex-shrink-0 flex items-center justify-center",
+                                      errorMsg
+                                        ? "border-red-500 text-red-500 bg-red-500/10 hover:bg-red-500/20"
+                                        : "border-border hover:border-[#FFC700] hover:bg-[#FFC700]/10 text-muted-foreground hover:text-[#FFC700]"
+                                    )}
+                                    title={item.name === "Engine / Motor Noise" ? "Upload Video" : "Upload Photo"}
+                                  >
+                                    {item.name === "Engine / Motor Noise" ? (
+                                      <Video className="size-3.5" />
+                                    ) : (
+                                      <Camera className="size-3.5" />
+                                    )}
+                                  </button>
+                                ) : (
+                                  <span className="text-[10px] font-bold text-muted-foreground bg-secondary px-2 py-1 rounded-full border border-border">
+                                    N/A (No Photo)
+                                  </span>
+                                )}
                               </div>
                             </div>
                             {errorMsg && (
@@ -2348,10 +2404,9 @@ export function InspectorAddVehicle() {
                             </div>
                           </>
                         ) : (
-                          <>
-                            <div className="flex items-center justify-between gap-2 w-full">
+                          <>                             <div className="flex items-center justify-between gap-2 w-full">
                               <span className="text-xs font-bold text-foreground truncate min-w-0">
-                                {item} <span className="text-rose-500">*</span>
+                                {item} {status !== "N/A" && status !== "NA" && <span className="text-rose-500">*</span>}
                               </span>
                               <div className="flex items-center gap-2">
                                 <select
@@ -2366,19 +2421,25 @@ export function InspectorAddVehicle() {
                                   <option value="N/A">N/A</option>
                                 </select>
 
-                                <button
-                                  type="button"
-                                  onClick={() => triggerPanelImageUpload(item)}
-                                  className={cn(
-                                    "size-9 rounded-full border transition-all cursor-pointer flex-shrink-0 flex items-center justify-center",
-                                    errorMsg
-                                      ? "border-red-500 text-red-500 bg-red-500/10 hover:bg-red-500/20"
-                                      : "border-border hover:border-[#FFC700] hover:bg-[#FFC700]/10 text-muted-foreground hover:text-[#FFC700]"
-                                  )}
-                                  title="Upload Panel Photo"
-                                >
-                                  <Camera className="size-4" />
-                                </button>
+                                {status !== "N/A" && status !== "NA" ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => triggerPanelImageUpload(item)}
+                                    className={cn(
+                                      "size-9 rounded-full border transition-all cursor-pointer flex-shrink-0 flex items-center justify-center",
+                                      errorMsg
+                                        ? "border-red-500 text-red-500 bg-red-500/10 hover:bg-red-500/20"
+                                        : "border-border hover:border-[#FFC700] hover:bg-[#FFC700]/10 text-muted-foreground hover:text-[#FFC700]"
+                                    )}
+                                    title="Upload Panel Photo"
+                                  >
+                                    <Camera className="size-4" />
+                                  </button>
+                                ) : (
+                                  <span className="text-[10px] font-bold text-muted-foreground bg-secondary px-2 py-1 rounded-full border border-border">
+                                    N/A (No Photo)
+                                  </span>
+                                )}
                               </div>
                             </div>
                             {errorMsg && (

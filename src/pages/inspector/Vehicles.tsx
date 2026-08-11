@@ -10,13 +10,14 @@ import {
   getMyInspections,
   getInspectionDetails,
   deleteInspectionDraft,
+  downloadInspectorInspectionPdf,
   type InspectionSummary,
 } from "@/lib/api/inspector-api";
 import { toast } from "sonner";
 import {
   Trash2, Edit3, Download, Eye, X, CheckCircle2, AlertCircle, ArrowLeft,
   Car, ShieldCheck, ClipboardCheck, Wrench, Disc, Zap, Camera, CheckCircle,
-  ChevronRight, Star
+  ChevronRight, Star, Loader2
 } from "lucide-react";
 import { inr } from "@/lib/mock-data";
 import { API_BASE_URL } from "@/lib/api";
@@ -33,6 +34,18 @@ export function InspectorVehicles() {
   const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [activeDetailStep, setActiveDetailStep] = useState(0);
+  const [downloadingPdfId, setDownloadingPdfId] = useState<number | null>(null);
+
+  const handleDownloadPdf = async (id: number) => {
+    setDownloadingPdfId(id);
+    try {
+      await downloadInspectorInspectionPdf(id);
+    } catch (err: any) {
+      console.error(err);
+    } finally {
+      setDownloadingPdfId(null);
+    }
+  };
 
   const detailSteps = [
     { title: "Vehicle Specs", subtitle: "Basic registration & owner details" },
@@ -208,15 +221,19 @@ export function InspectorVehicles() {
               </Link>
             )}
 
-            <a
-              href={`${API_BASE_URL}/api/inspector/inspection/${v.inspectionId}/pdf`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1 rounded-xl border border-border bg-card px-2.5 py-1.5 text-xs font-extrabold text-foreground hover:border-[#FFC700] hover:text-[#FFC700] transition-colors shadow-soft"
+            <button
+              type="button"
+              disabled={downloadingPdfId === v.inspectionId}
+              onClick={() => handleDownloadPdf(v.inspectionId)}
+              className="flex items-center gap-1 rounded-xl border border-border bg-card px-2.5 py-1.5 text-xs font-extrabold text-foreground hover:border-[#FFC700] hover:text-[#FFC700] transition-colors shadow-soft cursor-pointer disabled:opacity-50"
               title="Download PDF Report"
             >
-              <Download className="size-3.5" />
-            </a>
+              {downloadingPdfId === v.inspectionId ? (
+                <Loader2 className="size-3.5 animate-spin text-[#FFC700]" />
+              ) : (
+                <Download className="size-3.5" />
+              )}
+            </button>
 
             {canDelete && (
               <button
@@ -342,14 +359,22 @@ export function InspectorVehicles() {
 
             <div className="flex items-center gap-2.5 shrink-0 self-start sm:self-auto">
 
-              <a
-                href={`${API_BASE_URL}/api/inspector/inspection/${previewId}/pdf`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-2xl bg-[#FFC700] hover:bg-[#FFD633] text-[#0D0E12] px-4 py-2.5 text-xs font-black shadow-sm transition-all"
+              <button
+                type="button"
+                disabled={previewId !== null && downloadingPdfId === previewId}
+                onClick={() => previewId && handleDownloadPdf(previewId)}
+                className="inline-flex items-center gap-2 rounded-2xl bg-[#FFC700] hover:bg-[#FFD633] text-[#0D0E12] px-4 py-2.5 text-xs font-black shadow-sm transition-all cursor-pointer disabled:opacity-50"
               >
-                <Download className="size-4" /> Download PDF Report
-              </a>
+                {previewId !== null && downloadingPdfId === previewId ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" /> Generating PDF...
+                  </>
+                ) : (
+                  <>
+                    <Download className="size-4" /> Download PDF Report
+                  </>
+                )}
+              </button>
               <Link
                 to={`/inspector/add-vehicle?id=${previewId}`}
                 className="inline-flex items-center gap-2 rounded-2xl border border-border bg-secondary/60 hover:bg-secondary text-foreground px-4 py-2.5 text-xs font-black shadow-sm transition-all"
