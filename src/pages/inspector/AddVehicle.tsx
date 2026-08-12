@@ -1954,7 +1954,7 @@ export function InspectorAddVehicle() {
 
                             {/* Large Image / Video Preview Card */}
                             <div className="relative group w-full aspect-[16/10] rounded-xl overflow-hidden border border-border bg-black cursor-pointer shadow-inner">
-                              {item.name === "Engine / Motor Noise" || panelImages[item.name]?.startsWith("data:video") || panelImages[item.name]?.includes(".mp4") || panelImages[item.name]?.includes(".webm") || panelImages[item.name]?.includes(".mov") || panelImages[item.name]?.includes(".avi") || panelImages[item.name]?.includes("video") ? (
+                              {panelImages[item.name]?.startsWith("data:video") || /\.(mp4|webm|mov|avi|mkv|3gp|flv|wmv)($|\?)/i.test(panelImages[item.name]) ? (
                                 <video
                                   src={panelImages[item.name]}
                                   controls

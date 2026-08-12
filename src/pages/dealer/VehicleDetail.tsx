@@ -48,7 +48,12 @@ import {
 } from "@/lib/api/dealer-api";
 import { API_BASE_URL } from "@/lib/api";
 import { readSession } from "@/lib/session";
-import { cn, maskDealerName, formatIndianDateTime } from "@/lib/utils";
+const isActualVideoUrl = (url?: string | null): boolean => {
+  if (!url) return false;
+  const clean = url.toLowerCase().split("?")[0].split("#")[0];
+  if (clean.startsWith("data:video/")) return true;
+  return /\.(mp4|webm|mov|avi|mkv|3gp|flv|wmv)$/i.test(clean);
+};
 
 export function DealerVehicleDetail() {
   const { vehicleId } = useParams<{ vehicleId: string }>();
@@ -417,9 +422,7 @@ export function DealerVehicleDetail() {
               category: img.imageCategory,
             }));
           const imageOnlyPhotos = validPhotos.filter(
-            (p: any) =>
-              !p.url.toLowerCase().match(/\.(mp4|webm|mov|avi)($|\?)/i) &&
-              !p.url.toLowerCase().includes("video")
+            (p: any) => !isActualVideoUrl(p.url)
           );
           const finalImages =
             validPhotos.length > 0
@@ -1229,7 +1232,7 @@ export function DealerVehicleDetail() {
 
                           {photoUrl && (
                             <div className="relative group aspect-[16/10] w-full overflow-hidden rounded-xl border border-border bg-black shadow-inner">
-                              {item.key === "Engine / Motor Noise" || item.key.includes("Noise") || photoUrl.includes(".mp4") || photoUrl.includes(".webm") || photoUrl.includes(".mov") || photoUrl.includes(".avi") || photoUrl.includes("video") ? (
+                              {isActualVideoUrl(photoUrl) ? (
                                 <video
                                   src={photoUrl}
                                   controls
@@ -1253,7 +1256,7 @@ export function DealerVehicleDetail() {
                                   onClick={() => window.open(photoUrl, "_blank")}
                                   className="inline-flex items-center gap-1 rounded-xl bg-[#FFC700] text-[#0D0E12] px-3 py-1.5 text-[11px] font-black shadow-md hover:bg-[#FFD633] transition-all cursor-pointer pointer-events-auto"
                                 >
-                                  <Eye className="size-3.5" /> {item.key === "Engine / Motor Noise" || item.key.includes("Noise") || photoUrl.includes("video") ? "View Video" : "View Photo"}
+                                  <Eye className="size-3.5" /> {isActualVideoUrl(photoUrl) ? "View Video" : "View Photo"}
                                 </button>
                               </div>
                             </div>
@@ -1861,7 +1864,7 @@ export function DealerVehicleDetail() {
               </button>
 
               <div className="relative flex h-[60vh] w-full max-w-4xl items-center justify-center overflow-hidden rounded-3xl border border-white/10 bg-black/40 shadow-[0_15px_50px_rgba(0,0,0,0.4)]">
-                {vehicle.images[previewIndex]?.url?.match(/\.(mp4|webm|mov|avi)($|\?)/i) || vehicle.images[previewIndex]?.name?.includes("Noise") || vehicle.images[previewIndex]?.url?.includes("video") ? (
+                {isActualVideoUrl(vehicle.images[previewIndex]?.url) ? (
                   <video
                     src={vehicle.images[previewIndex]?.url}
                     controls

@@ -700,7 +700,7 @@ export function InspectorVehicles() {
 
                             {imgUrl && (
                               <div className="relative group aspect-[16/10] w-full overflow-hidden rounded-xl border border-border bg-black shadow-inner">
-                                {item.label === "Engine / Motor Noise" || imgUrl.includes(".mp4") || imgUrl.includes(".webm") || imgUrl.includes(".mov") || imgUrl.includes(".avi") || imgUrl.includes("video") ? (
+                                {/\.(mp4|webm|mov|avi|mkv|3gp|flv|wmv)($|\?)/i.test(imgUrl) ? (
                                   <video
                                     src={imgUrl}
                                     controls
@@ -723,7 +723,7 @@ export function InspectorVehicles() {
                                     onClick={() => window.open(imgUrl, "_blank")}
                                     className="inline-flex items-center gap-1 rounded-xl bg-[#FFC700] text-[#0D0E12] px-3 py-1.5 text-[11px] font-black shadow-md hover:bg-[#FFD633] transition-all cursor-pointer pointer-events-auto"
                                   >
-                                    <Eye className="size-3.5" /> {item.label === "Engine / Motor Noise" || imgUrl.includes("video") ? "View Video" : "View Photo"}
+                                    <Eye className="size-3.5" /> {/\.(mp4|webm|mov|avi|mkv|3gp|flv|wmv)($|\?)/i.test(imgUrl) ? "View Video" : "View Photo"}
                                   </button>
                                 </div>
                               </div>

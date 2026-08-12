@@ -114,11 +114,11 @@ export function PublicBiddingPage() {
           validPhotos.length > 0
             ? validPhotos
             : [
-                {
-                  url: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=800&q=80",
-                  name: "Front View",
-                },
-              ];
+              {
+                url: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=800&q=80",
+                name: "Front View",
+              },
+            ];
         const primaryImage = finalImages[0].url;
 
         const mapped = {
@@ -201,14 +201,14 @@ export function PublicBiddingPage() {
             setVehicle((prev: any) =>
               prev
                 ? {
-                    ...prev,
-                    highestBid: data.currentHighestBid,
-                    highestBidder: data.currentHighestBidder,
-                    bids: data.totalBids,
-                    endsAt: data.auctionEndTime,
-                    auction: "live",
-                    vehicleStatus: "LIVE",
-                  }
+                  ...prev,
+                  highestBid: data.currentHighestBid,
+                  highestBidder: data.currentHighestBidder,
+                  bids: data.totalBids,
+                  endsAt: data.auctionEndTime,
+                  auction: "live",
+                  vehicleStatus: "LIVE",
+                }
                 : prev
             );
             if (data.bidHistory) setBidHistory(data.bidHistory);
@@ -216,11 +216,11 @@ export function PublicBiddingPage() {
             setVehicle((prev: any) =>
               prev
                 ? {
-                    ...prev,
-                    sellerAgreed: data.sellerAgreed,
-                    sellerCounterPrice: data.sellerCounterPrice,
-                    sellerMessage: data.sellerMessage,
-                  }
+                  ...prev,
+                  sellerAgreed: data.sellerAgreed,
+                  sellerCounterPrice: data.sellerCounterPrice,
+                  sellerMessage: data.sellerMessage,
+                }
                 : prev
             );
           } else if (data.type === "VEHICLE_STATUS_UPDATE" || data.type === "AUCTION_ENDED") {
@@ -228,9 +228,9 @@ export function PublicBiddingPage() {
               prev ? { ...prev, vehicleStatus: data.vehicleStatus || "ENDED", auction: "ended" } : prev
             );
           }
-        } catch (e) {}
+        } catch (e) { }
       };
-    } catch (e) {}
+    } catch (e) { }
 
     return () => {
       if (ws) ws.close();
@@ -340,7 +340,7 @@ export function PublicBiddingPage() {
             <span>PUBLIC BIDDING LINK EXPIRED — AUCTION ENDED</span>
           </div>
           <p className="text-xs font-bold text-rose-700 dark:text-rose-300 leading-relaxed">
-            This public live bidding session is closed. Bidding has ended. Vehicle owner/seller can review the top offer and submit their price confirmation below.
+            This public live bidding session is closed. Bidding has ended. Please review the highest bid offer and submit your selling decision below.
           </p>
         </div>
       )}
@@ -731,21 +731,21 @@ export function PublicBiddingPage() {
           </fieldset>
 
           {vehicle?.sellerAgreed !== undefined && vehicle?.sellerAgreed !== null && (
-              <div className="rounded-2xl bg-amber-500/10 border border-amber-500/30 p-3.5 text-xs font-semibold text-amber-700 dark:text-amber-300 space-y-1">
-                <div className="flex items-center gap-1.5 font-extrabold text-amber-400">
-                  <CheckCircle2 className="size-4" />
-                  <span>Saved Seller Decision:</span>
-                </div>
-                <p className="text-foreground font-bold">
-                  {vehicle.sellerAgreed
-                    ? "Agreed to sell at top bid"
-                    : `NO (Counter expected ₹${vehicle.sellerCounterPrice?.toLocaleString("en-IN") || "N/A"})`}
+            <div className="rounded-2xl bg-amber-500/10 border border-amber-500/30 p-3.5 text-xs font-semibold text-amber-700 dark:text-amber-300 space-y-1">
+              <div className="flex items-center gap-1.5 font-extrabold text-amber-400">
+                <CheckCircle2 className="size-4" />
+                <span>Saved Seller Decision:</span>
+              </div>
+              <p className="text-foreground font-bold">
+                {vehicle.sellerAgreed
+                  ? "Agreed to sell at top bid"
+                  : `NO (Counter expected ₹${vehicle.sellerCounterPrice?.toLocaleString("en-IN") || "N/A"})`}
+              </p>
+              {vehicle.sellerMessage && (
+                <p className="text-muted-foreground italic text-[11px]">
+                  "{vehicle.sellerMessage}"
                 </p>
-                {vehicle.sellerMessage && (
-                  <p className="text-muted-foreground italic text-[11px]">
-                    "{vehicle.sellerMessage}"
-                  </p>
-                )}
+              )}
             </div>
           )}
         </div>
