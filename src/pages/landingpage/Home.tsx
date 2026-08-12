@@ -10,12 +10,12 @@ export function Home({ onNavigateToAuth, onNavigateToWhy }: HomeProps) {
   return (
     <div className="flex flex-col animate-rise">
       {/* Hero Banner Section */}
-      <section className="relative overflow-hidden bg-[#0D0E12] text-white py-16 sm:py-24">
+      <section className="relative overflow-hidden bg-[#0D0E12] text-white py-16 sm:py-24 min-h-[calc(100vh-5rem)] flex flex-col justify-center">
         <div className="absolute inset-0 z-0">
           <img
-            src={authImage}
-            alt="Vehicle Inspection & Bidding Bay"
-            className="w-full h-full object-cover opacity-25"
+            src="/hero-car.png"
+            alt="Luxury B2B Vehicle Auction"
+            className="w-full h-full object-cover opacity-40"
           />
           <div className="absolute inset-0 bg-gradient-to-r from-[#0D0E12] via-[#0D0E12]/85 to-transparent" />
         </div>
