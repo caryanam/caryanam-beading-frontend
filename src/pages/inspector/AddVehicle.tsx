@@ -407,7 +407,20 @@ function ImageSlotUploader({
 }) {
   const handleFile = (files: FileList | null) => {
     if (!files || !files[0]) return;
-    onChange(files[0]);
+    const file = files[0];
+    const fileName = file.name.toLowerCase();
+    const fileType = file.type.toLowerCase();
+    const ext = fileName.split(".").pop() || "";
+
+    const isAvif = ext === "avif" || fileType.includes("avif");
+    const isAllowed = ["jpg", "jpeg", "png"].includes(ext) || ["image/jpeg", "image/jpg", "image/png"].includes(fileType);
+
+    if (isAvif || !isAllowed) {
+      toast.error("Please upload only JPG, JPEG, or PNG format image.");
+      return;
+    }
+
+    onChange(file);
   };
 
   return (
@@ -470,7 +483,7 @@ function ImageSlotUploader({
             </p>
             <input
               type="file"
-              accept="image/*"
+              accept="image/jpeg,image/png,image/jpg"
               className="hidden"
               onChange={(e) => handleFile(e.target.files)}
             />
@@ -517,7 +530,7 @@ export function InspectorAddVehicle() {
     setActiveUploadPanel(panelName);
     if (panelFileRef.current) {
       panelFileRef.current.value = "";
-      panelFileRef.current.accept = panelName === "Engine / Motor Noise" ? "video/*" : "image/*";
+      panelFileRef.current.accept = panelName === "Engine / Motor Noise" ? "video/*" : "image/jpeg,image/png,image/jpg";
       panelFileRef.current.click();
     }
   };
@@ -534,9 +547,14 @@ export function InspectorAddVehicle() {
         return;
       }
     } else {
-      const isImage = file.type.startsWith("image/") || /\.(jpg|jpeg|png|webp|gif|heic|bmp|tiff)$/i.test(file.name);
-      if (!isImage) {
-        toast.error("Invalid file format. Please upload an image file.");
+      const fileName = file.name.toLowerCase();
+      const fileType = file.type.toLowerCase();
+      const ext = fileName.split(".").pop() || "";
+      const isAvif = ext === "avif" || fileType.includes("avif");
+      const isAllowed = ["jpg", "jpeg", "png"].includes(ext) || ["image/jpeg", "image/jpg", "image/png"].includes(fileType);
+
+      if (isAvif || !isAllowed) {
+        toast.error("Please upload only JPG, JPEG, or PNG format image.");
         return;
       }
     }
