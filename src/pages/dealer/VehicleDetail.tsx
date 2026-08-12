@@ -36,6 +36,7 @@ import { AppShell } from "@/components/app-shell";
 import { dealerNav } from "@/components/nav-config";
 import { Panel, ScoreBadge, StatusChip } from "@/components/premium";
 import { inr, timeLeft } from "@/lib/mock-data";
+import { cn } from "@/lib/utils";
 import {
   getMarketplaceInspectionDetails,
   getPublicInspectionDetails,
