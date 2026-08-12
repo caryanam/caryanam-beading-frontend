@@ -96,11 +96,11 @@ export function DealerVehicleDetail() {
             setVehicle((prev: any) =>
               prev
                 ? {
-                    ...prev,
-                    sellerAgreed: data.sellerAgreed,
-                    sellerCounterPrice: data.sellerCounterPrice,
-                    sellerMessage: data.sellerMessage,
-                  }
+                  ...prev,
+                  sellerAgreed: data.sellerAgreed,
+                  sellerCounterPrice: data.sellerCounterPrice,
+                  sellerMessage: data.sellerMessage,
+                }
                 : prev
             );
           } else if (data.type === "ADMIN_DEALER_MESSAGE") {
@@ -116,9 +116,9 @@ export function DealerVehicleDetail() {
               prev ? { ...prev, vehicleStatus: data.vehicleStatus || "ENDED" } : prev
             );
           }
-        } catch (e) {}
+        } catch (e) { }
       };
-    } catch (e) {}
+    } catch (e) { }
 
     return () => {
       if (ws) ws.close();
@@ -586,7 +586,7 @@ export function DealerVehicleDetail() {
     ];
 
     const validMedia = allMedia.filter(
-      (p: any) => p && (p.imageUrl || p.videoUrl || p.url)
+      (p: any) => p && p.captured !== false && (p.imageUrl || p.videoUrl || p.url)
     );
 
     // Pass 1: Strict exact match check first
@@ -603,27 +603,13 @@ export function DealerVehicleDetail() {
     // Pass 2: Clean alphanumeric match
     if (!found) {
       found = validMedia.find((p: any) => {
-        const pType = (p.photoType || "").toUpperCase().replace(/[^A-Z]/g, "");
-        const pCat = (p.imageCategory || p.category || "").toUpperCase().replace(/[^A-Z]/g, "");
-        const pDisp = (p.displayName || p.name || "").toUpperCase().replace(/[^A-Z]/g, "");
+        const pType = (p.photoType || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+        const pCat = (p.imageCategory || p.category || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+        const pDisp = (p.displayName || p.name || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
         return queryKeys.some((q) => {
-          const qClean = q.toUpperCase().replace(/[^A-Z]/g, "");
+          const qClean = q.toUpperCase().replace(/[^A-Z0-9]/g, "");
           if (!qClean) return false;
-          return pType === qClean || pCat === qClean || pDisp === qClean;
-        });
-      });
-    }
-
-    // Pass 3: Fallback to substring match
-    if (!found) {
-      found = validMedia.find((p: any) => {
-        const pt = (p.photoType || "").toUpperCase().trim();
-        const ic = (p.imageCategory || p.category || "").toUpperCase().trim();
-        const dn = (p.displayName || p.name || "").toUpperCase().trim();
-        return queryKeys.some((q) => {
-          const uq = q.toUpperCase().trim();
-          if (uq.length < 3) return false;
-          return (pt && pt.includes(uq)) || (ic && ic.includes(uq)) || (dn && dn.includes(uq));
+          return (pType && pType === qClean) || (pCat && pCat === qClean) || (pDisp && pDisp === qClean);
         });
       });
     }
@@ -1147,11 +1133,11 @@ export function DealerVehicleDetail() {
                 >
                   <div className="grid gap-4.5 sm:grid-cols-2 lg:grid-cols-3">
                     {[
-                      { keys: ["FRONT_VIEW", "FRONT SIDE IMAGE", "FRONT"], label: "FRONT SIDE IMAGE" },
-                      { keys: ["RIGHT_FRONT_VIEW", "RIGHT SIDE IMAGE", "RIGHT"], label: "RIGHT SIDE IMAGE" },
-                      { keys: ["REAR_VIEW", "REAR SIDE IMAGE", "REAR"], label: "REAR SIDE IMAGE" },
-                      { keys: ["LEFT_FRONT_VIEW", "LEFT SIDE IMAGE", "LEFT"], label: "LEFT SIDE IMAGE" },
-                      { keys: ["ROOF_VIEW", "ROOF TOP IMAGE", "ROOF"], label: "ROOF TOP IMAGE" },
+                      { keys: ["FRONT_VIEW", "FRONT SIDE IMAGE", "FRONT_VIEW_IMAGE"], label: "FRONT SIDE IMAGE" },
+                      { keys: ["RIGHT_FRONT_VIEW", "RIGHT SIDE IMAGE", "RIGHT_FRONT_VIEW_IMAGE"], label: "RIGHT SIDE IMAGE" },
+                      { keys: ["REAR_VIEW", "REAR SIDE IMAGE", "REAR_VIEW_IMAGE"], label: "REAR SIDE IMAGE" },
+                      { keys: ["LEFT_FRONT_VIEW", "LEFT SIDE IMAGE", "LEFT_FRONT_VIEW_IMAGE"], label: "LEFT SIDE IMAGE" },
+                      { keys: ["ROOF_VIEW", "ROOF TOP IMAGE", "ROOF_VIEW_IMAGE"], label: "ROOF TOP IMAGE" },
                     ].map((slot) => {
                       const imgUrl = findMatchingPhoto(slot.keys);
                       return (
@@ -1588,17 +1574,36 @@ export function DealerVehicleDetail() {
           {/* High-Stakes Live Bidding Sidebar */}
           <div className="space-y-5">
             {/* Live Bidding Box */}
-            <div className="surface-dark rounded-3xl p-6 text-white border border-[#FFC700]/40 shadow-lift relative overflow-hidden before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_top_right,rgba(255,199,0,0.2),transparent_65%)]">
+            <div
+              className={`rounded-3xl p-6 text-white border transition-all duration-300 relative overflow-hidden ${isWinner
+                  ? "bg-[#062419] border-emerald-500/60 shadow-[0_0_30px_rgba(16,185,129,0.25)] before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.25),transparent_65%)]"
+                  : participated
+                    ? "bg-[#230d12] border-rose-500/50 shadow-[0_0_25px_rgba(244,63,94,0.2)] before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_top_right,rgba(244,63,94,0.2),transparent_65%)]"
+                    : "surface-dark border-[#FFC700]/40 shadow-lift before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_top_right,rgba(255,199,0,0.2),transparent_65%)]"
+                }`}
+            >
               {/* Header Status */}
               <div className="relative z-10 flex items-center justify-between gap-3 border-b border-white/10 pb-4">
                 <StatusChip status={vehicle.auction} />
+                {isWinner ? (
+                  <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/50 text-emerald-300 font-extrabold text-xs animate-pulse">
+                    <Sparkles className="size-3.5 text-emerald-400" />
+                    <span>You are Highest on Bid!</span>
+                  </div>
+                ) : participated ? (
+                  <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/20 border border-rose-400/50 text-rose-300 font-extrabold text-xs">
+                    <AlertTriangle className="size-3.5 text-rose-400" />
+                    <span>You are Outbid</span>
+                  </div>
+                ) : null}
               </div>
 
               {/* Price & Bid Display */}
               <div className="relative z-10 my-5 space-y-4">
                 <div className="flex items-baseline justify-between gap-2">
                   <div>
-                    <p className="text-[10px] font-extrabold tracking-widest text-[#FFC700] uppercase">
+                    <p className={`text-[10px] font-extrabold tracking-widest uppercase ${isWinner ? "text-emerald-400" : participated ? "text-rose-400" : "text-[#FFC700]"
+                      }`}>
                       Highest Bid
                     </p>
                     <p className="mt-1 text-3xl font-black text-white tracking-tight">
@@ -1722,16 +1727,30 @@ export function DealerVehicleDetail() {
                 </div>
               ) : (
                 <div className="relative z-10 space-y-4">
+                  {isWinner ? (
+                    <div className="rounded-2xl bg-emerald-500/20 border border-emerald-500/40 p-3.5 flex items-center gap-3 text-emerald-200">
+                      <Sparkles className="size-5 shrink-0 text-emerald-400 animate-bounce" />
+                      <div>
+                        <p className="text-xs font-black text-emerald-300 uppercase tracking-wide">You are on Top!</p>
+                        <p className="text-[11px] font-semibold text-emerald-200/90">You currently hold the highest bid on this vehicle.</p>
+                      </div>
+                    </div>
+                  ) : participated ? (
+                    <div className="rounded-2xl bg-rose-500/20 border border-rose-500/40 p-3.5 flex items-center gap-3 text-rose-200">
+                      <AlertTriangle className="size-5 shrink-0 text-rose-400" />
+                      <div>
+                        <p className="text-xs font-black text-rose-300 uppercase tracking-wide">You are Outbid!</p>
+                        <p className="text-[11px] font-semibold text-rose-200/90">Another dealer placed a higher bid. Place a bid to take back top position.</p>
+                      </div>
+                    </div>
+                  ) : null}
                   {/* Quick Bid Increment Buttons */}
                   <div>
                     <label className="block text-[11px] font-bold text-white/70 uppercase tracking-wider mb-2">
                       Quick Bid Increment
                     </label>
-                    <div className="grid grid-cols-4 gap-2">
+                    <div className="grid grid-cols-1 gap-2">
                       {[
-                        { label: "+500", val: 500 },
-                        { label: "+1k", val: 1000 },
-                        { label: "+1.5k", val: 1500 },
                         { label: "+2k", val: 2000 },
                       ].map((preset) => (
                         <button
@@ -1758,7 +1777,7 @@ export function DealerVehicleDetail() {
                       <input
                         type="number"
                         value={amount}
-                        step={500}
+                        step={2000}
                         onChange={(e) => setAmount(Number(e.target.value))}
                         className="w-full rounded-2xl border border-[#FFC700]/40 bg-white/10 pl-9 pr-4 py-3.5 text-lg font-black text-white outline-none focus:border-[#FFC700] focus:ring-2 focus:ring-[#FFC700]/40"
                       />
