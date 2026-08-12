@@ -20,30 +20,30 @@ export function Home({ onNavigateToAuth, onNavigateToWhy }: HomeProps) {
           <div className="absolute inset-0 bg-gradient-to-r from-[#0D0E12] via-[#0D0E12]/85 to-transparent" />
         </div>
 
-        <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-8">
-          <div className="max-w-3xl text-left">
+        <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-8 w-full">
+          <div className="max-w-4xl text-left">
             <div className="inline-flex items-center gap-2 rounded-full border border-[#FFC700]/40 bg-[#FFC700]/15 px-4 py-1.5 text-sm font-black text-[#FFC700] mb-5 shadow-sm">
               <ShieldCheck className="size-4.5" /> India's Premier B2B Car Bidding Platform
             </div>
-            <h1 className="text-4xl sm:text-5xl font-black tracking-tight leading-tight text-white">
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-tight lg:leading-[1.12] text-white">
               Certified Used Car Auctions{" "}
               <span className="text-[#FFC700] block mt-1.5">
                 Built For Dealer Growth.
               </span>
             </h1>
-            <p className="mt-5 text-base sm:text-lg leading-relaxed text-zinc-300 font-medium max-w-2xl">
+            <p className="mt-6 text-base sm:text-lg lg:text-xl leading-relaxed text-zinc-300 font-medium max-w-3xl">
               Access 140+ point digital inspection reports, participate in real-time 10-minute live auctions, and acquire pre-owned vehicles with complete transparency.
             </p>
-            <div className="mt-8 flex flex-wrap items-center gap-4">
+            <div className="mt-9 flex flex-wrap items-center gap-4">
               <button
                 onClick={() => onNavigateToAuth("login")}
-                className="rounded-2xl bg-[#FFC700] hover:bg-[#FFD633] text-[#0D0E12] px-6 py-4 text-sm font-black shadow-[0_4px_20px_rgba(255,199,0,0.35)] transition-all flex items-center gap-2.5 cursor-pointer"
+                className="rounded-2xl bg-[#FFC700] hover:bg-[#FFD633] text-[#0D0E12] px-7 py-4 text-base font-black shadow-[0_4px_24px_rgba(255,199,0,0.35)] hover:shadow-[0_6px_28px_rgba(255,199,0,0.45)] transition-all flex items-center gap-2.5 cursor-pointer"
               >
-                Enter Bidding Portal <ArrowRight className="size-4.5" />
+                Enter Bidding Portal <ArrowRight className="size-5" />
               </button>
               <button
                 onClick={onNavigateToWhy}
-                className="rounded-2xl border border-zinc-700 bg-zinc-900/60 hover:bg-zinc-800 text-white px-6 py-4 text-sm font-extrabold transition-all cursor-pointer"
+                className="rounded-2xl border border-zinc-700 bg-zinc-900/60 hover:bg-zinc-800 text-white px-7 py-4 text-base font-extrabold transition-all cursor-pointer"
               >
                 Why Caryanam Bidding
               </button>
