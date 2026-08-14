@@ -245,15 +245,15 @@ export function LandingPage({ page = "home", initialMode = "login" }: LandingPag
                 <ul className="space-y-2.5 text-xs sm:text-sm">
                   <li className="flex items-center gap-2 text-zinc-300">
                     <Mail className="size-4 text-[#FFC700] shrink-0" />
-                    <span>support@caryanam.com</span>
+                    <span>support@caryanamlive.com</span>
                   </li>
                   <li className="flex items-center gap-2 text-zinc-300">
                     <Phone className="size-4 text-[#FFC700] shrink-0" />
-                    <span className="font-mono">+91 22 4900 1200</span>
+                    <span className="font-mono">+91 7030682123</span>
                   </li>
                   <li className="flex items-start gap-2 text-zinc-300">
                     <MapPin className="size-4 text-[#FFC700] shrink-0 mt-0.5" />
-                    <span>BKC, Mumbai, Maharashtra 400051</span>
+                    <span>Kharadi, Pune, Maharashtra 411014</span>
                   </li>
                 </ul>
               </div>

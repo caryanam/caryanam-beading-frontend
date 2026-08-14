@@ -236,6 +236,21 @@ export const getInspectorStats = async (): Promise<{ success: boolean; data: Ins
   return res.data;
 };
 
+export const getInspectorNotifications = async (): Promise<{ success: boolean; data: any[] }> => {
+  const res = await inspectorApiClient.get("/api/inspector/inspection/notifications");
+  return res.data;
+};
+
+export const markInspectorNotificationAsRead = async (id: number): Promise<{ success: boolean }> => {
+  const res = await inspectorApiClient.put(`/api/inspector/inspection/notifications/${id}/read`);
+  return res.data;
+};
+
+export const markAllInspectorNotificationsAsRead = async (): Promise<{ success: boolean }> => {
+  const res = await inspectorApiClient.put("/api/inspector/inspection/notifications/mark-all-read");
+  return res.data;
+};
+
 export const downloadInspectorInspectionPdf = async (id: number) => {
   const toastId = toast.loading("Generating & Downloading PDF report... Please wait...");
   try {

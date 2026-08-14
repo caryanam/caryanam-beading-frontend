@@ -360,9 +360,7 @@ export function VehicleCard({
           </div>
           <div className="min-w-0 leading-tight">
             <p className="text-[11px] font-black text-foreground truncate">
-              {typeof vehicle.odometer === "number"
-                ? `${(vehicle.odometer / 1000).toFixed(0)}k km`
-                : "N/A"}
+              {vehicle.odometer ? vehicle.odometer : "N/A"}
             </p>
             <p className="text-[9px] font-semibold text-muted-foreground truncate">Mileage</p>
           </div>

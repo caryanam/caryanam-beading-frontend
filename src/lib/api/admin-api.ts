@@ -205,3 +205,13 @@ export const getAdminNotifications = async (): Promise<{ success: boolean; data:
   const res = await adminApiClient.get("/api/admin/notifications");
   return res.data;
 };
+
+export const markAdminNotificationAsRead = async (id: number): Promise<{ success: boolean }> => {
+  const res = await adminApiClient.put(`/api/admin/notifications/${id}/read`);
+  return res.data;
+};
+
+export const markAllAdminNotificationsAsRead = async (): Promise<{ success: boolean }> => {
+  const res = await adminApiClient.put("/api/admin/notifications/mark-all-read");
+  return res.data;
+};

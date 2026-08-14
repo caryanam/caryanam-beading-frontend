@@ -1,6 +1,7 @@
 import axios from "axios";
 import { API_BASE_URL } from "../api";
 import { readSession } from "../session";
+import { toast } from "sonner";
 
 export const dealerApiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -145,4 +146,36 @@ export const getPublicInspectionDetails = async (id: number): Promise<{ success:
 export const getDealerNotifications = async (): Promise<{ success: boolean; data: any[] }> => {
   const res = await dealerApiClient.get("/api/dealer/notifications");
   return res.data;
+};
+
+export const markDealerNotificationAsRead = async (id: number): Promise<{ success: boolean }> => {
+  const res = await dealerApiClient.put(`/api/dealer/notifications/${id}/read`);
+  return res.data;
+};
+
+export const markAllDealerNotificationsAsRead = async (): Promise<{ success: boolean }> => {
+  const res = await dealerApiClient.put("/api/dealer/notifications/mark-all-read");
+  return res.data;
+};
+
+export const downloadDealerInspectionPdf = async (id: number) => {
+  const toastId = toast.loading("Generating & Downloading PDF report... Please wait...");
+  try {
+    const res = await dealerApiClient.get(`/api/dealer/inspection/${id}/pdf`, {
+      responseType: "blob",
+    });
+    const blob = new Blob([res.data], { type: "application/pdf" });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `Inspection_Report_${id}.pdf`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+    toast.success("PDF report downloaded successfully!", { id: toastId });
+  } catch (err: any) {
+    toast.error(err?.response?.data?.message || "Failed to download PDF report.", { id: toastId });
+    throw err;
+  }
 };

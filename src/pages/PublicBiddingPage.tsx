@@ -402,7 +402,7 @@ export function PublicBiddingPage() {
                 </div>
                 <div className="min-w-0">
                   <p className="text-[8.5px] font-extrabold uppercase text-muted-foreground">Odometer</p>
-                  <p className="text-xs font-black text-foreground truncate">{vehicle.odometer.toLocaleString("en-IN")} km</p>
+                  <p className="text-xs font-black text-foreground truncate">{vehicle.odometer}</p>
                 </div>
               </div>
 

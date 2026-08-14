@@ -16,9 +16,9 @@ import {
 import { cn, formatIndianDateTime } from "@/lib/utils";
 import { clearSession, readSession, type Session } from "@/lib/session";
 import type { Role } from "@/lib/mock-data";
-import { getMyInspections } from "@/lib/api/inspector-api";
-import { getSubmittedInspections, getAdminNotifications } from "@/lib/api/admin-api";
-import { getMarketplaceInspections, getDealerNotifications } from "@/lib/api/dealer-api";
+import { getMyInspections, getInspectorNotifications, markInspectorNotificationAsRead, markAllInspectorNotificationsAsRead } from "@/lib/api/inspector-api";
+import { getSubmittedInspections, getAdminNotifications, markAdminNotificationAsRead, markAllAdminNotificationsAsRead } from "@/lib/api/admin-api";
+import { getMarketplaceInspections, getDealerNotifications, markDealerNotificationAsRead, markAllDealerNotificationsAsRead } from "@/lib/api/dealer-api";
 
 export interface NavItem {
   label: string;
@@ -34,6 +34,7 @@ export interface NotificationPopupItem {
   time: string;
   status: string;
   link: string;
+  isRead?: boolean;
 }
 
 export function AppShell({
@@ -87,46 +88,62 @@ export function AppShell({
 
   const fetchNotifications = async () => {
     try {
-      const currentReadIds: number[] = JSON.parse(
-        localStorage.getItem("read_notification_ids") || "[]"
-      );
-      setReadIds(currentReadIds);
-
       if (role === "inspector") {
-        const res = await getMyInspections();
-        if (res.success && res.data) {
-          const list: NotificationPopupItem[] = res.data
-            .filter((ins) => ins.status !== "DRAFT" && ins.status !== "IN_PROGRESS")
-            .map((ins) => {
-              const carName = `${ins.brand || ""} ${ins.model || ""} ${ins.variant || ""}`.trim();
-              let notifTitle = "";
-              let notifMeta = "";
-              if (ins.status === "APPROVED") {
-                notifTitle = `Inspection Approved: ${carName}`;
-                notifMeta = `Vehicle ${ins.vehicleNumber} approved by Admin and ready for live bidding.`;
-              } else if (ins.status === "REJECTED") {
-                notifTitle = `Inspection Rejected: ${carName}`;
-                notifMeta = `Vehicle ${ins.vehicleNumber} rejected. Reason: ${ins.rejectionReason || "Please verify details."}`;
-              } else {
-                notifTitle = `Inspection Submitted: ${carName}`;
-                notifMeta = `Report for ${ins.vehicleNumber} submitted successfully and pending approval.`;
-              }
-              const timeStr = formatIndianDateTime(ins.submittedAt);
+        try {
+          const notifRes = await getInspectorNotifications();
+          if (notifRes.success && notifRes.data && notifRes.data.length > 0) {
+            const list: NotificationPopupItem[] = notifRes.data.map((n: any) => ({
+              id: n.id,
+              rawId: n.id,
+              title: n.title,
+              meta: n.message,
+              time: formatIndianDateTime(n.createdAt),
+              status: n.type,
+              isRead: n.isRead,
+              link: "/inspector/vehicles",
+            }));
+            setNotificationItems(list);
+            setUnreadCount(list.filter((n) => !n.isRead).length);
+          } else {
+            const res = await getMyInspections();
+            if (res.success && res.data) {
+              const list: NotificationPopupItem[] = res.data
+                .filter((ins) => ins.status !== "DRAFT" && ins.status !== "IN_PROGRESS")
+                .map((ins) => {
+                  const carName = `${ins.brand || ""} ${ins.model || ""} ${ins.variant || ""}`.trim();
+                  let notifTitle = "";
+                  let notifMeta = "";
+                  if (ins.status === "APPROVED") {
+                    notifTitle = `Inspection Approved: ${carName}`;
+                    notifMeta = `Vehicle ${ins.vehicleNumber} approved by Admin and ready for live bidding.`;
+                  } else if (ins.status === "REJECTED") {
+                    notifTitle = `Inspection Rejected: ${carName}`;
+                    notifMeta = `Vehicle ${ins.vehicleNumber} rejected. Reason: ${ins.rejectionReason || "Please verify details."}`;
+                  } else {
+                    notifTitle = `Inspection Submitted: ${carName}`;
+                    notifMeta = `Report for ${ins.vehicleNumber} submitted successfully and pending approval.`;
+                  }
+                  const timeStr = formatIndianDateTime(ins.submittedAt);
 
-              return {
-                id: ins.inspectionId,
-                rawId: ins.inspectionId,
-                title: notifTitle,
-                meta: notifMeta,
-                time: timeStr,
-                status: ins.status,
-                link: "/inspector/vehicles",
-              };
-            });
+                  return {
+                    id: ins.inspectionId,
+                    rawId: ins.inspectionId,
+                    title: notifTitle,
+                    meta: notifMeta,
+                    time: timeStr,
+                    status: ins.status,
+                    isRead: false,
+                    link: "/inspector/vehicles",
+                  };
+                });
 
-          list.sort((a, b) => b.rawId - a.rawId);
-          setNotificationItems(list);
-          setUnreadCount(list.filter((n) => !currentReadIds.includes(n.rawId)).length);
+              list.sort((a, b) => b.rawId - a.rawId);
+              setNotificationItems(list);
+              setUnreadCount(list.filter((n) => !n.isRead).length);
+            }
+          }
+        } catch (e) {
+          console.error("Failed to load inspector notifications", e);
         }
       } else if (role === "dealer") {
         try {
@@ -139,10 +156,11 @@ export function AppShell({
               meta: n.message,
               time: formatIndianDateTime(n.createdAt),
               status: n.type,
+              isRead: n.isRead,
               link: n.inspectionId ? `/dealer/vehicles/${n.inspectionId}` : `/dealer/marketplace`,
             }));
             setNotificationItems(list);
-            setUnreadCount(list.filter((n) => !currentReadIds.includes(n.rawId)).length);
+            setUnreadCount(list.filter((n) => !n.isRead).length);
           } else {
             const res = await getMarketplaceInspections();
             if (res.success && res.data) {
@@ -172,13 +190,14 @@ export function AppShell({
                   meta: notifMeta,
                   time: timeStr,
                   status: vStatus,
+                  isRead: false,
                   link: `/dealer/marketplace`,
                 };
               });
 
               list.sort((a, b) => b.rawId - a.rawId);
               setNotificationItems(list);
-              setUnreadCount(list.filter((n) => !currentReadIds.includes(n.rawId)).length);
+              setUnreadCount(list.filter((n) => !n.isRead).length);
             }
           }
         } catch (e) {
@@ -195,10 +214,11 @@ export function AppShell({
               meta: n.message,
               time: formatIndianDateTime(n.createdAt),
               status: n.type,
+              isRead: n.isRead,
               link: n.inspectionId ? `/admin/auctions/${n.inspectionId}` : `/admin/vehicles`,
             }));
             setNotificationItems(list);
-            setUnreadCount(list.filter((n) => !currentReadIds.includes(n.rawId)).length);
+            setUnreadCount(list.filter((n) => !n.isRead).length);
           } else {
             const res = await getSubmittedInspections();
             if (res.success && res.data) {
@@ -215,13 +235,14 @@ export function AppShell({
                     meta: `Vehicle ${ins.vehicleNumber} submitted by ${ins.inspectorName || "Inspector"} requires approval.`,
                     time: timeStr,
                     status: ins.status,
+                    isRead: false,
                     link: "/admin/vehicles",
                   };
                 });
 
               list.sort((a, b) => b.rawId - a.rawId);
               setNotificationItems(list);
-              setUnreadCount(list.filter((n) => !currentReadIds.includes(n.rawId)).length);
+              setUnreadCount(list.filter((n) => !n.isRead).length);
             }
           }
         } catch (e) {
@@ -235,40 +256,41 @@ export function AppShell({
 
   useEffect(() => {
     fetchNotifications();
-
-    const handleStorageChange = () => {
-      fetchNotifications();
-    };
-    window.addEventListener("storage", handleStorageChange);
-    return () => {
-      window.removeEventListener("storage", handleStorageChange);
-    };
   }, [role, pathname]);
 
-  const markSingleAsRead = (rawId: number, e?: React.MouseEvent) => {
+  const markSingleAsRead = async (rawId: number, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    const currentRead: number[] = JSON.parse(
-      localStorage.getItem("read_notification_ids") || "[]"
-    );
-    if (!currentRead.includes(rawId)) {
-      const updated = [...currentRead, rawId];
-      localStorage.setItem("read_notification_ids", JSON.stringify(updated));
-      setReadIds(updated);
+    try {
+      if (role === "admin") {
+        await markAdminNotificationAsRead(rawId);
+      } else if (role === "dealer") {
+        await markDealerNotificationAsRead(rawId);
+      } else if (role === "inspector") {
+        await markInspectorNotificationAsRead(rawId);
+      }
+      setNotificationItems((prev) =>
+        prev.map((item) => (item.rawId === rawId ? { ...item, isRead: true } : item))
+      );
       setUnreadCount((prev) => Math.max(0, prev - 1));
-      window.dispatchEvent(new Event("storage"));
+    } catch (err) {
+      console.error("Failed to mark notification as read via API", err);
     }
   };
 
-  const markAllAsRead = () => {
-    const allIds = notificationItems.map((n) => n.rawId);
-    const currentRead: number[] = JSON.parse(
-      localStorage.getItem("read_notification_ids") || "[]"
-    );
-    const updated = Array.from(new Set([...currentRead, ...allIds]));
-    localStorage.setItem("read_notification_ids", JSON.stringify(updated));
-    setReadIds(updated);
-    setUnreadCount(0);
-    window.dispatchEvent(new Event("storage"));
+  const markAllAsRead = async () => {
+    try {
+      if (role === "admin") {
+        await markAllAdminNotificationsAsRead();
+      } else if (role === "dealer") {
+        await markAllDealerNotificationsAsRead();
+      } else if (role === "inspector") {
+        await markAllInspectorNotificationsAsRead();
+      }
+      setNotificationItems((prev) => prev.map((item) => ({ ...item, isRead: true })));
+      setUnreadCount(0);
+    } catch (err) {
+      console.error("Failed to mark all notifications as read via API", err);
+    }
   };
 
   const [expiredRole, setExpiredRole] = useState<string | null>(null);
@@ -532,7 +554,7 @@ export function AppShell({
                         </div>
                       ) : (
                         notificationItems.map((n) => {
-                          const isRead = readIds.includes(n.rawId);
+                          const isRead = !!n.isRead;
                           let dotBg = "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]";
                           if (n.status === "REJECTED") {
                             dotBg = "bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]";

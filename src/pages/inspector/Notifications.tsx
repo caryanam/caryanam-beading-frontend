@@ -2,7 +2,12 @@ import { useEffect, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { inspectorNav } from "@/components/nav-config";
 import { Panel } from "@/components/premium";
-import { getMyInspections } from "@/lib/api/inspector-api";
+import {
+  getMyInspections,
+  getInspectorNotifications,
+  markInspectorNotificationAsRead,
+  markAllInspectorNotificationsAsRead,
+} from "@/lib/api/inspector-api";
 import { formatIndianDateTime } from "@/lib/utils";
 
 interface NotificationItem {
@@ -11,53 +16,62 @@ interface NotificationItem {
   meta: string;
   time: string;
   status: string;
+  isRead: boolean;
 }
 
 export function InspectorNotifications() {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [readIds, setReadIds] = useState<number[]>(() => {
-    return JSON.parse(localStorage.getItem("read_notification_ids") || "[]");
-  });
 
   const loadNotifications = async () => {
     setLoading(true);
     try {
-      const res = await getMyInspections();
-      if (res.success && res.data) {
-        // Map each inspection to a dynamic notification item based on status
-        const mapped = res.data
-          .filter((ins) => ins.status !== "DRAFT" && ins.status !== "IN_PROGRESS") // Show submitted, approved, rejected
-          .map((ins) => {
-            let title = "";
-            let meta = "";
-            const time = formatIndianDateTime(ins.submittedAt);
-
-            const carName = `${ins.brand || ""} ${ins.model || ""} ${ins.variant || ""}`.trim();
-
-            if (ins.status === "APPROVED") {
-              title = `Inspection Approved: ${carName}`;
-              meta = `The evaluation for vehicle ${ins.vehicleNumber} has been approved by the Admin and is now ready for bidding.`;
-            } else if (ins.status === "REJECTED") {
-              title = `Inspection Rejected: ${carName}`;
-              meta = `The evaluation for vehicle ${ins.vehicleNumber} was rejected. Reason: ${ins.rejectionReason || "Please verify vehicle details."}`;
-            } else if (ins.status === "SUBMITTED") {
-              title = `Inspection Submitted: ${carName}`;
-              meta = `The evaluation report for vehicle ${ins.vehicleNumber} has been submitted successfully and is pending admin approval.`;
-            }
-
-            return {
-              id: ins.inspectionId,
-              title,
-              meta,
-              time,
-              status: ins.status,
-            };
-          });
-
-        // Sort notifications so that newest are at the top
-        mapped.sort((a, b) => b.id - a.id);
+      const res = await getInspectorNotifications();
+      if (res.success && res.data && res.data.length > 0) {
+        const mapped: NotificationItem[] = res.data.map((n: any) => ({
+          id: n.id,
+          title: n.title,
+          meta: n.message,
+          time: formatIndianDateTime(n.createdAt),
+          status: n.type,
+          isRead: !!n.isRead,
+        }));
         setNotifications(mapped);
+      } else {
+        const inspRes = await getMyInspections();
+        if (inspRes.success && inspRes.data) {
+          const mapped: NotificationItem[] = inspRes.data
+            .filter((ins) => ins.status !== "DRAFT" && ins.status !== "IN_PROGRESS")
+            .map((ins) => {
+              let title = "";
+              let meta = "";
+              const time = formatIndianDateTime(ins.submittedAt);
+              const carName = `${ins.brand || ""} ${ins.model || ""} ${ins.variant || ""}`.trim();
+
+              if (ins.status === "APPROVED") {
+                title = `Inspection Approved: ${carName}`;
+                meta = `The evaluation for vehicle ${ins.vehicleNumber} has been approved by the Admin and is now ready for bidding.`;
+              } else if (ins.status === "REJECTED") {
+                title = `Inspection Rejected: ${carName}`;
+                meta = `The evaluation for vehicle ${ins.vehicleNumber} was rejected. Reason: ${ins.rejectionReason || "Please verify vehicle details."}`;
+              } else if (ins.status === "SUBMITTED") {
+                title = `Inspection Submitted: ${carName}`;
+                meta = `The evaluation report for vehicle ${ins.vehicleNumber} has been submitted successfully and is pending admin approval.`;
+              }
+
+              return {
+                id: ins.inspectionId,
+                title,
+                meta,
+                time,
+                status: ins.status,
+                isRead: false,
+              };
+            });
+
+          mapped.sort((a, b) => b.id - a.id);
+          setNotifications(mapped);
+        }
       }
     } catch (err) {
       console.error("Failed to load notifications", err);
@@ -70,25 +84,27 @@ export function InspectorNotifications() {
     loadNotifications();
   }, []);
 
-  const markAsRead = (id: number) => {
-    const updated = [...readIds, id];
-    setReadIds(updated);
-    localStorage.setItem("read_notification_ids", JSON.stringify(updated));
-    // Trigger storage event so AppShell receives the update
-    window.dispatchEvent(new Event("storage"));
+  const markAsRead = async (id: number) => {
+    try {
+      await markInspectorNotificationAsRead(id);
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
+      );
+    } catch (err) {
+      console.error("Failed to mark notification as read", err);
+    }
   };
 
-  const markAllAsRead = () => {
-    const unreadNotifications = notifications.filter(n => !readIds.includes(n.id));
-    if (unreadNotifications.length === 0) return;
-    
-    const updated = [...readIds, ...unreadNotifications.map(n => n.id)];
-    setReadIds(updated);
-    localStorage.setItem("read_notification_ids", JSON.stringify(updated));
-    window.dispatchEvent(new Event("storage"));
+  const markAllAsRead = async () => {
+    try {
+      await markAllInspectorNotificationsAsRead();
+      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    } catch (err) {
+      console.error("Failed to mark all notifications as read", err);
+    }
   };
 
-  const hasUnread = notifications.some(n => !readIds.includes(n.id));
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   return (
     <AppShell
@@ -99,9 +115,9 @@ export function InspectorNotifications() {
     >
       <Panel
         title="Recent Notifications"
-        description={`${notifications.filter(n => !readIds.includes(n.id)).length} unread updates`}
+        description={`${unreadCount} unread updates`}
         action={
-          hasUnread && (
+          unreadCount > 0 && (
             <button
               onClick={markAllAsRead}
               className="rounded-xl border border-border bg-card hover:bg-secondary px-3.5 py-1.5 text-xs font-extrabold text-foreground transition-all cursor-pointer"
@@ -122,7 +138,7 @@ export function InspectorNotifications() {
         ) : (
           <ul className="divide-y divide-border">
             {notifications.map((n) => {
-              const isRead = readIds.includes(n.id);
+              const isRead = n.isRead;
               let dotColor = "bg-muted-foreground/30";
               if (!isRead) {
                 if (n.status === "APPROVED") dotColor = "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]";
@@ -146,7 +162,7 @@ export function InspectorNotifications() {
                       <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{n.meta}</p>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center gap-3 shrink-0">
                     <span className="text-[10px] font-bold text-muted-foreground">{n.time}</span>
                     {!isRead && (

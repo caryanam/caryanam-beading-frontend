@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useParams, Link } from "react-router-dom";
 import {
@@ -16,7 +16,6 @@ import {
   Gauge,
   Fuel,
   Settings2,
-  TrendingUp,
   X as CloseIcon,
   Sparkles,
   Layers,
@@ -763,7 +762,7 @@ export function DealerVehicleDetail() {
               </div>
               <p className="mt-0.5 flex flex-wrap items-center gap-2 text-xs font-semibold text-muted-foreground">
                 <span>{vehicle.year} Model</span>
-                <span>•</span>
+                <span>â€¢</span>
                 <span>Inspected by {vehicle.inspector}</span>
               </p>
             </div>
@@ -816,7 +815,7 @@ export function DealerVehicleDetail() {
                 Odometer
               </p>
               <p className="text-xs font-black text-foreground mt-0.5">
-                {vehicle.odometer.toLocaleString("en-IN")} km
+                {vehicle.odometer}
               </p>
             </div>
           </div>
@@ -893,7 +892,7 @@ export function DealerVehicleDetail() {
                     </p>
                   </div>
                   <span className="rounded-xl bg-white/10 backdrop-blur-md px-3 py-1.5 text-xs font-extrabold border border-white/20">
-                    📷 {vehicle.images?.length || 1} Inspection Photos
+                    ðŸ“· {vehicle.images?.length || 1} Inspection Photos
                   </span>
                 </div>
               </div>
@@ -986,7 +985,7 @@ export function DealerVehicleDetail() {
                       ["Transmission", vehicle.transmission],
                       [
                         "Odometer Reading",
-                        `${vehicle.odometer.toLocaleString("en-IN")} km`,
+                        `${vehicle.odometer}`,
                       ],
                       ["Insurance Status", vehicle.insuranceStatus || "Expired / N/A"],
                       ["Certified Inspector", vehicle.inspector],
@@ -1580,10 +1579,10 @@ export function DealerVehicleDetail() {
             {/* Live Bidding Box */}
             <div
               className={`rounded-3xl p-6 text-white border transition-all duration-300 relative overflow-hidden ${isWinner
-                  ? "bg-[#062419] border-emerald-500/60 shadow-[0_0_30px_rgba(16,185,129,0.25)] before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.25),transparent_65%)]"
-                  : participated
-                    ? "bg-[#230d12] border-rose-500/50 shadow-[0_0_25px_rgba(244,63,94,0.2)] before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_top_right,rgba(244,63,94,0.2),transparent_65%)]"
-                    : "surface-dark border-[#FFC700]/40 shadow-lift before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_top_right,rgba(255,199,0,0.2),transparent_65%)]"
+                ? "bg-[#062419] border-emerald-500/60 shadow-[0_0_30px_rgba(16,185,129,0.25)] before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.25),transparent_65%)]"
+                : participated
+                  ? "bg-[#230d12] border-rose-500/50 shadow-[0_0_25px_rgba(244,63,94,0.2)] before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_top_right,rgba(244,63,94,0.2),transparent_65%)]"
+                  : "surface-dark border-[#FFC700]/40 shadow-lift before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_top_right,rgba(255,199,0,0.2),transparent_65%)]"
                 }`}
             >
               {/* Header Status */}
@@ -1659,7 +1658,7 @@ export function DealerVehicleDetail() {
                   ) : isWinner ? (
                     <>
                       <p className="text-sm font-black text-emerald-400 flex items-center gap-1.5 justify-center animate-bounce">
-                        🏆 Bid Winner!
+                        ðŸ† Bid Winner!
                       </p>
                       <p className="text-xs text-white/95 font-semibold leading-relaxed">
                         Congratulations! You won the bidding for this vehicle with
@@ -1673,7 +1672,7 @@ export function DealerVehicleDetail() {
                   ) : participated ? (
                     <>
                       <p className="text-sm font-black text-rose-400 flex items-center gap-1.5 justify-center">
-                        ❌ Outbid / Lost
+                        âŒ Outbid / Lost
                       </p>
                       <p className="text-xs text-white/70 font-semibold leading-relaxed">
                         You participated in this room, but another dealer won with
@@ -1683,7 +1682,7 @@ export function DealerVehicleDetail() {
                   ) : (
                     <>
                       <p className="text-sm font-black text-white/80 flex items-center gap-1.5 justify-center">
-                        🏁 Closed
+                        Bid Closed
                       </p>
                       <p className="text-xs text-white/70 font-semibold leading-relaxed">
                         This live bidding is now closed. Sold for{" "}
@@ -1753,26 +1752,21 @@ export function DealerVehicleDetail() {
                     <label className="block text-[11px] font-bold text-white/70 uppercase tracking-wider mb-2">
                       Quick Bid Increment
                     </label>
-                    <div className="grid grid-cols-1 gap-2">
-                      {[
-                        { label: "+2k", val: 2000 },
-                      ].map((preset) => (
-                        <button
-                          key={preset.label}
-                          type="button"
-                          onClick={() => addQuickIncrement(preset.val)}
-                          className="rounded-xl border border-[#FFC700]/30 bg-[#101216] hover:bg-[#FFC700] hover:text-[#0D0E12] hover:border-[#FFC700] py-2 text-xs font-black transition-all cursor-pointer text-[#FFC700]"
-                        >
-                          {preset.label}
-                        </button>
-                      ))}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => addQuickIncrement(2000)}
+                        className="rounded-xl border border-[#FFC700]/30 bg-[#101216] hover:bg-[#FFC700] hover:text-[#0D0E12] hover:border-[#FFC700] py-2 text-xs font-black transition-all cursor-pointer text-[#FFC700]"
+                      >
+                        +2k
+                      </button>
                     </div>
                   </div>
 
                   {/* Input field */}
                   <div className="space-y-1.5">
                     <label className="block text-xs font-bold text-white/80">
-                      Enter Bid Amount (₹)
+                      Enter Bid Amount ₹
                     </label>
                     <div className="relative">
                       <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#FFC700] font-black">
@@ -1804,6 +1798,7 @@ export function DealerVehicleDetail() {
                       </>
                     )}
                   </button>
+
                 </div>
               )}
             </div>
@@ -1986,7 +1981,7 @@ export function DealerVehicleDetail() {
                   onClick={() => window.open(activeVideoModalUrl, "_blank")}
                   className="font-black text-[#FFC700] hover:underline cursor-pointer flex items-center gap-1"
                 >
-                  Open Direct Link ↗
+                  Open Direct Link â†—
                 </button>
               </div>
             </div>

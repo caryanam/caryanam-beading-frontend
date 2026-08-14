@@ -853,7 +853,7 @@ export function AdminAuctionDetail() {
                 <div className="flex items-center justify-between rounded-2xl bg-secondary/40 p-3 border border-border">
                   <dt className="text-muted-foreground font-semibold">Odometer Reading</dt>
                   <dd className="font-extrabold text-foreground">
-                    {v.odometerReading ? `${v.odometerReading.toLocaleString("en-IN")} km` : "N/A"}
+                    {v.odometerReading ? v.odometerReading : "N/A"}
                   </dd>
                 </div>
 
