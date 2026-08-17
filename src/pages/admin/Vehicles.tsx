@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
 import { adminNav } from "@/components/nav-config";
 import { DataTable, type Column } from "@/components/data-table";
 import { StatusChip } from "@/components/premium";
 import { inr } from "@/lib/mock-data";
-import { Download, CheckCircle2, AlertTriangle, X, Loader2 } from "lucide-react";
-import { API_BASE_URL } from "@/lib/api";
+import { Download, CheckCircle2, AlertTriangle, X, Loader2, Eye, UserCheck, Filter } from "lucide-react";
 import { formatIndianDateTime } from "@/lib/utils";
 import {
   getSubmittedInspections,
@@ -17,6 +17,7 @@ import {
 } from "@/lib/api/admin-api";
 
 export function AdminVehicles() {
+  const navigate = useNavigate();
   const [inspections, setInspections] = useState<AdminInspectionSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedInspector, setSelectedInspector] = useState<string | null>(null);
@@ -57,7 +58,6 @@ export function AdminVehicles() {
     try {
       const res = await getSubmittedInspections();
       if (res.success && res.data) {
-        // Preprocess list to support search queries and fallback owner names
         const processed = res.data.map((item: any) => ({
           ...item,
           ownerName: item.ownerName || "1st Owner",
@@ -121,19 +121,27 @@ export function AdminVehicles() {
     }
   };
 
+  // Unique Inspectors list for dropdown selector
+  const inspectorOptions = Array.from(
+    new Set(inspections.map((i) => i.inspectorName).filter((name): name is string => Boolean(name && name.trim())))
+  ).sort();
+
   const columns: Column<AdminInspectionSummary>[] = [
     {
       key: "inspectionId",
       header: "ID",
-      cell: (_, idx) => <span className="font-extrabold text-xs">#{idx}</span>,
+      cell: (v) => <span className="font-extrabold text-xs">#{v.inspectionId}</span>,
     },
     {
       key: "vehicle",
       header: "Vehicle Details",
       cell: (v) => (
-        <div className="min-w-0">
-          <p className="truncate font-bold text-sm text-foreground">
-            {v.brand} {v.model} {v.variant}
+        <div
+          onClick={() => navigate(`/admin/vehicles/${v.inspectionId}`)}
+          className="min-w-0 group cursor-pointer"
+        >
+          <p className="truncate font-bold text-sm text-foreground group-hover:text-[#FFC700] transition-colors flex items-center gap-1.5">
+            <span>{v.brand} {v.model} {v.variant}</span>
           </p>
           <p className="text-xs text-muted-foreground">{v.vehicleNumber}</p>
         </div>
@@ -150,7 +158,7 @@ export function AdminVehicles() {
       header: "Submitted On",
       cell: (v) => formatIndianDateTime(v.submittedAt),
     },
-    { key: "inspectorName", header: "Inspector", cell: (v) => v.inspectorName },
+    { key: "inspectorName", header: "Inspector", cell: (v) => v.inspectorName || "Inspector" },
     {
       key: "status",
       header: "Status",
@@ -181,6 +189,16 @@ export function AdminVehicles() {
         const isActionable = v.status === "SUBMITTED";
         return (
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => navigate(`/admin/vehicles/${v.inspectionId}`)}
+              className="flex items-center gap-1.5 rounded-xl border border-border bg-card px-3 py-2 text-xs font-extrabold text-foreground hover:border-[#FFC700] hover:text-[#FFC700] transition-colors shadow-soft cursor-pointer"
+              title="View Full Vehicle Inspection Report"
+            >
+              <Eye className="size-3.5 text-[#FFC700]" />
+              <span>Details</span>
+            </button>
+
             {isActionable && (
               <>
                 <button
@@ -204,7 +222,7 @@ export function AdminVehicles() {
                 type="button"
                 disabled={downloadingPdfId === v.inspectionId}
                 onClick={() => handleDownloadPdf(v.inspectionId)}
-                className="flex items-center gap-1.5 rounded-xl border border-border bg-card px-3.5 py-2 text-xs font-extrabold text-foreground hover:border-[#FFC700] hover:text-[#FFC700] transition-colors shadow-soft cursor-pointer disabled:opacity-50"
+                className="flex items-center gap-1.5 rounded-xl border border-border bg-card px-3 py-2 text-xs font-extrabold text-foreground hover:border-[#FFC700] hover:text-[#FFC700] transition-colors shadow-soft cursor-pointer disabled:opacity-50"
                 title="Download Report PDF"
               >
                 {downloadingPdfId === v.inspectionId ? (
@@ -235,33 +253,56 @@ export function AdminVehicles() {
   };
 
   const actionButtons = (
-    <div className="flex flex-wrap items-center gap-2">
-      {["All", "Submitted", "Approved", "Rejected"].map((status) => {
-        const active = statusFilter === status;
-        const count = getStatusCount(status);
-        return (
-          <button
-            key={status}
-            onClick={() => setStatusFilter(status)}
-            className={`rounded-2xl border px-3.5 py-2 text-xs font-extrabold transition-all cursor-pointer flex items-center gap-2 ${
-              active
-                ? "bg-[#FFC700] border-[#FFC700] text-[#0D0E12] shadow-sm"
-                : "border-border bg-card text-foreground hover:bg-secondary"
-            }`}
-          >
-            <span>{status}</span>
-            <span
-              className={`rounded-full px-2 py-0.5 text-[10px] font-black ${
+    <div className="flex flex-wrap items-center gap-3">
+      {/* Inspector Filter Dropdown */}
+      <div className="flex items-center gap-2">
+        <UserCheck className="size-4 text-[#FFC700]" />
+        <select
+          value={selectedInspector || "ALL"}
+          onChange={(e) => {
+            const val = e.target.value;
+            setSelectedInspector(val === "ALL" ? null : val);
+          }}
+          className="rounded-2xl border border-border bg-card px-3.5 py-2 text-xs font-extrabold text-foreground outline-none focus:border-[#FFC700] transition-all cursor-pointer shadow-soft"
+        >
+          <option value="ALL">All Inspectors ({inspections.length})</option>
+          {inspectorOptions.map((name) => (
+            <option key={name} value={name}>
+              Inspector: {name} ({inspections.filter((i) => i.inspectorName === name).length})
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Status Filter Buttons */}
+      <div className="flex flex-wrap items-center gap-2">
+        {["All", "Submitted", "Approved", "Rejected"].map((status) => {
+          const active = statusFilter === status;
+          const count = getStatusCount(status);
+          return (
+            <button
+              key={status}
+              onClick={() => setStatusFilter(status)}
+              className={`rounded-2xl border px-3.5 py-2 text-xs font-extrabold transition-all cursor-pointer flex items-center gap-2 ${
                 active
-                  ? "bg-[#0D0E12]/15 text-[#0D0E12]"
-                  : "bg-secondary text-muted-foreground"
+                  ? "bg-[#FFC700] border-[#FFC700] text-[#0D0E12] shadow-sm"
+                  : "border-border bg-card text-foreground hover:bg-secondary"
               }`}
             >
-              {count}
-            </span>
-          </button>
-        );
-      })}
+              <span>{status}</span>
+              <span
+                className={`rounded-full px-2 py-0.5 text-[10px] font-black ${
+                  active
+                    ? "bg-[#0D0E12]/15 text-[#0D0E12]"
+                    : "bg-secondary text-muted-foreground"
+                }`}
+              >
+                {count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 
@@ -269,18 +310,18 @@ export function AdminVehicles() {
     <AppShell role="admin" nav={adminNav} title="Vehicles" breadcrumb={["Admin", "Vehicles"]}>
       {selectedInspector && (
         <div className="mb-5 flex items-center justify-between rounded-2xl bg-[#FFC700]/10 border border-[#FFC700]/30 p-4 shadow-soft">
-          <p className="text-xs font-bold text-foreground">
-            Showing evaluations submitted by inspector: <span className="underline font-extrabold">{selectedInspector}</span>
+          <p className="text-xs font-bold text-foreground flex items-center gap-2">
+            <Filter className="size-4 text-[#FFC700]" />
+            Showing evaluations submitted by inspector: <span className="underline font-extrabold text-[#FFC700]">{selectedInspector}</span>
           </p>
           <button
             onClick={() => {
               setSelectedInspector(null);
-              // Clear URL parameter without reloading
               window.history.pushState({}, "", "/admin/vehicles");
             }}
             className="rounded-xl bg-card border border-border px-3.5 py-2 text-xs font-extrabold text-foreground hover:bg-secondary transition-all cursor-pointer shadow-sm"
           >
-            Clear Filter
+            Clear Inspector Filter
           </button>
         </div>
       )}
@@ -298,7 +339,7 @@ export function AdminVehicles() {
         />
       )}
 
-      {/* Modern Confirmation Modal Popup for Approve / Reject */}
+      {/* Confirmation Modal Popup for Approve / Reject */}
       {modalAction && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="w-full max-w-lg overflow-hidden rounded-3xl border border-border bg-card shadow-2xl animate-in zoom-in-95 duration-200">
@@ -338,9 +379,7 @@ export function AdminVehicles() {
             <div className="p-6 space-y-4">
               {modalAction.type === "approve" ? (
                 <div className="rounded-2xl border border-border bg-secondary/50 p-4 text-xs font-semibold text-foreground space-y-2">
-                  <p>
-                    Are you sure you want to approve this vehicle inspection report?
-                  </p>
+                  <p>Are you sure you want to approve this vehicle inspection report?</p>
                   <p className="text-muted-foreground">
                     Approving this report will mark the vehicle as <span className="font-extrabold text-foreground underline">READY_FOR_AUCTION</span>, allowing it to be scheduled for live bidding.
                   </p>
@@ -357,7 +396,7 @@ export function AdminVehicles() {
                       setRejectionReason(e.target.value);
                       if (e.target.value.trim()) setReasonError("");
                     }}
-                    placeholder="Enter detailed reason for rejecting this inspection report (e.g. Engine oil photo missing, odometer reading mismatch)..."
+                    placeholder="Enter detailed reason for rejecting this inspection report..."
                     className="w-full rounded-2xl border border-border bg-background p-3.5 text-xs font-semibold text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#FFC700]"
                   />
                   {reasonError && (
@@ -397,4 +436,3 @@ export function AdminVehicles() {
     </AppShell>
   );
 }
-

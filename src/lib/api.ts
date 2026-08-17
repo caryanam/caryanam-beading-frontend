@@ -5,6 +5,13 @@ const rawBaseUrl =
   import.meta.env.VITE_API_BASE_URL || "https://api.caryanamlive.com";
 export const API_BASE_URL = rawBaseUrl.replace(/\/+$/, "");
 
+export const publicClient = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
+
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -47,3 +54,4 @@ export function decodeToken(token: string): any {
     return null;
   }
 }
+

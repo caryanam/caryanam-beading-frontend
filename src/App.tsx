@@ -18,6 +18,7 @@ import { AdminInspectors } from "@/pages/admin/Inspectors";
 import { AdminReports } from "@/pages/admin/Reports";
 import { AdminSettings } from "@/pages/admin/Settings";
 import { AdminVehicles } from "@/pages/admin/Vehicles";
+import { AdminVehicleDetail } from "@/pages/admin/VehicleDetail";
 
 // Dealer Pages
 import { DealerLayout } from "@/pages/dealer/DealerLayout";
@@ -76,6 +77,8 @@ export function App() {
           <Route path="reports" element={<AdminReports />} />
           <Route path="settings" element={<AdminSettings />} />
           <Route path="vehicles" element={<AdminVehicles />} />
+          <Route path="vehicles/:id" element={<AdminVehicleDetail />} />
+          <Route path="vehicle/:id" element={<AdminVehicleDetail />} />
         </Route>
 
         {/* Dealer Routes */}
@@ -83,6 +86,7 @@ export function App() {
           <Route index element={<DealerDashboard />} />
           <Route path="marketplace" element={<DealerMarketplace />} />
           <Route path="vehicles/:vehicleId" element={<DealerVehicleDetail />} />
+          <Route path="marketplace/:vehicleId" element={<DealerVehicleDetail />} />
           <Route path="bids" element={<DealerBids />} />
           <Route path="favourites" element={<DealerFavourites />} />
           <Route path="profile" element={<DealerProfile />} />

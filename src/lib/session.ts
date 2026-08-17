@@ -73,7 +73,7 @@ export const clearSession = (role?: Role) => {
 };
 
 export const homeFor = (role: Role) =>
-  role === "admin" ? "/admin" : role === "inspector" ? "/inspector" : "/dealer";
+  role === "admin" ? "/admin" : role === "inspector" ? "/inspector" : "/dealer/marketplace";
 
 export const normalizeRole = (role: string): Role => {
   const r = role.toUpperCase();

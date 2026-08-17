@@ -483,6 +483,10 @@ export function InspectorVehicles() {
                         <span className="font-extrabold text-foreground text-sm">{previewData.vehicleDetails?.manufacturingYear || "N/A"}</span>
                       </div>
                       <div className="rounded-2xl border border-border bg-secondary/30 p-4">
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">Registration Year</span>
+                        <span className="font-extrabold text-foreground text-sm">{previewData.vehicleDetails?.registrationYear || "N/A"}</span>
+                      </div>
+                      <div className="rounded-2xl border border-border bg-secondary/30 p-4">
                         <span className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">Fuel Type & Transmission</span>
                         <span className="font-extrabold text-foreground text-sm">{previewData.vehicleDetails?.fuelType} / {previewData.vehicleDetails?.transmission}</span>
                       </div>

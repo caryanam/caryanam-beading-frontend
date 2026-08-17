@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { apiClient, decodeToken } from "@/lib/api";
+import { apiClient, publicClient, decodeToken } from "@/lib/api";
 import {
   saveSession,
   readSession,
@@ -26,18 +26,16 @@ export function useAuth() {
     setLoading(true);
     setError(null);
     try {
-      const response = await apiClient.post("/api/auth/login", { email, password });
+      const response = await publicClient.post("/api/auth/login", { email, password });
       const apiResponse = response.data;
 
       if (apiResponse.success && apiResponse.data) {
         const authData = apiResponse.data;
         const token = authData.token;
 
-        // Decode JWT token to check for any encoded role or email claims
         const decoded = decodeToken(token);
         console.log("Decoded Token Claims:", decoded);
 
-        // Extract role from token payload, falling back to the response body enum if not present
         const rawRole = decoded?.role || authData.role;
         const role = normalizeRole(rawRole);
 
@@ -56,7 +54,6 @@ export function useAuth() {
         setUser(newSession);
         toast.success(apiResponse.message || "Login successful!");
         
-        // Navigate role-wise to dashboard
         navigate(homeFor(role), { replace: true });
         return newSession;
       } else {
@@ -85,9 +82,9 @@ export function useAuth() {
     setLoading(true);
     setError(null);
     try {
-      const response = await apiClient.post("/api/dealer/register", {
+      const response = await publicClient.post("/api/dealer/register", {
         ...data,
-        confirmPassword: data.password, // Set confirmPassword equal to password for validation
+        confirmPassword: data.password,
       });
       const apiResponse = response.data;
 
@@ -124,9 +121,9 @@ export function useAuth() {
     setLoading(true);
     setError(null);
     try {
-      const response = await apiClient.post("/api/inspector/register", {
+      const response = await publicClient.post("/api/inspector/register", {
         ...data,
-        confirmPassword: data.password, // Set confirmPassword equal to password for validation
+        confirmPassword: data.password,
       });
       const apiResponse = response.data;
 
@@ -164,7 +161,7 @@ export function useAuth() {
   const sendOtp = async (email: string, mobile?: string) => {
     setLoading(true);
     try {
-      const response = await apiClient.post("/api/auth/send-otp", { email, mobile });
+      const response = await publicClient.post("/api/auth/send-otp", { email, mobile });
       toast.success(response.data.message || "OTP sent successfully to your email!");
       return true;
     } catch (err: any) {
@@ -179,7 +176,7 @@ export function useAuth() {
   const verifyOtp = async (email: string, otp: string) => {
     setLoading(true);
     try {
-      const response = await apiClient.post("/api/auth/verify-otp", { email, otp });
+      const response = await publicClient.post("/api/auth/verify-otp", { email, otp });
       if (response.data.success) {
         toast.success("Email verified successfully!");
         return true;
@@ -199,7 +196,7 @@ export function useAuth() {
   const sendPasswordOtp = async (email: string) => {
     setLoading(true);
     try {
-      const response = await apiClient.post("/api/auth/send-password-otp", { email });
+      const response = await publicClient.post("/api/auth/send-password-otp", { email });
       toast.success(response.data.message || "OTP sent successfully to your email!");
       return true;
     } catch (err: any) {
@@ -209,6 +206,60 @@ export function useAuth() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const resetPassword = async (email: string, otp: string, newPassword: string) => {
+    setLoading(true);
+    setError(null);
+    const payload = {
+      email,
+      otp,
+      newPassword,
+      password: newPassword,
+      confirmPassword: newPassword,
+    };
+
+    const endpoints = [
+      { method: "post", url: "/api/auth/reset-password" },
+      { method: "put", url: "/api/auth/reset-password" },
+      { method: "post", url: "/api/auth/update-password" },
+      { method: "put", url: "/api/auth/update-password" },
+      { method: "post", url: "/api/auth/change-password" },
+      { method: "put", url: "/api/auth/change-password" },
+      { method: "post", url: "/api/auth/forgot-password" },
+      { method: "put", url: "/api/auth/forgot-password" },
+    ];
+
+    let lastError: any = null;
+
+    for (const ep of endpoints) {
+      try {
+        const res = ep.method === "put"
+          ? await publicClient.put(ep.url, payload)
+          : await publicClient.post(ep.url, payload);
+        
+        if (res.data?.success !== false) {
+          toast.success(res.data?.message || "Password reset successfully! Please sign in.");
+          return true;
+        }
+      } catch (err: any) {
+        lastError = err;
+        const status = err.response?.status;
+        const msg = String(err.response?.data?.message || err.response?.data || "");
+        if (status === 404 || msg.includes("No static resource") || msg.includes("Not Found")) {
+          continue;
+        }
+        const realMsg = err.response?.data?.message || err.message || "Password reset failed.";
+        setError(realMsg);
+        toast.error(realMsg);
+        throw err;
+      }
+    }
+
+    const finalMsg = lastError?.response?.data?.message || lastError?.message || "Password reset failed.";
+    setError(finalMsg);
+    toast.error(finalMsg);
+    throw lastError;
   };
 
   return {
@@ -221,6 +272,7 @@ export function useAuth() {
     sendOtp,
     sendPasswordOtp,
     verifyOtp,
+    resetPassword,
     logout,
   };
 }

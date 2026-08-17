@@ -614,6 +614,7 @@ export function InspectorAddVehicle() {
     fuel: "Petrol",
     transmission: "Manual (MT)",
     year: "",
+    regYear: "",
     regNo: "",
     odometer: "",
     insurance: "",
@@ -806,6 +807,7 @@ export function InspectorAddVehicle() {
             fuel: v.fuelType || "Petrol",
             transmission: v.transmission || "Manual (MT)",
             year: v.manufacturingYear ? v.manufacturingYear.toString() : "",
+            regYear: v.registrationYear ? v.registrationYear.toString() : "",
             regNo: v.vehicleNumber || "",
             odometer: v.odometerReading ? v.odometerReading.toString() : "",
             insurance: v.insuranceStatus || "",
@@ -1006,6 +1008,7 @@ export function InspectorAddVehicle() {
           model: basicDetails.model,
           variant: basicDetails.variant,
           manufacturingYear: parseInt(basicDetails.year) || undefined,
+          registrationYear: parseInt(basicDetails.regYear) || undefined,
           fuelType: basicDetails.fuel,
           transmission: basicDetails.transmission,
           odometerReading: parseInt(basicDetails.odometer) || undefined,
@@ -1572,6 +1575,27 @@ export function InspectorAddVehicle() {
                   {errors.year && (
                     <span className="mt-1 block text-xs font-bold text-red-500 px-1">{errors.year}</span>
                   )}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-foreground mb-1.5">
+                    Registration Year
+                  </label>
+                  <select
+                    value={basicDetails.regYear}
+                    onChange={(e) => setBasic("regYear", e.target.value)}
+                    className="w-full rounded-2xl border border-border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all focus:ring-2 focus:border-[#FFC700] focus:ring-[#FFC700]/30 shadow-soft cursor-pointer"
+                  >
+                    <option value="">Select Registration Year</option>
+                    {Array.from(
+                      { length: 30 },
+                      (_, i) => new Date().getFullYear() - i,
+                    ).map((y) => (
+                      <option key={y} value={y.toString()}>
+                        {y}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>

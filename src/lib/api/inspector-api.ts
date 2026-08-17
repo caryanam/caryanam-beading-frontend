@@ -43,6 +43,7 @@ export interface VehicleDraft {
   model?: string;
   variant?: string;
   manufacturingYear?: number;
+  registrationYear?: number;
   fuelType?: string;
   transmission?: string;
   odometerReading?: number;

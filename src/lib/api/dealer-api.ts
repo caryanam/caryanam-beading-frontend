@@ -161,21 +161,32 @@ export const markAllDealerNotificationsAsRead = async (): Promise<{ success: boo
 export const downloadDealerInspectionPdf = async (id: number) => {
   const toastId = toast.loading("Generating & Downloading PDF report... Please wait...");
   try {
-    const res = await dealerApiClient.get(`/api/dealer/inspection/${id}/pdf`, {
-      responseType: "blob",
+    const session = readSession("dealer") || readSession();
+    const token = session?.token || (typeof localStorage !== "undefined" ? localStorage.getItem("token") : "") || "";
+    
+    const response = await fetch(`${API_BASE_URL}/api/dealer/inspection/${id}/pdf`, {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Accept": "application/pdf",
+      },
     });
-    const blob = new Blob([res.data], { type: "application/pdf" });
+
+    if (!response.ok) {
+      throw new Error(`Download failed with status ${response.status}`);
+    }
+
+    const blob = await response.blob();
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", `Inspection_Report_${id}.pdf`);
+    link.download = `Inspection_Report_${id}.pdf`;
     document.body.appendChild(link);
     link.click();
     link.remove();
     window.URL.revokeObjectURL(url);
     toast.success("PDF report downloaded successfully!", { id: toastId });
   } catch (err: any) {
-    toast.error(err?.response?.data?.message || "Failed to download PDF report.", { id: toastId });
-    throw err;
+    toast.error(err?.message || "Failed to download PDF report.", { id: toastId });
   }
 };
