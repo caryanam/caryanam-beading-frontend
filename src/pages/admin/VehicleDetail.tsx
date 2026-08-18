@@ -420,6 +420,42 @@ export function AdminVehicleDetail() {
                   <span className="font-extrabold text-foreground text-sm">{vDetails.insuranceStatus || "N/A"}</span>
                 </div>
                 <div className="rounded-2xl border border-border bg-secondary/30 p-4">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">Location</span>
+                  <span className="font-extrabold text-foreground text-sm">{vDetails?.location || "N/A"}</span>
+                </div>
+                <div className="rounded-2xl border border-border bg-secondary/30 p-4">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">RTO Information</span>
+                  <span className="font-extrabold text-foreground text-sm">{vDetails?.rtoInformation || vDetails?.rto || "N/A"}</span>
+                </div>
+                <div className="rounded-2xl border border-border bg-secondary/30 p-4">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">RS Availability</span>
+                  <span className="font-extrabold text-foreground text-sm">{vDetails?.rsAvailability || "N/A"}</span>
+                </div>
+                <div className="rounded-2xl border border-border bg-secondary/30 p-4">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">Duplicate Key</span>
+                  <span className="font-extrabold text-foreground text-sm">{vDetails?.duplicateKey || "N/A"}</span>
+                </div>
+                <div className="rounded-2xl border border-border bg-secondary/30 p-4">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">RTO NOC Issued</span>
+                  <span className="font-extrabold text-foreground text-sm">{vDetails?.rtoNocIssued || "N/A"}</span>
+                </div>
+                <div className="rounded-2xl border border-border bg-secondary/30 p-4">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">Under Hypothecation</span>
+                  <span className="font-extrabold text-foreground text-sm">{vDetails?.underHypothecation || "N/A"}</span>
+                </div>
+                <div className="rounded-2xl border border-border bg-secondary/30 p-4">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">Mismatch in RC</span>
+                  <span className="font-extrabold text-foreground text-sm">{vDetails?.mismatchInRc || "N/A"}</span>
+                </div>
+                <div className="rounded-2xl border border-border bg-secondary/30 p-4">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">Road Tax Paid</span>
+                  <span className="font-extrabold text-foreground text-sm">{vDetails?.roadTaxPaid || "N/A"}</span>
+                </div>
+                <div className="rounded-2xl border border-border bg-secondary/30 p-4">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">Fitness Valid Upto</span>
+                  <span className="font-extrabold text-foreground text-sm">{vDetails?.fitnessUpto || "N/A"}</span>
+                </div>
+                <div className="rounded-2xl border border-border bg-secondary/30 p-4">
                   <span className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">Suggested Price Valuation</span>
                   <span className="font-black text-[#FFC700] text-sm">{vDetails.suggestedPrice ? inr(vDetails.suggestedPrice) : "N/A"}</span>
                 </div>

@@ -2,6 +2,9 @@ export type Role = "admin" | "inspector" | "dealer";
 export type VehicleStatus = "draft" | "pending" | "approved" | "rejected";
 
 export interface Vehicle {
+  location?: string;
+  rtoInformation?: string;
+  engineRating?: string | number;
   id: string;
   regNo: string;
   brand: string;

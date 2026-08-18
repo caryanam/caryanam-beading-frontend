@@ -249,7 +249,7 @@ export function LandingPage({ page = "home", initialMode = "login" }: LandingPag
                   </li>
                   <li className="flex items-center gap-2 text-zinc-300">
                     <Phone className="size-4 text-[#FFC700] shrink-0" />
-                    <span className="font-mono">+91 7030682123</span>
+                    <span className="font-mono">+91 7755994123</span>
                   </li>
                   <li className="flex items-start gap-2 text-zinc-300">
                     <MapPin className="size-4 text-[#FFC700] shrink-0 mt-0.5" />

@@ -1,6 +1,7 @@
 import { useState, useEffect, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import {
+  MapPin,
   Heart,
   Clock,
   ShieldCheck,
@@ -198,6 +199,7 @@ export function ScoreBadge({ score }: { score: number }) {
   );
 }
 
+
 export function VehicleCard({
   vehicle,
   isFavourite,
@@ -286,175 +288,173 @@ export function VehicleCard({
     return () => clearInterval(timerId);
   }, [vehicle.endsAt]);
 
+  const getTimerParts = (endsAt?: number) => {
+    if (!endsAt) return { hours: "00", minutes: "00", seconds: "00" };
+    const diff = endsAt - Date.now();
+    if (diff <= 0) return { hours: "00", minutes: "00", seconds: "00" };
+    const h = Math.floor(diff / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    const s = Math.floor((diff % 60000) / 1000);
+    return {
+      hours: String(h).padStart(2, "0"),
+      minutes: String(m).padStart(2, "0"),
+      seconds: String(s).padStart(2, "0"),
+    };
+  };
+
+  const timerParts = getTimerParts(vehicle.endsAt);
+  const locationText = vehicle.location || (vehicle as any).city;
+  const rtoText = vehicle.rtoInformation || (vehicle as any).rto;
+  const locationPillLabel = [locationText, rtoText].filter(Boolean).join(" • ");
+  const engineRating = vehicle.engineRating || (vehicle as any).overallRating || (vehicle as any).rating;
+
   return (
     <Link
       to={`/dealer/vehicles/${vehicle.id}`}
       className={cn(
-        "card-lift group relative overflow-hidden rounded-3xl border transition-all duration-300 bg-card block cursor-pointer",
+        "group relative overflow-hidden rounded-3xl border transition-all duration-300 bg-card block cursor-pointer hover:-translate-y-1 hover:shadow-xl",
         isLive
-          ? "border-emerald-500/60 ring-2 ring-emerald-500/20 shadow-[0_4px_22px_rgba(16,185,129,0.16)] hover:shadow-[0_8px_32px_rgba(16,185,129,0.28)]"
+          ? "border-emerald-500/50 ring-1 ring-emerald-500/20 shadow-[0_4px_22px_rgba(16,185,129,0.14)]"
           : isComingSoon
-          ? "border-indigo-500/50 ring-1 ring-indigo-500/20 shadow-[0_4px_22px_rgba(99,102,241,0.14)] hover:shadow-[0_8px_32px_rgba(99,102,241,0.25)]"
-          : isSoldOut || isEnded
-          ? "border-border/80 opacity-90 hover:opacity-100"
-          : "border-border shadow-soft hover:shadow-md",
+          ? "border-indigo-500/50 ring-1 ring-indigo-500/20 shadow-[0_4px_22px_rgba(99,102,241,0.14)]"
+          : "border-border shadow-soft"
       )}
     >
-      {/* Top Banner & Vehicle Image */}
-      <div className="relative aspect-[16/8] w-full overflow-hidden bg-secondary">
+      {/* Top Banner Image with Overlay Badges */}
+      <div className="relative aspect-[16/9] w-full overflow-hidden bg-secondary">
         <img
           src={vehicle.image}
           alt={`${vehicle.brand} ${vehicle.model}`}
           loading="lazy"
           className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-50" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-80" />
 
-        {/* Top-Left Dynamic Status Overlay Badge */}
+        {/* Top-Left Dynamic Status Badge */}
         {isLive ? (
-          <div className="absolute left-2.5 top-2.5 z-10 flex items-center gap-1.5 rounded-full bg-emerald-600 text-white backdrop-blur-md px-3 py-1 text-[10px] font-black shadow-md shadow-emerald-600/30 animate-pulse">
+          <div className="absolute left-3 top-3 z-10 flex items-center gap-1.5 rounded-full bg-emerald-600 text-white backdrop-blur-md px-3 py-1 text-[10px] font-black shadow-md animate-pulse">
             <span className="relative flex size-2 shrink-0">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
               <span className="relative inline-flex rounded-full size-2 bg-white"></span>
             </span>
-            <span className="uppercase tracking-wider">🔥 LIVE AUCTION</span>
+            <span className="uppercase tracking-wider">LIVE</span>
           </div>
         ) : isComingSoon ? (
-          <div className="absolute left-2.5 top-2.5 z-10 flex items-center gap-1.5 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white backdrop-blur-md px-3 py-1 text-[10px] font-black shadow-md shadow-indigo-600/30">
+          <div className="absolute left-3 top-3 z-10 flex items-center gap-1.5 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white backdrop-blur-md px-3 py-1 text-[10px] font-black shadow-md">
             <Clock className="size-3 shrink-0" />
-            <span className="uppercase tracking-wider">⚡ COMING SOON</span>
+            <span className="uppercase tracking-wider">COMING SOON</span>
           </div>
         ) : (
-          <div className="absolute left-2.5 top-2.5 z-10 flex items-center gap-1 rounded-full bg-white/95 backdrop-blur-md px-2.5 py-0.5 text-[10px] font-extrabold text-emerald-600 shadow-sm border border-emerald-500/20">
-            <CheckCircle2 className="size-3 text-emerald-500 fill-emerald-500/20 shrink-0" />
-            <span>VERIFIED LISTING</span>
+          <div className="absolute left-3 top-3 z-10 flex items-center gap-1 rounded-full bg-black/60 backdrop-blur-md px-2.5 py-1 text-[10px] font-black text-emerald-400 border border-emerald-500/30">
+            <CheckCircle2 className="size-3 text-emerald-400 shrink-0" />
+            <span>VERIFIED</span>
           </div>
         )}
 
-        {/* Top-Right Floating Watchlist Heart */}
+        {/* Top-Right Watchlist Heart */}
         <button
           type="button"
           onClick={toggleFav}
           className={cn(
-            "absolute top-2.5 right-2.5 p-2 rounded-full backdrop-blur-md shadow-md transition-all duration-200 hover:scale-110 cursor-pointer z-20 border",
+            "absolute top-3 right-3 p-2.5 rounded-full backdrop-blur-md shadow-md transition-all duration-200 hover:scale-110 cursor-pointer z-20 border",
             isFav
-              ? "bg-rose-500 border-rose-500 text-white shadow-rose-500/40 ring-2 ring-rose-300 dark:ring-rose-900"
-              : "bg-white/95 dark:bg-slate-900/90 border-slate-100 dark:border-slate-800 text-slate-600 hover:text-rose-500"
+              ? "bg-rose-500 border-rose-500 text-white shadow-rose-500/40"
+              : "bg-black/50 border-white/20 text-white hover:text-rose-400"
           )}
           title={isFav ? "Remove from watchlist" : "Add to watchlist"}
         >
           <Heart
             className={cn(
               "size-4 transition-all duration-200",
-              isFav ? "fill-white text-white scale-110" : "fill-transparent stroke-[2.2]"
+              isFav ? "fill-white text-white" : "fill-transparent stroke-[2.2]"
             )}
           />
         </button>
-      </div>
 
-      {/* Top Floating 2-Specs Bar (Mileage & Fuel Type) */}
-      <div className="mx-3 -mt-3.5 relative z-10 rounded-xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200/80 dark:border-slate-800 p-1 shadow-sm grid grid-cols-2 gap-1.5">
-        <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800/80">
-          <div className="size-6 rounded-full bg-slate-200/80 dark:bg-slate-700 flex items-center justify-center shrink-0 text-slate-700 dark:text-slate-300">
-            <Gauge className="size-3" />
+        {/* Bottom-Left Location Badge Pill (📍 Palghar • MH-04) */}
+        {locationPillLabel ? (
+          <div className="absolute left-3 bottom-3 z-10 flex items-center gap-1.5 rounded-full bg-black/70 backdrop-blur-md px-3 py-1 text-[11px] font-extrabold text-white border border-white/15 max-w-[70%] truncate">
+            <MapPin className="size-3 text-amber-400 shrink-0" />
+            <span className="truncate">{locationPillLabel}</span>
           </div>
-          <div className="min-w-0 leading-tight">
-            <p className="text-[11px] font-black text-foreground truncate">
-              {vehicle.odometer ? vehicle.odometer : "N/A"}
-            </p>
-            <p className="text-[9px] font-semibold text-muted-foreground truncate">Mileage</p>
-          </div>
-        </div>
+        ) : null}
 
-        <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800/80">
-          <div className="size-6 rounded-full bg-slate-200/80 dark:bg-slate-700 flex items-center justify-center shrink-0 text-slate-700 dark:text-slate-300">
-            <Fuel className="size-3" />
-          </div>
-          <div className="min-w-0 leading-tight">
-            <p className="text-[11px] font-black text-foreground truncate">{vehicle.fuel}</p>
-            <p className="text-[9px] font-semibold text-muted-foreground truncate">Fuel Type</p>
-          </div>
+        {/* Bottom-Right Carousel Indicator Dots */}
+        <div className="absolute right-3 bottom-3 z-10 flex items-center gap-1.5 bg-black/50 backdrop-blur-md px-2 py-1 rounded-full">
+          <span className="size-1.5 rounded-full bg-[#FFC700]" />
+          <span className="size-1.5 rounded-full bg-white/40" />
+          <span className="size-1.5 rounded-full bg-white/40" />
         </div>
       </div>
 
-      {/* Main Card Content */}
-      <div className="px-3.5 pt-2 pb-3 space-y-2">
-        {/* Model Brand Title Header */}
-        <div>
-          <h3 className="text-base font-black text-foreground group-hover:text-primary transition-colors tracking-tight truncate leading-tight">
-            {vehicle.brand} {vehicle.model}
-          </h3>
-          <p className="text-[11px] font-semibold text-muted-foreground mt-0.5 truncate">
-            {vehicle.year} Model • {vehicle.variant || "Standard"}
+      {/* 2. Main Card Content */}
+      <div className="p-4 space-y-2">
+        {/* Title Header & Engine Rating Pill Row */}
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-xs font-extrabold text-muted-foreground uppercase tracking-tight truncate">
+            {[vehicle.year, vehicle.brand, vehicle.model].filter(Boolean).join(" ")}
           </p>
+          {engineRating ? (
+            <div className="flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 text-[10px] font-black text-emerald-600 shrink-0">
+              <span>ENGINE {engineRating}</span>
+              <span className="text-emerald-500">★</span>
+            </div>
+          ) : null}
         </div>
 
-        {/* Bottom 2-Specs Grid (Transmission & Owner Type) */}
-        <div className="grid grid-cols-2 gap-1.5">
-          <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800/80">
-            <div className="size-6 rounded-full bg-slate-200/80 dark:bg-slate-700 flex items-center justify-center shrink-0 text-slate-700 dark:text-slate-300">
-              <Cog className="size-3" />
-            </div>
-            <div className="min-w-0 leading-tight">
-              <p className="text-[11px] font-black text-foreground truncate">
-                {vehicle.transmission === "Automatic" ? "Auto" : "Manual"}
-              </p>
-              <p className="text-[9px] font-semibold text-muted-foreground truncate">Transmission</p>
-            </div>
+        {/* Variant Title Line (Bold Uppercase) */}
+        <h3 className="text-base font-black text-foreground uppercase tracking-tight line-clamp-1 group-hover:text-primary transition-colors">
+          {(vehicle.variant || `${vehicle.brand} ${vehicle.model}`).toUpperCase()}
+        </h3>
+
+        {/* Inline Specs Text Line: 58,906 km • 2nd owner • Diesel */}
+        <p className="text-xs font-extrabold text-muted-foreground truncate">
+          {[
+            vehicle.odometer ? `${Number(vehicle.odometer).toLocaleString("en-IN")} km` : null,
+            vehicle.owner || null,
+            vehicle.fuel || null,
+          ]
+            .filter(Boolean)
+            .join(" • ")}
+        </p>
+
+        {/* Dashed Separator Line */}
+        <div className="my-3 border-t border-dashed border-border/80" />
+
+        {/* Bottom Pricing & Digital Countdown Timer Row */}
+        <div className="flex items-center justify-between gap-3 pt-0.5">
+          <div>
+            <span className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider block">
+              {isSoldOut ? "WINNING BID" : "HIGHEST BID"}
+            </span>
+            <span className="text-lg font-black text-foreground tracking-tight block mt-0.5">
+              {inr(vehicle.highestBid > 0 ? vehicle.highestBid : vehicle.basePrice)}
+            </span>
           </div>
 
-          <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800/80">
-            <div className="size-6 rounded-full bg-slate-200/80 dark:bg-slate-700 flex items-center justify-center shrink-0 text-slate-700 dark:text-slate-300">
-              <User className="size-3" />
+          {/* 3-Box Digital Timer Box */}
+          {isLive ? (
+            <div className="flex items-center gap-1 bg-secondary/80 border border-border/80 p-1.5 rounded-2xl shrink-0">
+              <div className="flex flex-col items-center bg-card border border-border/60 px-2 py-1 rounded-xl min-w-[34px]">
+                <span className="text-xs font-black text-foreground leading-none">{timerParts.hours}</span>
+                <span className="text-[8px] font-extrabold text-muted-foreground uppercase mt-0.5">hr</span>
+              </div>
+              <span className="text-xs font-black text-muted-foreground">:</span>
+              <div className="flex flex-col items-center bg-card border border-border/60 px-2 py-1 rounded-xl min-w-[34px]">
+                <span className="text-xs font-black text-foreground leading-none">{timerParts.minutes}</span>
+                <span className="text-[8px] font-extrabold text-muted-foreground uppercase mt-0.5">min</span>
+              </div>
+              <span className="text-xs font-black text-muted-foreground">:</span>
+              <div className="flex flex-col items-center bg-[#FFC700]/15 border border-[#FFC700]/40 px-2 py-1 rounded-xl min-w-[34px]">
+                <span className="text-xs font-black text-[#FFC700] leading-none">{timerParts.seconds}</span>
+                <span className="text-[8px] font-extrabold text-[#FFC700] uppercase mt-0.5">sec</span>
+              </div>
             </div>
-            <div className="min-w-0 leading-tight">
-              <p className="text-[11px] font-black text-foreground truncate">{vehicle.owner || "1st Owner"}</p>
-              <p className="text-[9px] font-semibold text-muted-foreground truncate">Owner Type</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Pricing Footer & Status / CTA Button */}
-        <div className="flex items-center justify-between gap-2 border-t border-slate-200/80 dark:border-slate-800/80 pt-2">
-          <div className="flex items-baseline gap-3 min-w-0">
-            <div className="min-w-0">
-              <span className="text-[8.5px] font-bold text-muted-foreground uppercase tracking-wider block">
-                ACTUAL PRICE
-              </span>
-              <span className="truncate text-xs font-bold text-muted-foreground block mt-0.5">
-                {inr(vehicle.basePrice)}
-              </span>
-            </div>
-            <div className="min-w-0">
-              <span className="text-[8.5px] font-bold text-muted-foreground uppercase tracking-wider block">
-                {isSoldOut ? "WINNING BID" : "HIGHEST BID"}
-              </span>
-              <span className="truncate text-sm font-black text-foreground block mt-0.5">
-                <span className="flex items-center gap-1">
-                  {isComingSoon || !vehicle.highestBid || vehicle.bids === 0
-                    ? "No Bids"
-                    : inr(vehicle.highestBid)}
-                  {isLive && (
-                    <span className="relative flex size-1.5 shrink-0">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full size-1.5 bg-emerald-500"></span>
-                    </span>
-                  )}
-                </span>
-              </span>
-            </div>
-          </div>
-
-          <div className="shrink-0">
-            {isLive ? (
-              <span className="rounded-full bg-[#FFC700] hover:bg-[#FFD633] px-3.5 py-1.5 text-xs font-black text-[#0D0E12] shadow-md shadow-amber-500/20 transition-all hover:scale-105 cursor-pointer flex items-center gap-1.5 animate-pulse">
-                <span>BID NOW</span>
-                <ChevronRight className="size-3.5 stroke-[3]" />
-              </span>
-            ) : (
+          ) : (
+            <div className="shrink-0">
               <StatusChip status={vehicle.auction} />
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
     </Link>

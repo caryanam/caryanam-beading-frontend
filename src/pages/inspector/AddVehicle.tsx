@@ -620,6 +620,15 @@ export function InspectorAddVehicle() {
     insurance: "",
     evaluator: "",
     evalDate: new Date().toLocaleDateString("en-US"),
+    location: "",
+    rtoInformation: "",
+    rsAvailability: "Available (Yes)",
+    duplicateKey: "Yes",
+    rtoNocIssued: "No",
+    underHypothecation: "No",
+    mismatchInRc: "No Mismatch (Clean)",
+    roadTaxPaid: "Individual / One Time",
+    fitnessUpto: "",
   });
 
   const [exteriorState, setExteriorState] = useState<Record<string, string>>(
@@ -815,6 +824,15 @@ export function InspectorAddVehicle() {
             evalDate: v.inspectionDate
               ? new Date(v.inspectionDate).toLocaleDateString("en-US")
               : new Date().toLocaleDateString("en-US"),
+            location: (v as any).location || "",
+            rtoInformation: (v as any).rtoInformation || "",
+            rsAvailability: (v as any).rsAvailability || "Available (Yes)",
+            duplicateKey: (v as any).duplicateKey || "Yes",
+            rtoNocIssued: (v as any).rtoNocIssued || "No",
+            underHypothecation: (v as any).underHypothecation || "No",
+            mismatchInRc: (v as any).mismatchInRc || "No Mismatch (Clean)",
+            roadTaxPaid: (v as any).roadTaxPaid || "Individual / One Time",
+            fitnessUpto: (v as any).fitnessUpto || "",
           });
           setSuggestedPrice(
             v.suggestedPrice ? v.suggestedPrice.toLocaleString("en-IN") : "",
@@ -1016,6 +1034,15 @@ export function InspectorAddVehicle() {
           inspectorCode: basicDetails.evaluator || "",
           suggestedPrice:
             parseFloat(suggestedPrice.replace(/,/g, "")) || undefined,
+          location: basicDetails.location,
+          rtoInformation: basicDetails.rtoInformation,
+          rsAvailability: basicDetails.rsAvailability,
+          duplicateKey: basicDetails.duplicateKey,
+          rtoNocIssued: basicDetails.rtoNocIssued,
+          underHypothecation: basicDetails.underHypothecation,
+          mismatchInRc: basicDetails.mismatchInRc,
+          roadTaxPaid: basicDetails.roadTaxPaid,
+          fitnessUpto: basicDetails.fitnessUpto,
         },
         exteriorPanelDetails: exteriorPanels.map((panelName) => ({
           panelName,
@@ -1345,6 +1372,7 @@ export function InspectorAddVehicle() {
             Step {step + 1} of {steps.length}
           </span>
         </div>
+                
 
         <div className="mt-6 grid grid-cols-2 gap-3.5 sm:grid-cols-5">
           {steps.map((s, idx) => {
@@ -1750,6 +1778,139 @@ export function InspectorAddVehicle() {
                   {errors.suggestedPrice && (
                     <span className="mt-1 block text-xs font-bold text-red-500 px-1">{errors.suggestedPrice}</span>
                   )}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-foreground mb-1.5">
+                    Location
+                  </label>
+                  <input
+                    type="text"
+                    value={basicDetails.location}
+                    onChange={(e) => setBasic("location", e.target.value)}
+                    placeholder="e.g. Mumbai, Maharashtra"
+                    className="w-full rounded-2xl border border-border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all focus:border-[#FFC700] focus:ring-[#FFC700]/30 shadow-soft"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-foreground mb-1.5">
+                    RTO Information
+                  </label>
+                  <input
+                    type="text"
+                    value={basicDetails.rtoInformation}
+                    onChange={(e) => setBasic("rtoInformation", e.target.value)}
+                    placeholder="e.g. MH12 Pune RTO"
+                    className="w-full rounded-2xl border border-border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all focus:border-[#FFC700] focus:ring-[#FFC700]/30 shadow-soft"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-foreground mb-1.5">
+                    RS Availability (Roadside Assistance)
+                  </label>
+                  <select
+                    value={basicDetails.rsAvailability}
+                    onChange={(e) => setBasic("rsAvailability", e.target.value)}
+                    className="w-full rounded-2xl border border-border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all focus:border-[#FFC700] focus:ring-[#FFC700]/30 shadow-soft cursor-pointer"
+                  >
+                    <option value="Available (Yes)">Available (Yes)</option>
+                    <option value="Not Available (No)">Not Available (No)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-foreground mb-1.5">
+                    Duplicate Key Availability
+                  </label>
+                  <select
+                    value={basicDetails.duplicateKey}
+                    onChange={(e) => setBasic("duplicateKey", e.target.value)}
+                    className="w-full rounded-2xl border border-border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all focus:border-[#FFC700] focus:ring-[#FFC700]/30 shadow-soft cursor-pointer"
+                  >
+                    <option value="Yes">Yes</option>
+                    <option value="No">No</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-foreground mb-1.5">
+                    RTO NOC Issued
+                  </label>
+                  <select
+                    value={basicDetails.rtoNocIssued}
+                    onChange={(e) => setBasic("rtoNocIssued", e.target.value)}
+                    className="w-full rounded-2xl border border-border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all focus:border-[#FFC700] focus:ring-[#FFC700]/30 shadow-soft cursor-pointer"
+                  >
+                    <option value="Yes">Yes</option>
+                    <option value="No">No</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-foreground mb-1.5">
+                    Under Hypothecation
+                  </label>
+                  <select
+                    value={basicDetails.underHypothecation}
+                    onChange={(e) => setBasic("underHypothecation", e.target.value)}
+                    className="w-full rounded-2xl border border-border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all focus:border-[#FFC700] focus:ring-[#FFC700]/30 shadow-soft cursor-pointer"
+                  >
+                    <option value="Yes">Yes</option>
+                    <option value="No">No</option>
+                    <option value="N/A">N/A</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-foreground mb-1.5">
+                    Mismatch in RC
+                  </label>
+                  <select
+                    value={basicDetails.mismatchInRc}
+                    onChange={(e) => setBasic("mismatchInRc", e.target.value)}
+                    className="w-full rounded-2xl border border-border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all focus:border-[#FFC700] focus:ring-[#FFC700]/30 shadow-soft cursor-pointer"
+                  >
+                    <option value="No Mismatch (Clean)">No Mismatch (Clean)</option>
+                    <option value="Mismatch (Yes)">Mismatch (Yes)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-foreground mb-1.5">
+                    Road Tax Paid Status
+                  </label>
+                  <select
+                    value={basicDetails.roadTaxPaid}
+                    onChange={(e) => setBasic("roadTaxPaid", e.target.value)}
+                    className="w-full rounded-2xl border border-border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all focus:border-[#FFC700] focus:ring-[#FFC700]/30 shadow-soft cursor-pointer"
+                  >
+                    <option value="Individual / One Time">Individual / One Time</option>
+                    <option value="Limited Period">Limited Period</option>
+                    <option value="N/A">N/A</option>
+                    <option value="Paid">Paid</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-foreground mb-1.5">
+                    Fitness Valid Upto Date (DD-MM-YYYY)
+                  </label>
+                  <input
+                    type="date"
+                    value={basicDetails.fitnessUpto ? (basicDetails.fitnessUpto.includes('-') && basicDetails.fitnessUpto.split('-')[0].length === 2 ? basicDetails.fitnessUpto.split('-').reverse().join('-') : basicDetails.fitnessUpto) : ""}
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      if (raw) {
+                        const [y, m, d] = raw.split('-');
+                        setBasic("fitnessUpto", `${d}-${m}-${y}`);
+                      } else {
+                        setBasic("fitnessUpto", "");
+                      }
+                    }}
+                    className="w-full rounded-2xl border border-border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all focus:border-[#FFC700] focus:ring-[#FFC700]/30 shadow-soft cursor-pointer"
+                  />
                 </div>
               </div>
             </Panel>

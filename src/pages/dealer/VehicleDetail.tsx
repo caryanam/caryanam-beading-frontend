@@ -6,6 +6,16 @@ import { useParams, Link } from "react-router-dom";
 
 import {
 
+  CalendarDays,
+
+  User,
+
+  Cog,
+
+  ShieldCheck,
+
+  TrendingUp,
+
   Heart,
 
   Zap,
@@ -129,7 +139,7 @@ export function DealerVehicleDetail() {
 
   const [remaining, setRemaining] = useState("");
 
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState("car_documents");
 
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
 
@@ -641,6 +651,11 @@ export function DealerVehicleDetail() {
 
     if (!vehicle || submittingBid) return;
 
+    if (isWinner) {
+      toast.info("You already hold the highest bid on this vehicle.");
+      return;
+    }
+
 
 
     const currentHighest = vehicle.highestBid || 0;
@@ -875,11 +890,27 @@ export function DealerVehicleDetail() {
 
 
 
-          const videoList = (raw.inspectionVideos || []).filter(
+          const photoVideos = (raw.inspectionPhotos || [])
+            .filter((p: any) => p && p.captured !== false && (p.imageUrl || p.url) && isActualVideoUrl(p.imageUrl || p.url))
+            .map((p: any) => ({
+              id: p.id,
+              displayName: p.displayName || p.imageCategory || "Engine / Motor Noise Recording",
+              videoUrl: formatMediaUrl(p.imageUrl || p.url),
+              imageUrl: formatMediaUrl(p.imageUrl || p.url),
+              condition: p.condition || "NORMAL",
+            }));
 
-            (vid: any) => vid.videoUrl && vid.captured !== false,
+          const rawVidList = (raw.inspectionVideos || [])
+            .filter((vid: any) => vid && vid.captured !== false && (vid.videoUrl || vid.imageUrl || vid.url))
+            .map((v: any) => ({
+              id: v.id,
+              displayName: v.displayName || v.videoType || "Inspection Video",
+              videoUrl: formatMediaUrl(v.videoUrl || v.imageUrl || v.url),
+              imageUrl: formatMediaUrl(v.videoUrl || v.imageUrl || v.url),
+              condition: v.condition || "NORMAL",
+            }));
 
-          );
+          const videoList = [...photoVideos, ...rawVidList].slice(0, 1);
 
 
 
@@ -903,6 +934,15 @@ export function DealerVehicleDetail() {
             odometer: v.odometerReading || 45000,
 
             insuranceStatus: v.insuranceStatus || "Expired / N/A",
+          location: v.location || "N/A",
+          rtoInformation: v.rtoInformation || v.rto || "N/A",
+          rsAvailability: v.rsAvailability || "N/A",
+          duplicateKey: v.duplicateKey || "N/A",
+          rtoNocIssued: v.rtoNocIssued || "N/A",
+          underHypothecation: v.underHypothecation || "N/A",
+          mismatchInRc: v.mismatchInRc || "N/A",
+          roadTaxPaid: v.roadTaxPaid || "N/A",
+          fitnessUpto: v.fitnessUpto || "N/A",
 
             score: calculatedScore,
 
@@ -1465,17 +1505,12 @@ export function DealerVehicleDetail() {
 
 
   const detailSteps = [
-
-    { id: "overview", title: "Step 1: Vehicle Specs", subtitle: "Specs, insurance & primary photos" },
-
-    { id: "exterior", title: `Step 2: Exterior Body (${exteriorPanels.length})`, subtitle: "Panel conditions & body photos" },
-
-    { id: "mechanical", title: "Step 3: Mechanical", subtitle: "Engine, oil, transmission & brakes" },
-
+    { id: "car_documents", title: "Step 1: Car Documents & Legal", subtitle: "RTO, NOC, Fitness, RC & Tax status" },
+    { id: "exterior", title: `Step 2: Exterior Body (${exteriorPanels.length})`, subtitle: "32-Point panel condition report" },
+    { id: "mechanical", title: "Step 3: Mechanical Health", subtitle: "Engine, transmission & fluids" },
     { id: "tyres", title: "Step 4: Tyres & Toolkit", subtitle: "Tread depth % & emergency tools" },
-
-    { id: "interior", title: "Step 5: Interior & Electrical", subtitle: "Cabin, electricals & remarks" },
-
+    { id: "interior", title: "Step 5: Interior Cabin", subtitle: "Electricals, trim & remarks" },
+    { id: "videos", title: `Step 6: Videos & Sound (${vehicle?.videos?.length || 0})`, subtitle: "Engine noise & video clips" },
   ];
 
 
@@ -1592,123 +1627,91 @@ export function DealerVehicleDetail() {
 
 
 
-        {/* Quick Specs Pill Row */}
-
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-
-          <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3.5 shadow-soft">
-
-            <div className="grid size-10 place-items-center rounded-xl bg-[#FFC700]/15 text-[#FFC700]">
-
-              <Car className="size-5" />
-
-            </div>
-
-            <div>
-
-              <p className="text-[10px] font-extrabold uppercase text-muted-foreground tracking-wider">
-
-                Manufacturing
-
-              </p>
-
-              <p className="text-xs font-black text-foreground mt-0.5">
-
-                {vehicle.year}
-
-              </p>
-
-            </div>
-
-          </div>
-
-
-
-          <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3.5 shadow-soft">
-
-            <div className="grid size-10 place-items-center rounded-xl bg-blue-500/15 text-blue-500">
-
-              <Gauge className="size-5" />
-
-            </div>
-
-            <div>
-
-              <p className="text-[10px] font-extrabold uppercase text-muted-foreground tracking-wider">
-
-                Odometer
-
-              </p>
-
-              <p className="text-xs font-black text-foreground mt-0.5">
-
-                {vehicle.odometer}
-
-              </p>
-
-            </div>
-
-          </div>
-
-
-
-          <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3.5 shadow-soft">
-
-            <div className="grid size-10 place-items-center rounded-xl bg-emerald-500/15 text-emerald-500">
-
-              <Fuel className="size-5" />
-
-            </div>
-
-            <div>
-
-              <p className="text-[10px] font-extrabold uppercase text-muted-foreground tracking-wider">
-
-                Fuel Type
-
-              </p>
-
-              <p className="text-xs font-black text-foreground mt-0.5">
-
-                {vehicle.fuel}
-
-              </p>
-
-            </div>
-
-          </div>
-
-
-
-          <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3.5 shadow-soft">
-
-            <div className="grid size-10 place-items-center rounded-xl bg-purple-500/15 text-purple-500">
-
-              <Settings2 className="size-5" />
-
-            </div>
-
-            <div>
-
-              <p className="text-[10px] font-extrabold uppercase text-muted-foreground tracking-wider">
-
-                Transmission
-
-              </p>
-
-              <p className="text-xs font-black text-foreground mt-0.5">
-
-                {vehicle.transmission}
-
-              </p>
-
-            </div>
-
-          </div>
-
+        {/* 10 Overview Specs Cards Grid (Matching Mobile Application Specs) */}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+          {[
+            {
+              label: "REGISTRATION YEAR",
+              value: vehicle.registrationYear ? String(vehicle.registrationYear) : "N/A",
+              icon: CalendarDays,
+              color: "text-amber-500 bg-amber-500/15",
+            },
+            {
+              label: "OWNERSHIP",
+              value: vehicle.owner || "1st Owner",
+              icon: User,
+              color: "text-indigo-500 bg-indigo-500/15",
+            },
+            {
+              label: "MANUFACTURING",
+              value: vehicle.year ? String(vehicle.year) : "N/A",
+              icon: Car,
+              color: "text-[#FFC700] bg-[#FFC700]/15",
+            },
+            {
+              label: "VARIANT & TRIM",
+              value: vehicle.variant || "Standard",
+              icon: Cog,
+              color: "text-purple-500 bg-purple-500/15",
+            },
+            {
+              label: "FUEL TYPE",
+              value: vehicle.fuel || "N/A",
+              icon: Fuel,
+              color: "text-emerald-500 bg-emerald-500/15",
+            },
+            {
+              label: "TRANSMISSION",
+              value: vehicle.transmission || "N/A",
+              icon: Settings2,
+              color: "text-purple-500 bg-purple-500/15",
+            },
+            {
+              label: "ODOMETER",
+              value: vehicle.odometer ? `${Number(vehicle.odometer).toLocaleString("en-IN")} km` : "N/A",
+              icon: Gauge,
+              color: "text-blue-500 bg-blue-500/15",
+            },
+            {
+              label: "INSURANCE STATUS",
+              value: vehicle.insuranceStatus || "Expired / N/A",
+              icon: ShieldCheck,
+              color: "text-teal-500 bg-teal-500/15",
+            },
+            {
+              label: "LOCATION",
+              value: vehicle.location || "N/A",
+              icon: MapPin,
+              color: "text-rose-500 bg-rose-500/15",
+            },
+            {
+              label: "BASE PRICE",
+              value: inr(vehicle.basePrice),
+              icon: TrendingUp,
+              color: "text-[#FFC700] bg-[#FFC700]/15",
+            },
+          ].map((item, idx) => {
+            const IconComp = item.icon;
+            return (
+              <div
+                key={idx}
+                className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3.5 shadow-soft hover:border-[#FFC700]/40 transition-all"
+              >
+                <div className={`grid size-10 place-items-center rounded-xl shrink-0 ${item.color}`}>
+                  <IconComp className="size-5" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[10px] font-extrabold uppercase text-muted-foreground tracking-wider truncate">
+                    {item.label}
+                  </p>
+                  <p className="text-xs font-black text-foreground mt-0.5 truncate">
+                    {item.value}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
         </div>
-
-
 
         {/* Main Grid: Left Gallery & Details, Right Live Bidding Panel */}
 
@@ -1884,7 +1887,7 @@ export function DealerVehicleDetail() {
 
             {/* 5-Step Stepper Tabs Bar (Placed directly down to the main image gallery) */}
 
-            <div className="grid gap-2.5 grid-cols-2 sm:grid-cols-5">
+            <div className="grid gap-2.5 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
 
               {detailSteps.map((s, idx) => {
 
@@ -1960,195 +1963,40 @@ export function DealerVehicleDetail() {
 
             {/* STEP 1: Overview & Specs */}
 
-            {activeTab === "overview" && (
-
-              <div className="space-y-6">
-
-                <div className="mb-4 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-[#FFC700]/30 bg-[#FFC700]/10 p-4">
-            <div>
-              <h4 className="text-sm font-extrabold text-foreground">200-Point Certified Inspection Report</h4>
-              <p className="text-xs font-semibold text-muted-foreground">Download complete vehicle evaluation PDF with specs, ratings & photos.</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => downloadDealerInspectionPdf(Number(vehicle?.id || vehicleId))}
-              className="flex items-center gap-2 rounded-xl bg-[#FFC700] hover:bg-[#FFD633] px-4 py-2.5 text-xs font-black text-[#0D0E12] transition-all cursor-pointer shadow-md shrink-0"
-            >
-              <Download className="size-4" /> Download PDF Report
-            </button>
-          </div>
-          <Panel title="Step 1: Vehicle Specifications">
-
-                  <dl className="grid gap-4 sm:grid-cols-3">
-
-                    {[
-
-                      ["Manufacturing Year", String(vehicle.year)],
-                      ["Registration Year", vehicle.registrationYear ? String(vehicle.registrationYear) : "N/A"],
-
-                      ["Variant & Trim", vehicle.variant || "Standard"],
-
-                      ["Fuel Type", vehicle.fuel],
-
-                      ["Transmission", vehicle.transmission],
-
-                      [
-
-                        "Odometer Reading",
-
-                        `${vehicle.odometer}`,
-
-                      ],
-
-                      ["Insurance Status", vehicle.insuranceStatus || "Expired / N/A"],
-
-                      ["Ownership", vehicle.owner || "1st Owner"],
-
-                      ["Base Price", inr(vehicle.basePrice)],
-
-                    ].map(([k, val]) => (
-
-                      <div
-
-                        key={k}
-
-                        className="rounded-2xl bg-secondary/50 p-4 border border-border/60"
-
+            {activeTab === "car_documents" && (
+              <Panel
+                title="Car Documents & Legal Status"
+                description="RTO, NOC, Fitness Date, RC Mismatch, Tax and Hypothecation details."
+              >
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                  {[
+                    { label: "Location", value: vehicle.location || "N/A" },
+                    { label: "RTO Information", value: vehicle.rtoInformation || "N/A" },
+                    { label: "Roadside Assistance (RS)", value: vehicle.rsAvailability || "N/A" },
+                    { label: "Duplicate Key", value: vehicle.duplicateKey || "N/A" },
+                    { label: "RTO NOC Issued", value: vehicle.rtoNocIssued || "N/A" },
+                    { label: "Under Hypothecation", value: vehicle.underHypothecation || "N/A" },
+                    { label: "Mismatch in RC", value: vehicle.mismatchInRc || "N/A" },
+                    { label: "Road Tax Paid Status", value: vehicle.roadTaxPaid || "N/A" },
+                    { label: "Fitness Valid Upto Date", value: vehicle.fitnessUpto || "N/A", isDate: true },
+                  ].map((doc) => (
+                    <div
+                      key={doc.label}
+                      className="rounded-2xl border border-border bg-card p-4 shadow-soft flex flex-col justify-between gap-2"
+                    >
+                      <span className="text-xs font-extrabold text-muted-foreground uppercase">
+                        {doc.label}
+                      </span>
+                      <span
+                        className={`text-sm font-black ${doc.isDate ? "text-amber-500 font-mono" : "text-foreground"}`}
                       >
-
-                        <dt className="text-xs text-muted-foreground font-semibold">
-
-                          {k}
-
-                        </dt>
-
-                        <dd className="truncate text-sm font-extrabold text-foreground mt-1">
-
-                          {val}
-
-                        </dd>
-
-                      </div>
-
-                    ))}
-
-                  </dl>
-
-                </Panel>
-
-
-
-                {/* Primary Exterior Angle Photos */}
-
-                <Panel
-
-                  title="Primary Inspection Photos"
-
-                  description="High-resolution mandatory vehicle angle photos."
-
-                >
-
-                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-
-                    {[
-
-                      { keys: ["FRONT_VIEW", "FRONT"], label: "Front Angle Photo" },
-
-                      { keys: ["RIGHT_FRONT_VIEW", "RIGHT"], label: "Right Side Angle Photo" },
-
-                      { keys: ["REAR_VIEW", "REAR"], label: "Rear Angle Photo" },
-
-                      { keys: ["LEFT_FRONT_VIEW", "LEFT"], label: "Left Side Angle Photo" },
-
-                      { keys: ["ROOF_VIEW", "ROOF"], label: "Roof Top Photo" },
-
-                      { keys: ["ODOMETER_IMAGE", "ODOMETER"], label: "Odometer Cluster Photo" },
-
-                    ].map((slot) => {
-
-                      const imgUrl = findMatchingPhoto(slot.keys);
-
-                      return (
-
-                        <div
-
-                          key={slot.label}
-
-                          className="rounded-2xl border border-border bg-card p-3.5 shadow-soft flex flex-col gap-2"
-
-                        >
-
-                          <span className="text-xs font-extrabold text-foreground truncate">
-
-                            {slot.label}
-
-                          </span>
-
-                          <div className="relative group aspect-[16/10] w-full overflow-hidden rounded-xl border border-border bg-secondary shadow-inner flex items-center justify-center">
-
-                            {imgUrl ? (
-
-                              <>
-
-                                <img
-
-                                  src={imgUrl}
-
-                                  alt={slot.label}
-
-                                  className="size-full object-cover transition-transform duration-300 group-hover:scale-105"
-
-                                />
-
-                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-
-                                  <button
-
-                                    type="button"
-
-                                    onClick={() => window.open(imgUrl, "_blank")}
-
-                                    className="inline-flex items-center gap-1 rounded-xl bg-[#FFC700] text-[#0D0E12] px-3 py-1.5 text-[11px] font-black shadow-md hover:bg-[#FFD633] transition-all cursor-pointer"
-
-                                  >
-
-                                    <Eye className="size-3.5" /> View Photo
-
-                                  </button>
-
-                                </div>
-
-                              </>
-
-                            ) : (
-
-                              <div className="flex size-full items-center justify-center text-[10px] text-muted-foreground font-bold">
-
-                                Photo Available in Lightbox
-
-                              </div>
-
-                            )}
-
-                          </div>
-
-                        </div>
-
-                      );
-
-                    })}
-
-                  </div>
-
-                </Panel>
-
-              </div>
-
+                        {doc.value}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </Panel>
             )}
-
-
-
-            {/* STEP 2: Exterior Body Panels */}
 
             {activeTab === "exterior" && (
 
@@ -3170,477 +3018,289 @@ export function DealerVehicleDetail() {
 
             )}
 
+
+
+            {activeTab === "videos" && (
+              <div className="space-y-6">
+                <Panel
+                  title="🎥 Inspection Videos & Engine Noise Recordings"
+                  description="200-point inspection sound recordings and video clips."
+                >
+                  {(vehicle.videos || []).length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {(vehicle.videos || []).map((vid: any, idx: number) => {
+                        const vUrl = vid.videoUrl || vid.imageUrl || vid.url;
+                        const formattedUrl = vUrl ? formatMediaUrl(vUrl) : null;
+                        return (
+                          <div key={idx} className="rounded-2xl border border-border bg-card p-4 shadow-soft space-y-3">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-black text-foreground">
+                                {vid.displayName || vid.videoType || `Engine Noise Clip #${idx + 1}`}
+                              </span>
+                              <span className="rounded-lg bg-emerald-500/10 text-emerald-600 px-2 py-0.5 text-[10px] font-black uppercase">
+                                {vid.condition || "NORMAL"}
+                              </span>
+                            </div>
+                            <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-black border border-border flex items-center justify-center">
+                              {formattedUrl ? (
+                                <video src={formattedUrl} controls className="size-full object-contain" />
+                              ) : (
+                                <span className="text-xs text-muted-foreground font-bold">No Video File</span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="rounded-2xl border border-dashed border-border p-8 text-center text-xs font-bold text-muted-foreground">
+                      No video recordings attached for this vehicle.
+                    </div>
+                  )}
+                </Panel>
+              </div>
+            )}
+
           </div>
 
-
-
           {/* High-Stakes Live Bidding Sidebar */}
-
           <div className="space-y-5">
-
             {/* Live Bidding Box */}
-
             <div
-
               className={`rounded-3xl p-6 text-white border transition-all duration-300 relative overflow-hidden ${isWinner
-
                 ? "bg-[#062419] border-emerald-500/60 shadow-[0_0_30px_rgba(16,185,129,0.25)] before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.25),transparent_65%)]"
-
                 : participated
-
                   ? "bg-[#230d12] border-rose-500/50 shadow-[0_0_25px_rgba(244,63,94,0.2)] before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_top_right,rgba(244,63,94,0.2),transparent_65%)]"
-
                   : "surface-dark border-[#FFC700]/40 shadow-lift before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_top_right,rgba(255,199,0,0.2),transparent_65%)]"
-
                 }`}
-
             >
-
               {/* Header Status */}
-
               <div className="relative z-10 flex items-center justify-between gap-3 border-b border-white/10 pb-4">
-
                 <StatusChip status={vehicle.auction} />
-
                 {isWinner ? (
-
                   <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/50 text-emerald-300 font-extrabold text-xs animate-pulse">
-
                     <Sparkles className="size-3.5 text-emerald-400" />
-
                     <span>You are Highest on Bid!</span>
-
                   </div>
-
                 ) : participated ? (
-
                   <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/20 border border-rose-400/50 text-rose-300 font-extrabold text-xs">
-
                     <AlertTriangle className="size-3.5 text-rose-400" />
-
                     <span>You are Outbid</span>
-
                   </div>
-
                 ) : null}
-
               </div>
-
-
 
               {/* Price & Bid Display */}
-
               <div className="relative z-10 my-5 space-y-4">
-
                 <div className="flex items-baseline justify-between gap-2">
-
                   <div>
-
                     <p className={`text-[10px] font-extrabold tracking-widest uppercase ${isWinner ? "text-emerald-400" : participated ? "text-rose-400" : "text-[#FFC700]"
-
                       }`}>
-
                       Highest Bid
-
                     </p>
-
                     <p className="mt-1 text-3xl font-black text-white tracking-tight">
-
                       {isComingSoon || !vehicle.highestBid
-
                         ? "No Bids Yet"
-
                         : inr(vehicle.highestBid)}
-
                     </p>
-
                   </div>
-
                   <div className="text-right">
-
                     <p className="text-[10px] font-bold text-white/50 uppercase">
-
                       Actual Price
-
                     </p>
-
                     <p className="mt-1 text-xs font-bold text-white/80">
-
                       {inr(vehicle.basePrice)}
-
                     </p>
-
                   </div>
-
                 </div>
-
-
 
                 {isLive && (
-
                   <div className="flex items-center justify-between rounded-2xl bg-white/5 border border-white/10 px-4 py-3">
-
                     <span className="text-xs font-bold text-white/70 flex items-center gap-1.5">
-
                       <Clock className="size-4 text-[#FFC700]" /> Closing In
-
                     </span>
-
                     <span className="text-base font-black text-[#FFC700] tracking-wide">
-
                       {remaining}
-
                     </span>
-
                   </div>
-
                 )}
-
               </div>
 
-
-
               {isComingSoon ? (
-
                 <div className="relative z-10 rounded-2xl border border-[#FFC700]/30 bg-[#FFC700]/10 p-5 text-center space-y-2">
-
                   <Clock className="size-8 text-[#FFC700] mx-auto animate-bounce" />
-
                   <p className="text-sm font-extrabold text-white">
-
                     Bidding Opening Soon
-
                   </p>
-
                 </div>
-
               ) : isEnded ? (
-
                 <div className="relative z-10 rounded-2xl border p-5 bg-white/5 border-white/10 space-y-2 text-center">
-
                   {noBids ? (
-
                     <>
-
                       <p className="text-sm font-black text-amber-400 flex items-center gap-1.5 justify-center">
-
                         <AlertTriangle className="size-4" /> Unsold
-
                       </p>
-
                       <p className="text-xs text-white/70 font-semibold">
-
                         The live bidding ended with no active bids placed.
-
                       </p>
-
                     </>
-
                   ) : isWinner ? (
-
                     <>
-
                       <p className="text-sm font-black text-emerald-400 flex items-center gap-1.5 justify-center animate-bounce">
-
                         <Trophy className="size-4" /> Bid Winner!
-
                       </p>
-
                       <p className="text-xs text-white/95 font-semibold leading-relaxed">
-
                         Congratulations! You won the bidding for this vehicle with
-
                         the highest bid of{" "}
-
                         <strong className="text-emerald-300">
-
                           {inr(vehicle.highestBid)}
-
                         </strong>
-
                         !
-
                       </p>
-
                     </>
-
                   ) : participated ? (
-
                     <>
-
                       <p className="text-sm font-black text-rose-400 flex items-center gap-1.5 justify-center">
-
-                        âŒ Outbid / Lost
-
+                        Outbid / Lost
                       </p>
-
                       <p className="text-xs text-white/70 font-semibold leading-relaxed">
-
                         You participated in this room, but another dealer won with
-
                         the highest bid of {inr(vehicle.highestBid)}.
-
                       </p>
-
                     </>
-
                   ) : (
-
                     <>
-
                       <p className="text-sm font-black text-white/80 flex items-center gap-1.5 justify-center">
-
                         Bid Closed
-
                       </p>
-
                       <p className="text-xs text-white/70 font-semibold leading-relaxed">
-
                         This live bidding is now closed. Sold for{" "}
-
                         {inr(vehicle.highestBid)}.
-
                       </p>
-
                     </>
-
                   )}
 
                   {/* Admin Message for Winning Dealer */}
-
                   {vehicle.adminDealerMessage && isWinner && (
-
                     <div className="mt-4 border-t border-white/10 pt-3 text-left space-y-2">
-
                       <div className="flex items-center gap-1.5 text-blue-400 font-extrabold text-xs">
-
                         <Sparkles className="size-3.5" />
-
                         <span>Admin Message to Dealer:</span>
-
                       </div>
-
                       <p className="text-xs text-white/90 font-semibold bg-blue-500/10 p-2.5 rounded-xl border border-blue-500/30">
-
                         "{vehicle.adminDealerMessage}"
-
                       </p>
 
-
-
                       <div className="space-y-2 pt-1">
-
                         <input
-
                           type="text"
-
                           placeholder="Type reply back to Admin..."
-
                           value={dealerReplyText}
-
                           onChange={(e) => setDealerReplyText(e.target.value)}
-
                           className="w-full rounded-xl bg-black/40 border border-white/20 px-3 py-2 text-xs font-semibold text-white placeholder:text-white/40 focus:outline-none focus:border-blue-400"
-
                         />
-
                         <button
-
                           type="button"
-
                           disabled={submittingReply}
-
                           onClick={handleSendDealerReply}
-
                           className="w-full rounded-xl bg-blue-500 hover:bg-blue-400 text-white font-black py-2 text-xs shadow-md cursor-pointer disabled:opacity-50"
-
                         >
-
                           {submittingReply ? "Sending..." : "Send Reply to Admin"}
-
                         </button>
-
                       </div>
-
-
 
                       {vehicle.dealerReplyMessage && (
-
                         <div className="rounded-xl bg-emerald-400/10 border border-emerald-400/30 p-2 text-[11px] font-semibold text-emerald-300">
-
                           <span className="font-extrabold block">Your Reply Sent to Admin:</span>
-
                           "{vehicle.dealerReplyMessage}"
-
                         </div>
-
                       )}
-
                     </div>
-
                   )}
-
                 </div>
-
               ) : (
-
                 <div className="relative z-10 space-y-4">
-
                   {isWinner ? (
-
-                    <div className="rounded-2xl bg-emerald-500/20 border border-emerald-500/40 p-3.5 flex items-center gap-3 text-emerald-200">
-
+                    <div className="rounded-2xl bg-emerald-500/20 border border-emerald-500/40 p-4 flex items-center gap-3 text-emerald-200">
                       <Sparkles className="size-5 shrink-0 text-emerald-400 animate-bounce" />
-
                       <div>
-
                         <p className="text-xs font-black text-emerald-300 uppercase tracking-wide">You are on Top!</p>
-
-                        <p className="text-[11px] font-semibold text-emerald-200/90">You currently hold the highest bid on this vehicle.</p>
-
+                        <p className="text-[11px] font-semibold text-emerald-200/90">You currently hold the highest bid of {inr(vehicle.highestBid)} on this vehicle. You cannot place another bid while on top.</p>
                       </div>
-
                     </div>
+                  ) : (
+                    <>
+                      {participated ? (
+                        <div className="rounded-2xl bg-rose-500/20 border border-rose-500/40 p-3.5 flex items-center gap-3 text-rose-200">
+                          <AlertTriangle className="size-5 shrink-0 text-rose-400" />
+                          <div>
+                            <p className="text-xs font-black text-rose-300 uppercase tracking-wide">You are Outbid!</p>
+                            <p className="text-[11px] font-semibold text-rose-200/90">Another dealer placed a higher bid. Place a bid to take back top position.</p>
+                          </div>
+                        </div>
+                      ) : null}
 
-                  ) : participated ? (
-
-                    <div className="rounded-2xl bg-rose-500/20 border border-rose-500/40 p-3.5 flex items-center gap-3 text-rose-200">
-
-                      <AlertTriangle className="size-5 shrink-0 text-rose-400" />
-
+                      {/* Quick Bid Increment Buttons */}
                       <div>
-
-                        <p className="text-xs font-black text-rose-300 uppercase tracking-wide">You are Outbid!</p>
-
-                        <p className="text-[11px] font-semibold text-rose-200/90">Another dealer placed a higher bid. Place a bid to take back top position.</p>
-
+                        <label className="block text-[11px] font-bold text-white/70 uppercase tracking-wider mb-2">
+                          Quick Bid Increment
+                        </label>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => addQuickIncrement(2000)}
+                            className="rounded-xl border border-[#FFC700]/30 bg-[#101216] hover:bg-[#FFC700] hover:text-[#0D0E12] hover:border-[#FFC700] py-2 text-xs font-black transition-all cursor-pointer text-[#FFC700]"
+                          >
+                            +2k
+                          </button>
+                        </div>
                       </div>
 
-                    </div>
-
-                  ) : null}
-
-                  {/* Quick Bid Increment Buttons */}
-
-                  <div>
-
-                    <label className="block text-[11px] font-bold text-white/70 uppercase tracking-wider mb-2">
-
-                      Quick Bid Increment
-
-                    </label>
-
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {/* Input field */}
+                      <div className="space-y-1.5">
+                        <label className="block text-xs font-bold text-white/80">
+                          Enter Bid Amount ₹
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#FFC700] font-black">
+                            ₹
+                          </span>
+                          <input
+                            type="number"
+                            value={amount}
+                            step={2000}
+                            onChange={(e) => setAmount(Number(e.target.value))}
+                            className="w-full rounded-2xl border border-[#FFC700]/40 bg-white/10 pl-9 pr-4 py-3.5 text-lg font-black text-white outline-none focus:border-[#FFC700] focus:ring-2 focus:ring-[#FFC700]/40"
+                          />
+                        </div>
+                      </div>
 
                       <button
-
-                        type="button"
-
-                        onClick={() => addQuickIncrement(2000)}
-
-                        className="rounded-xl border border-[#FFC700]/30 bg-[#101216] hover:bg-[#FFC700] hover:text-[#0D0E12] hover:border-[#FFC700] py-2 text-xs font-black transition-all cursor-pointer text-[#FFC700]"
-
+                        onClick={handlePlaceBid}
+                        disabled={submittingBid}
+                        className="w-full rounded-2xl bg-[#FFC700] hover:bg-[#FFD633] py-4 text-sm font-black text-[#0D0E12] shadow-[0_4px_20px_rgba(255,199,0,0.4)] transition-all hover:shadow-[0_6px_24px_rgba(255,199,0,0.55)] hover:scale-[1.01] active:scale-[0.99] cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                       >
-
-                        +2k
-
+                        {submittingBid ? (
+                          <>
+                            <span className="animate-spin inline-block size-4 border-2 border-[#0D0E12] border-t-transparent rounded-full" />
+                            <span>Submitting Bid...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Zap className="size-4 fill-current" /> Submit Live Bid
+                          </>
+                        )}
                       </button>
-
-                    </div>
-
-                  </div>
-
-
-
-                  {/* Input field */}
-
-                  <div className="space-y-1.5">
-
-                    <label className="block text-xs font-bold text-white/80">
-
-                      Enter Bid Amount ₹
-
-                    </label>
-
-                    <div className="relative">
-
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#FFC700] font-black">
-
-                        ₹
-
-                      </span>
-
-                      <input
-
-                        type="number"
-
-                        value={amount}
-
-                        step={2000}
-
-                        onChange={(e) => setAmount(Number(e.target.value))}
-
-                        className="w-full rounded-2xl border border-[#FFC700]/40 bg-white/10 pl-9 pr-4 py-3.5 text-lg font-black text-white outline-none focus:border-[#FFC700] focus:ring-2 focus:ring-[#FFC700]/40"
-
-                      />
-
-                    </div>
-
-                  </div>
-
-
-
-                  <button
-
-                    onClick={handlePlaceBid}
-
-                    disabled={submittingBid}
-
-                    className="w-full rounded-2xl bg-[#FFC700] hover:bg-[#FFD633] py-4 text-sm font-black text-[#0D0E12] shadow-[0_4px_20px_rgba(255,199,0,0.4)] transition-all hover:shadow-[0_6px_24px_rgba(255,199,0,0.55)] hover:scale-[1.01] active:scale-[0.99] cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-
-                  >
-
-                    {submittingBid ? (
-
-                      <>
-
-                        <span className="animate-spin inline-block size-4 border-2 border-[#0D0E12] border-t-transparent rounded-full" />
-
-                        <span>Submitting Bid...</span>
-
-                      </>
-
-                    ) : (
-
-                      <>
-
-                        <Zap className="size-4 fill-current" /> Submit Live Bid
-
-                      </>
-
-                    )}
-
-                  </button>
-
-
-
+                    </>
+                  )}
                 </div>
-
               )}
-
             </div>
-
-
-
-
-
           </div>
 
         </div>
 
       </div>
-
-
 
       {/* Lightbox Preview Modal */}
 

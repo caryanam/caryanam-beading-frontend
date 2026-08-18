@@ -45,7 +45,7 @@ export function Contact() {
               </div>
               <div>
                 <span className="text-xs font-bold text-muted-foreground block uppercase tracking-wider">Mobile Contact Number</span>
-                <span className="font-mono font-black text-foreground text-lg sm:text-xl block mt-1">+91 7030682123</span>
+                <span className="font-mono font-black text-foreground text-lg sm:text-xl block mt-1">+91 7755994123</span>
               </div>
             </div>
 
