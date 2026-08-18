@@ -807,8 +807,8 @@ export function InspectorAddVehicle() {
 
         if (v) {
           setBasicDetails({
-            customerName: (v as any).customerName || "",
-            customerMobile: (v as any).customerMobileNumber || "",
+            customerName: v.customerName || "",
+            customerMobile: v.customerMobileNumber || "",
             ownerName: v.ownerName || "1st Owner",
             brand: v.brand || "",
             model: v.model || "",
@@ -824,15 +824,15 @@ export function InspectorAddVehicle() {
             evalDate: v.inspectionDate
               ? new Date(v.inspectionDate).toLocaleDateString("en-US")
               : new Date().toLocaleDateString("en-US"),
-            location: (v as any).location || "",
-            rtoInformation: (v as any).rtoInformation || "",
-            rsAvailability: (v as any).rsAvailability || "Available (Yes)",
-            duplicateKey: (v as any).duplicateKey || "Yes",
-            rtoNocIssued: (v as any).rtoNocIssued || "No",
-            underHypothecation: (v as any).underHypothecation || "No",
-            mismatchInRc: (v as any).mismatchInRc || "No Mismatch (Clean)",
-            roadTaxPaid: (v as any).roadTaxPaid || "Individual / One Time",
-            fitnessUpto: (v as any).fitnessUpto || "",
+            location: v.location || "",
+            rtoInformation: v.rtoInformation || "",
+            rsAvailability: v.rsAvailability || "Available (Yes)",
+            duplicateKey: v.duplicateKey || "Yes",
+            rtoNocIssued: v.rtoNocIssued || "No",
+            underHypothecation: v.underHypothecation || "No",
+            mismatchInRc: v.mismatchInRc || "No Mismatch (Clean)",
+            roadTaxPaid: v.roadTaxPaid || "Individual / One Time",
+            fitnessUpto: v.fitnessUpto || "",
           });
           setSuggestedPrice(
             v.suggestedPrice ? v.suggestedPrice.toLocaleString("en-IN") : "",

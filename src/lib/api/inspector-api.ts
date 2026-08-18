@@ -50,6 +50,16 @@ export interface VehicleDraft {
   insuranceStatus?: string;
   inspectorCode?: string;
   suggestedPrice?: number;
+  location?: string;
+  rtoInformation?: string;
+  rsAvailability?: string;
+  duplicateKey?: string;
+  rtoNocIssued?: string;
+  underHypothecation?: string;
+  mismatchInRc?: string;
+  roadTaxPaid?: string;
+  fitnessUpto?: string;
+  inspectionDate?: string;
 }
 
 export interface PanelDraft {
