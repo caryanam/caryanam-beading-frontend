@@ -622,12 +622,12 @@ export function InspectorAddVehicle() {
     evalDate: new Date().toLocaleDateString("en-US"),
     location: "",
     rtoInformation: "",
-    rsAvailability: "Available (Yes)",
-    duplicateKey: "Yes",
-    rtoNocIssued: "No",
-    underHypothecation: "No",
-    mismatchInRc: "No Mismatch (Clean)",
-    roadTaxPaid: "Individual / One Time",
+    rsAvailability: "",
+    duplicateKey: "",
+    rtoNocIssued: "",
+    underHypothecation: "",
+    mismatchInRc: "",
+    roadTaxPaid: "",
     fitnessUpto: "",
   });
 
@@ -713,6 +713,7 @@ export function InspectorAddVehicle() {
         newErrors.variant = "Model Variant must be at least 2 characters.";
       }
       if (!basicDetails.year) newErrors.year = "Manufacturing Year is required.";
+      if (!basicDetails.regYear) newErrors.regYear = "Registration Year is required.";
       if (!basicDetails.fuel) newErrors.fuel = "Fuel Type is required.";
       if (!basicDetails.transmission) newErrors.transmission = "Transmission is required.";
       if (!basicDetails.odometer) newErrors.odometer = "Odometer Reading is required.";
@@ -723,6 +724,15 @@ export function InspectorAddVehicle() {
       } else if (isNaN(Number(suggestedPrice.replace(/,/g, "")))) {
         newErrors.suggestedPrice = "Please enter a valid numeric price.";
       }
+      if (!basicDetails.location) newErrors.location = "Location is required.";
+      if (!basicDetails.rtoInformation) newErrors.rtoInformation = "RTO Information is required.";
+      if (!basicDetails.rsAvailability) newErrors.rsAvailability = "RS Availability is required.";
+      if (!basicDetails.duplicateKey) newErrors.duplicateKey = "Duplicate Key Availability is required.";
+      if (!basicDetails.rtoNocIssued) newErrors.rtoNocIssued = "RTO NOC Issued status is required.";
+      if (!basicDetails.underHypothecation) newErrors.underHypothecation = "Under Hypothecation status is required.";
+      if (!basicDetails.mismatchInRc) newErrors.mismatchInRc = "Mismatch in RC status is required.";
+      if (!basicDetails.roadTaxPaid) newErrors.roadTaxPaid = "Road Tax Paid status is required.";
+      if (!basicDetails.fitnessUpto) newErrors.fitnessUpto = "Fitness Valid Upto Date is required.";
     } else if (stepIndex === 1) {
       const extSlots = ["frontSide", "rightSide", "rearSide", "leftSide", "roofTop"];
       extSlots.forEach((slot) => {
@@ -1607,12 +1617,17 @@ export function InspectorAddVehicle() {
 
                 <div>
                   <label className="block text-xs font-bold text-foreground mb-1.5">
-                    Registration Year
+                    Registration Year <span className="text-rose-500">*</span>
                   </label>
                   <select
                     value={basicDetails.regYear}
                     onChange={(e) => setBasic("regYear", e.target.value)}
-                    className="w-full rounded-2xl border border-border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all focus:ring-2 focus:border-[#FFC700] focus:ring-[#FFC700]/30 shadow-soft cursor-pointer"
+                    className={cn(
+                      "w-full rounded-2xl border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all focus:ring-2 shadow-soft cursor-pointer",
+                      errors.regYear
+                        ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
+                        : "border-border hover:border-[#FFC700]/60 focus:border-[#FFC700] focus:ring-[#FFC700]/30",
+                    )}
                   >
                     <option value="">Select Registration Year</option>
                     {Array.from(
@@ -1624,6 +1639,9 @@ export function InspectorAddVehicle() {
                       </option>
                     ))}
                   </select>
+                  {errors.regYear && (
+                    <span className="mt-1 block text-xs font-bold text-red-500 px-1">{errors.regYear}</span>
+                  )}
                 </div>
 
                 <div>
@@ -1782,120 +1800,190 @@ export function InspectorAddVehicle() {
 
                 <div>
                   <label className="block text-xs font-bold text-foreground mb-1.5">
-                    Location
+                    Location <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="text"
                     value={basicDetails.location}
                     onChange={(e) => setBasic("location", e.target.value)}
                     placeholder="e.g. Mumbai, Maharashtra"
-                    className="w-full rounded-2xl border border-border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all focus:border-[#FFC700] focus:ring-[#FFC700]/30 shadow-soft"
+                    className={cn(
+                      "w-full rounded-2xl border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all focus:ring-2 shadow-soft",
+                      errors.location
+                        ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
+                        : "border-border hover:border-[#FFC700]/60 focus:border-[#FFC700] focus:ring-[#FFC700]/30",
+                    )}
                   />
+                  {errors.location && (
+                    <span className="mt-1 block text-xs font-bold text-red-500 px-1">{errors.location}</span>
+                  )}
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-foreground mb-1.5">
-                    RTO Information
+                    RTO Information <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="text"
                     value={basicDetails.rtoInformation}
                     onChange={(e) => setBasic("rtoInformation", e.target.value)}
                     placeholder="e.g. MH12 Pune RTO"
-                    className="w-full rounded-2xl border border-border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all focus:border-[#FFC700] focus:ring-[#FFC700]/30 shadow-soft"
+                    className={cn(
+                      "w-full rounded-2xl border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all focus:ring-2 shadow-soft",
+                      errors.rtoInformation
+                        ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
+                        : "border-border hover:border-[#FFC700]/60 focus:border-[#FFC700] focus:ring-[#FFC700]/30",
+                    )}
                   />
+                  {errors.rtoInformation && (
+                    <span className="mt-1 block text-xs font-bold text-red-500 px-1">{errors.rtoInformation}</span>
+                  )}
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-foreground mb-1.5">
-                    RS Availability (Roadside Assistance)
+                    RS Availability (Roadside Assistance) <span className="text-rose-500">*</span>
                   </label>
                   <select
                     value={basicDetails.rsAvailability}
                     onChange={(e) => setBasic("rsAvailability", e.target.value)}
-                    className="w-full rounded-2xl border border-border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all focus:border-[#FFC700] focus:ring-[#FFC700]/30 shadow-soft cursor-pointer"
+                    className={cn(
+                      "w-full rounded-2xl border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all focus:ring-2 shadow-soft cursor-pointer",
+                      errors.rsAvailability
+                        ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
+                        : "border-border hover:border-[#FFC700]/60 focus:border-[#FFC700] focus:ring-[#FFC700]/30",
+                    )}
                   >
+                    <option value="">Select RS Availability</option>
                     <option value="Available (Yes)">Available (Yes)</option>
                     <option value="Not Available (No)">Not Available (No)</option>
                   </select>
+                  {errors.rsAvailability && (
+                    <span className="mt-1 block text-xs font-bold text-red-500 px-1">{errors.rsAvailability}</span>
+                  )}
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-foreground mb-1.5">
-                    Duplicate Key Availability
+                    Duplicate Key Availability <span className="text-rose-500">*</span>
                   </label>
                   <select
                     value={basicDetails.duplicateKey}
                     onChange={(e) => setBasic("duplicateKey", e.target.value)}
-                    className="w-full rounded-2xl border border-border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all focus:border-[#FFC700] focus:ring-[#FFC700]/30 shadow-soft cursor-pointer"
+                    className={cn(
+                      "w-full rounded-2xl border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all focus:ring-2 shadow-soft cursor-pointer",
+                      errors.duplicateKey
+                        ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
+                        : "border-border hover:border-[#FFC700]/60 focus:border-[#FFC700] focus:ring-[#FFC700]/30",
+                    )}
                   >
+                    <option value="">Select Duplicate Key</option>
                     <option value="Yes">Yes</option>
                     <option value="No">No</option>
                   </select>
+                  {errors.duplicateKey && (
+                    <span className="mt-1 block text-xs font-bold text-red-500 px-1">{errors.duplicateKey}</span>
+                  )}
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-foreground mb-1.5">
-                    RTO NOC Issued
+                    RTO NOC Issued <span className="text-rose-500">*</span>
                   </label>
                   <select
                     value={basicDetails.rtoNocIssued}
                     onChange={(e) => setBasic("rtoNocIssued", e.target.value)}
-                    className="w-full rounded-2xl border border-border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all focus:border-[#FFC700] focus:ring-[#FFC700]/30 shadow-soft cursor-pointer"
+                    className={cn(
+                      "w-full rounded-2xl border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all focus:ring-2 shadow-soft cursor-pointer",
+                      errors.rtoNocIssued
+                        ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
+                        : "border-border hover:border-[#FFC700]/60 focus:border-[#FFC700] focus:ring-[#FFC700]/30",
+                    )}
                   >
+                    <option value="">Select RTO NOC Status</option>
                     <option value="Yes">Yes</option>
                     <option value="No">No</option>
                   </select>
+                  {errors.rtoNocIssued && (
+                    <span className="mt-1 block text-xs font-bold text-red-500 px-1">{errors.rtoNocIssued}</span>
+                  )}
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-foreground mb-1.5">
-                    Under Hypothecation
+                    Under Hypothecation <span className="text-rose-500">*</span>
                   </label>
                   <select
                     value={basicDetails.underHypothecation}
                     onChange={(e) => setBasic("underHypothecation", e.target.value)}
-                    className="w-full rounded-2xl border border-border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all focus:border-[#FFC700] focus:ring-[#FFC700]/30 shadow-soft cursor-pointer"
+                    className={cn(
+                      "w-full rounded-2xl border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all focus:ring-2 shadow-soft cursor-pointer",
+                      errors.underHypothecation
+                        ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
+                        : "border-border hover:border-[#FFC700]/60 focus:border-[#FFC700] focus:ring-[#FFC700]/30",
+                    )}
                   >
+                    <option value="">Select Under Hypothecation</option>
                     <option value="Yes">Yes</option>
                     <option value="No">No</option>
                     <option value="N/A">N/A</option>
                   </select>
+                  {errors.underHypothecation && (
+                    <span className="mt-1 block text-xs font-bold text-red-500 px-1">{errors.underHypothecation}</span>
+                  )}
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-foreground mb-1.5">
-                    Mismatch in RC
+                    Mismatch in RC <span className="text-rose-500">*</span>
                   </label>
                   <select
                     value={basicDetails.mismatchInRc}
                     onChange={(e) => setBasic("mismatchInRc", e.target.value)}
-                    className="w-full rounded-2xl border border-border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all focus:border-[#FFC700] focus:ring-[#FFC700]/30 shadow-soft cursor-pointer"
+                    className={cn(
+                      "w-full rounded-2xl border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all focus:ring-2 shadow-soft cursor-pointer",
+                      errors.mismatchInRc
+                        ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
+                        : "border-border hover:border-[#FFC700]/60 focus:border-[#FFC700] focus:ring-[#FFC700]/30",
+                    )}
                   >
+                    <option value="">Select Mismatch in RC</option>
                     <option value="No Mismatch (Clean)">No Mismatch (Clean)</option>
                     <option value="Mismatch (Yes)">Mismatch (Yes)</option>
                   </select>
+                  {errors.mismatchInRc && (
+                    <span className="mt-1 block text-xs font-bold text-red-500 px-1">{errors.mismatchInRc}</span>
+                  )}
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-foreground mb-1.5">
-                    Road Tax Paid Status
+                    Road Tax Paid Status <span className="text-rose-500">*</span>
                   </label>
                   <select
                     value={basicDetails.roadTaxPaid}
                     onChange={(e) => setBasic("roadTaxPaid", e.target.value)}
-                    className="w-full rounded-2xl border border-border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all focus:border-[#FFC700] focus:ring-[#FFC700]/30 shadow-soft cursor-pointer"
+                    className={cn(
+                      "w-full rounded-2xl border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all focus:ring-2 shadow-soft cursor-pointer",
+                      errors.roadTaxPaid
+                        ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
+                        : "border-border hover:border-[#FFC700]/60 focus:border-[#FFC700] focus:ring-[#FFC700]/30",
+                    )}
                   >
+                    <option value="">Select Road Tax Paid Status</option>
                     <option value="Individual / One Time">Individual / One Time</option>
                     <option value="Limited Period">Limited Period</option>
                     <option value="N/A">N/A</option>
                     <option value="Paid">Paid</option>
                   </select>
+                  {errors.roadTaxPaid && (
+                    <span className="mt-1 block text-xs font-bold text-red-500 px-1">{errors.roadTaxPaid}</span>
+                  )}
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-foreground mb-1.5">
-                    Fitness Valid Upto Date (DD-MM-YYYY)
+                    Fitness Valid Upto Date (DD-MM-YYYY) <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="date"
@@ -1909,8 +1997,16 @@ export function InspectorAddVehicle() {
                         setBasic("fitnessUpto", "");
                       }
                     }}
-                    className="w-full rounded-2xl border border-border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all focus:border-[#FFC700] focus:ring-[#FFC700]/30 shadow-soft cursor-pointer"
+                    className={cn(
+                      "w-full rounded-2xl border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all focus:ring-2 shadow-soft cursor-pointer",
+                      errors.fitnessUpto
+                        ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
+                        : "border-border hover:border-[#FFC700]/60 focus:border-[#FFC700] focus:ring-[#FFC700]/30",
+                    )}
                   />
+                  {errors.fitnessUpto && (
+                    <span className="mt-1 block text-xs font-bold text-red-500 px-1">{errors.fitnessUpto}</span>
+                  )}
                 </div>
               </div>
             </Panel>
