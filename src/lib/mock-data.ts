@@ -1,4 +1,4 @@
-export type Role = "admin" | "inspector" | "dealer";
+export type Role = "admin" | "inspector" | "dealer" | "freelancer";
 export type VehicleStatus = "draft" | "pending" | "approved" | "rejected";
 
 export interface Vehicle {

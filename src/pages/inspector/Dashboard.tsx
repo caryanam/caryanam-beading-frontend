@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { CheckCircle2, FileText, Upload, XCircle } from "lucide-react";
+import { CheckCircle2, FileText, ShieldCheck, Upload, XCircle } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { inspectorNav } from "@/components/nav-config";
 import { Panel, StatCard, StatusChip } from "@/components/premium";
@@ -8,8 +8,10 @@ import { getMyInspections, getInspectorStats, type InspectionSummary } from "@/l
 import { inr } from "@/lib/mock-data";
 import { toast } from "sonner";
 import { formatIndianDateTime } from "@/lib/utils";
+import { useAuth } from "@/hooks/use-auth";
 
 export function InspectorDashboard() {
+  const { user } = useAuth();
   const [inspections, setInspections] = useState<InspectionSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
@@ -126,6 +128,21 @@ export function InspectorDashboard() {
       title="Inspection Overview"
       breadcrumb={["Inspector", "Dashboard"]}
     >
+      <div className="space-y-6">
+        {/* Welcome Banner - Only Welcome Message */}
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#FFC700] via-yellow-500 to-amber-500 p-8 text-black shadow-xl">
+          <div className="relative z-10 max-w-2xl space-y-2">
+            <span className="inline-flex items-center gap-2 rounded-full bg-black/15 px-3 py-1 text-xs font-black uppercase tracking-wider backdrop-blur-md">
+              <ShieldCheck className="size-4" /> Inspector Workspace
+            </span>
+            <h1 className="text-3xl font-extrabold tracking-tight">
+              Welcome back, {user?.name || "Inspector"}!
+            </h1>
+            <p className="text-sm font-medium opacity-90">
+              Welcome to your Inspector portal. Manage your vehicle inspection reports and track 200-point evaluations.
+            </p>
+          </div>
+        </div>
       <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard 
           label="Draft Inspections" 
@@ -270,6 +287,7 @@ export function InspectorDashboard() {
           )}
         </Panel>
       </div>
-    </AppShell>
-  );
+    </div>
+  </AppShell>
+);
 }

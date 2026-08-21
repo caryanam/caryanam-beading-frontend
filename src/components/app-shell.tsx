@@ -17,6 +17,7 @@ import { cn, formatIndianDateTime } from "@/lib/utils";
 import { clearSession, readSession, type Session } from "@/lib/session";
 import type { Role } from "@/lib/mock-data";
 import { getMyInspections, getInspectorNotifications, markInspectorNotificationAsRead, markAllInspectorNotificationsAsRead } from "@/lib/api/inspector-api";
+import { getFreelancerNotifications, markFreelancerNotificationAsRead, markAllFreelancerNotificationsAsRead } from "@/lib/api/freelancer-api";
 import { getSubmittedInspections, getAdminNotifications, markAdminNotificationAsRead, markAllAdminNotificationsAsRead } from "@/lib/api/admin-api";
 import { getMarketplaceInspections, getDealerNotifications, markDealerNotificationAsRead, markAllDealerNotificationsAsRead } from "@/lib/api/dealer-api";
 
@@ -145,6 +146,29 @@ export function AppShell({
         } catch (e) {
           console.error("Failed to load inspector notifications", e);
         }
+      } else if (role === "freelancer") {
+        try {
+          const notifRes = await getFreelancerNotifications();
+          if (notifRes.success && notifRes.data && notifRes.data.length > 0) {
+            const list: NotificationPopupItem[] = notifRes.data.map((n: any) => ({
+              id: n.id,
+              rawId: n.id,
+              title: n.title,
+              meta: n.message,
+              time: formatIndianDateTime(n.createdAt),
+              status: n.type,
+              isRead: n.isRead,
+              link: "/freelancer/vehicles",
+            }));
+            setNotificationItems(list);
+            setUnreadCount(list.filter((n) => !n.isRead).length);
+          } else {
+            setNotificationItems([]);
+            setUnreadCount(0);
+          }
+        } catch (e) {
+          console.error("Failed to load freelancer notifications", e);
+        }
       } else if (role === "dealer") {
         try {
           const notifRes = await getDealerNotifications();
@@ -178,9 +202,8 @@ export function AppShell({
                   notifMeta = `Bidding has completed for vehicle ${ins.vehicleNumber}.`;
                 } else {
                   notifTitle = `🚗 New Vehicle: ${carName}`;
-                  notifMeta = `Vehicle ${ins.vehicleNumber} added to marketplace. Suggested price: ₹${ins.suggestedPrice || 0}`;
+                  notifMeta = `Vehicle ${ins.vehicleNumber} is available for bidding.`;
                 }
-
                 const timeStr = formatIndianDateTime(ins.submittedAt);
 
                 return {
@@ -189,9 +212,9 @@ export function AppShell({
                   title: notifTitle,
                   meta: notifMeta,
                   time: timeStr,
-                  status: vStatus,
+                  status: ins.status,
                   isRead: false,
-                  link: `/dealer/marketplace`,
+                  link: `/dealer/vehicles/${ins.inspectionId}`,
                 };
               });
 
@@ -201,7 +224,7 @@ export function AppShell({
             }
           }
         } catch (e) {
-          console.error("Failed to load dealer backend notifications", e);
+          console.error("Failed to load dealer notifications", e);
         }
       } else if (role === "admin") {
         try {
@@ -219,34 +242,39 @@ export function AppShell({
             }));
             setNotificationItems(list);
             setUnreadCount(list.filter((n) => !n.isRead).length);
-          } else {
-            const res = await getSubmittedInspections();
-            if (res.success && res.data) {
-              const list: NotificationPopupItem[] = res.data
-                .filter((ins: any) => ins.status === "SUBMITTED")
-                .map((ins: any) => {
-                  const carName = `${ins.brand || ""} ${ins.model || ""} ${ins.variant || ""}`.trim();
-                  const timeStr = formatIndianDateTime(ins.submittedAt);
-
-                  return {
-                    id: ins.inspectionId,
-                    rawId: ins.inspectionId,
-                    title: `Pending Approval: ${carName}`,
-                    meta: `Vehicle ${ins.vehicleNumber} submitted by ${ins.inspectorName || "Inspector"} requires approval.`,
-                    time: timeStr,
-                    status: ins.status,
-                    isRead: false,
-                    link: "/admin/vehicles",
-                  };
-                });
-
-              list.sort((a, b) => b.rawId - a.rawId);
-              setNotificationItems(list);
-              setUnreadCount(list.filter((n) => !n.isRead).length);
-            }
+            return;
           }
         } catch (e) {
-          console.error("Failed to load admin backend notifications", e);
+          console.warn("Backend API getAdminNotifications fallback to submitted inspections", e);
+        }
+
+        try {
+          const res = await getSubmittedInspections();
+          if (res.success && res.data) {
+            const list: NotificationPopupItem[] = res.data
+              .filter((ins: any) => ins.status === "SUBMITTED")
+              .map((ins: any) => {
+                const carName = `${ins.brand || ""} ${ins.model || ""} ${ins.variant || ""}`.trim();
+                const timeStr = formatIndianDateTime(ins.submittedAt);
+
+                return {
+                  id: ins.inspectionId,
+                  rawId: ins.inspectionId,
+                  title: `Pending Approval: ${carName}`,
+                  meta: `Vehicle ${ins.vehicleNumber} submitted by ${ins.inspectorName || "Inspector"} requires approval.`,
+                  time: timeStr,
+                  status: ins.status,
+                  isRead: false,
+                  link: "/admin/vehicles",
+                };
+              });
+
+            list.sort((a, b) => b.rawId - a.rawId);
+            setNotificationItems(list);
+            setUnreadCount(list.filter((n) => !n.isRead).length);
+          }
+        } catch (e) {
+          console.error("Failed to load admin submitted inspections fallback", e);
         }
       }
     } catch (err) {
@@ -265,6 +293,8 @@ export function AppShell({
         await markAdminNotificationAsRead(rawId);
       } else if (role === "dealer") {
         await markDealerNotificationAsRead(rawId);
+      } else if (role === "freelancer") {
+        await markFreelancerNotificationAsRead(rawId);
       } else if (role === "inspector") {
         await markInspectorNotificationAsRead(rawId);
       }
@@ -283,6 +313,8 @@ export function AppShell({
         await markAllAdminNotificationsAsRead();
       } else if (role === "dealer") {
         await markAllDealerNotificationsAsRead();
+      } else if (role === "freelancer") {
+        await markAllFreelancerNotificationsAsRead();
       } else if (role === "inspector") {
         await markAllInspectorNotificationsAsRead();
       }
@@ -324,7 +356,7 @@ export function AppShell({
       {/* Sidebar Navigation: Full drawer on mobile (<lg), compact pill bar on desktop (lg:) */}
       <aside
         className={cn(
-          "surface-dark fixed inset-y-0 left-0 z-50 flex h-screen flex-col justify-between py-6 border-r border-[#1E202C] shadow-2xl transition-all duration-300 ease-out lg:translate-x-0 rounded-r-[28px] no-scrollbar",
+          "surface-dark fixed inset-y-0 left-0 z-50 flex h-screen flex-col justify-between py-6 border-r border-[#1E202C] shadow-2xl transition-all duration-300 ease-out lg:translate-x-0 rounded-r-[28px] overflow-x-hidden no-scrollbar",
           "w-[272px] lg:w-20",
           open ? "translate-x-0" : "-translate-x-full",
         )}
@@ -357,8 +389,8 @@ export function AppShell({
           </button>
         </div>
 
-        {/* Navigation List (Top-aligned) */}
-        <nav className="mt-6 mb-auto flex flex-col gap-2 py-2 w-full px-3 overflow-y-auto lg:overflow-visible no-scrollbar max-h-[calc(100vh-180px)]">
+        {/* Navigation List (Top-aligned & Scrollable) */}
+        <nav className="my-3 flex-1 min-h-0 flex flex-col gap-2 py-2 w-full px-3 overflow-y-auto overflow-x-hidden [scrollbar-width:thin] [scrollbar-color:rgba(255,199,0,0.3)_transparent]">
           {nav.map((item) => {
             const active =
               pathname === item.to ||
@@ -370,6 +402,7 @@ export function AppShell({
               >
                 <Link
                   to={item.to}
+                  title={item.label}
                   className={cn(
                     "flex items-center gap-3.5 rounded-2xl w-full px-4 py-3 text-sm transition-all duration-200 lg:justify-center lg:px-0 lg:size-11",
                     active
@@ -642,14 +675,18 @@ export function AppShell({
                 ? "Admin Session Expired"
                 : expiredRole === "dealer"
                   ? "Dealer Session Expired"
-                  : "Inspector Session Expired"}
+                  : expiredRole === "freelancer"
+                    ? "Freelancer Session Expired"
+                    : "Inspector Session Expired"}
             </h3>
             <p className="mt-3 text-sm font-semibold text-muted-foreground leading-relaxed">
               {expiredRole === "admin"
                 ? "Your administrator session has expired. Please log in again to continue managing the bidding network."
                 : expiredRole === "dealer"
                   ? "Your bidding console session has expired. Please log in again to place bids and browse the marketplace."
-                  : "Your vehicle evaluation session has expired. Please log in again to save drafts and submit reports."}
+                  : expiredRole === "freelancer"
+                    ? "Your freelancer session has expired. Please log in again to save drafts and submit vehicle reports."
+                    : "Your vehicle evaluation session has expired. Please log in again to save drafts and submit reports."}
             </p>
             <button
               onClick={() => {

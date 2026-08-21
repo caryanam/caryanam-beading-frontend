@@ -43,6 +43,7 @@ export interface AdminInspectionSummary {
   status: string;
   submittedAt: string | null;
   inspectorName: string;
+  freelancerName?: string;
   suggestedPrice?: number;
   rejectionReason?: string;
   vehicleStatus?: string;
@@ -149,8 +150,8 @@ export const importDealersExcel = async (file: File): Promise<{ success: boolean
   return res.data;
 };
 
-export const startLiveAuction = async (id: number): Promise<{ success: boolean }> => {
-  const res = await adminApiClient.put(`/api/admin/inspection/${id}/go-live`);
+export const startLiveAuction = async (id: number, durationMinutes?: number): Promise<{ success: boolean }> => {
+  const res = await adminApiClient.put(`/api/admin/inspection/${id}/go-live`, durationMinutes ? { durationMinutes, duration: durationMinutes } : {});
   return res.data;
 };
 
@@ -213,5 +214,10 @@ export const markAdminNotificationAsRead = async (id: number): Promise<{ success
 
 export const markAllAdminNotificationsAsRead = async (): Promise<{ success: boolean }> => {
   const res = await adminApiClient.put("/api/admin/notifications/mark-all-read");
+  return res.data;
+};
+
+export const getRegisteredFreelancers = async (): Promise<{ success: boolean; data: AdminInspector[] }> => {
+  const res = await adminApiClient.get("/api/admin/freelancers");
   return res.data;
 };

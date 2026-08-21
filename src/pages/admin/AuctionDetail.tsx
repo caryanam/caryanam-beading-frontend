@@ -12,15 +12,18 @@ import {
   sendAdminDealerMessage,
   updateInspectionVehicleStatus,
 } from "@/lib/api/admin-api";
+import { getFreelancerInspectionDetails } from "@/lib/api/freelancer-api";
 import { inr, timeLeft } from "@/lib/mock-data";
 import { API_BASE_URL } from "@/lib/api";
 import {
   Activity,
   ArrowLeft,
   Clock,
+  Copy,
   Crown,
   Gavel,
   PlayCircle,
+  Radio,
   RefreshCw,
   Square,
   Tag,
@@ -32,7 +35,6 @@ import {
   TrendingUp,
   ShieldCheck,
   User,
-  Copy,
   Send,
 } from "lucide-react";
 import { cn, formatIndianDateTime } from "@/lib/utils";
@@ -56,17 +58,50 @@ export function AdminAuctionDetail() {
     setLoading(true);
     try {
       const numId = Number(id);
-      const [insRes, bidsRes] = await Promise.all([
-        getInspectionById(numId),
-        getAdminBidHistory(numId),
-      ]);
+      let insData: any = null;
 
-      if (insRes.success && insRes.data) {
-        setInspection(insRes.data);
+      // 1. Try getInspectionById
+      try {
+        const insRes = await getInspectionById(numId);
+        if (insRes?.success && insRes?.data) {
+          insData = insRes.data;
+        }
+      } catch (e) {
+        console.warn("getInspectionById failed for auction detail, trying fallback...", e);
       }
-      if (bidsRes.success && bidsRes.data) {
-        setBidHistory(bidsRes.data);
+
+      // 2. Fallback to getFreelancerInspectionDetails
+      if (!insData) {
+        try {
+          const fRes = await getFreelancerInspectionDetails(id);
+          if (fRes?.success && fRes?.data) {
+            insData = fRes.data;
+          } else if (fRes && ((fRes as any).id || (fRes as any).inspectionId || (fRes as any).vehicleDetails || (fRes as any).brand)) {
+            insData = fRes;
+          }
+        } catch (e) {
+          console.warn("getFreelancerInspectionDetails failed...", e);
+        }
       }
+
+      // 3. Fallback to local storage
+      if (!insData) {
+        const localList = JSON.parse(localStorage.getItem("freelancer_vehicles_list") || "[]");
+        const found = localList.find((v: any) => String(v.id || v.inspectionId) === String(id));
+        if (found) insData = found;
+      }
+
+      if (insData) {
+        setInspection(insData);
+      }
+
+      // Fetch bid history
+      try {
+        const bidsRes = await getAdminBidHistory(numId);
+        if (bidsRes?.success && bidsRes?.data) {
+          setBidHistory(bidsRes.data);
+        }
+      } catch (e) {}
     } catch (err) {
       console.error("Error fetching auction detail page data", err);
       toast.error("Could not load auction details.");
@@ -285,7 +320,7 @@ export function AdminAuctionDetail() {
     );
   }
 
-  const v = inspection.vehicleDetails || inspection.vehicle || {};
+  const v = inspection.vehicleDetails || inspection.vehicle || inspection || {};
   const vehicleStatus = v.vehicleStatus || inspection.status || "APPROVED";
   const isLive = vehicleStatus === "LIVE";
   const isSold =
@@ -303,15 +338,30 @@ export function AdminAuctionDetail() {
     v.currentHighestBidder
     : bidHistory[0]?.dealer || "No Bids";
   const topBid = v.currentHighestBid || bidHistory[0]?.amount || 0;
-  const basePrice = v.suggestedPrice || 0;
+  const basePrice = v.suggestedPrice || v.price || 0;
   const totalBids = v.totalBids || bidHistory.length || 0;
 
-  const photos = (inspection.inspectionPhotos || [])
-    .filter((img: any) => img.imageUrl)
-    .map((img: any) => img.imageUrl);
+  let rawPhotos: string[] = [];
+  if (inspection.inspectionPhotos && Array.isArray(inspection.inspectionPhotos)) {
+    rawPhotos = inspection.inspectionPhotos.map((img: any) => img.imageUrl || img.url || img).filter(Boolean);
+  } else if (inspection.photos && Array.isArray(inspection.photos)) {
+    rawPhotos = inspection.photos.map((img: any) => typeof img === "string" ? img : img.url || img.imageUrl).filter(Boolean);
+  } else if (v.photos && Array.isArray(v.photos)) {
+    rawPhotos = v.photos.map((img: any) => typeof img === "string" ? img : img.url || img.imageUrl).filter(Boolean);
+  }
+
+  const formatMediaUrl = (url?: string | null) => {
+    if (!url) return "";
+    if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:") || url.startsWith("blob:")) return url;
+    const cleanBase = API_BASE_URL.replace(/\/+$/, "");
+    const cleanPath = url.startsWith("/") ? url : `/${url}`;
+    return `${cleanBase}${cleanPath}`;
+  };
+
   const primaryPhoto =
-    photos[0] ||
-    "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=800&q=80";
+    rawPhotos.length > 0
+      ? formatMediaUrl(rawPhotos[0])
+      : "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=800&q=80";
 
   return (
     <AppShell

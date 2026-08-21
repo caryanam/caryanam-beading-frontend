@@ -11,6 +11,7 @@ import {
   RefreshCw,
   ShieldCheck,
   X,
+  UserCheck,
   Zap,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -38,6 +39,13 @@ const roles: {
       title: "Inspector",
       copy: "Inspect vehicles, submit 200-point reports for approval.",
       icon: ClipboardCheck,
+      signup: true,
+    },
+    {
+      key: "freelancer",
+      title: "Freelancer",
+      copy: "Upload basic vehicle specs, photos, and video for quick bidding.",
+      icon: UserCheck,
       signup: true,
     },
     {
@@ -112,7 +120,7 @@ export function Login({
   const [verifyingOtp, setVerifyingOtp] = useState(false);
   const [sendingOtp, setSendingOtp] = useState(false);
 
-  const { login, registerDealer, registerInspector, sendOtp, sendPasswordOtp, verifyOtp, resetPassword, loading } = useAuth();
+  const { login, registerDealer, registerInspector, registerFreelancer, sendOtp, sendPasswordOtp, verifyOtp, resetPassword, loading } = useAuth();
 
   // Forgot Password State
   const [showForgotModal, setShowForgotModal] = useState(false);
@@ -314,6 +322,19 @@ export function Login({
         }
       } else if (role === "inspector") {
         const success = await registerInspector({
+          fullName: values.fullName,
+          email: values.email,
+          mobile: values.mobile || "",
+          password: values.password,
+        });
+        if (success) {
+          toast.success("Registration successful! Please sign in with your credentials.");
+          setShowOtpModal(false);
+          setMode("login");
+          setValues({ email: values.email });
+        }
+      } else if (role === "freelancer") {
+        const success = await registerFreelancer({
           fullName: values.fullName,
           email: values.email,
           mobile: values.mobile || "",
@@ -537,8 +558,8 @@ export function Login({
             <h1 className="text-4xl font-extrabold text-zinc-900 tracking-tight mb-2 self-start">Sign Up</h1>
 
             {/* Role selector */}
-            <div className="grid grid-cols-2 gap-1 rounded-[14px] bg-zinc-100 p-1 border border-zinc-200/50 w-full mb-4">
-              {(["dealer", "inspector"] as const).map((r) => (
+            <div className="grid grid-cols-3 gap-1 rounded-[14px] bg-zinc-100 p-1 border border-zinc-200/50 w-full mb-4">
+              {(["dealer", "inspector", "freelancer"] as const).map((r) => (
                 <button
                   key={r}
                   type="button"
@@ -558,10 +579,15 @@ export function Login({
                       <Building2 className="size-3.5" />
                       Dealer
                     </>
-                  ) : (
+                  ) : r === "inspector" ? (
                     <>
                       <ClipboardCheck className="size-3.5" />
                       Inspector
+                    </>
+                  ) : (
+                    <>
+                      <UserCheck className="size-3.5" />
+                      Freelancer
                     </>
                   )}
                 </button>
@@ -571,7 +597,7 @@ export function Login({
             {/* Inputs Grid */}
             <div className="w-full max-h-[350px] overflow-y-auto pr-1 no-scrollbar space-y-3">
 
-              {role === "inspector" && (
+              {(role === "inspector" || role === "freelancer") && (
                 <div className="space-y-3">
                   <Field
                     label="Full Name"

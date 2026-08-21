@@ -307,10 +307,19 @@ export function VehicleCard({
   const rtoText = vehicle.rtoInformation || (vehicle as any).rto;
   const locationPillLabel = [locationText, rtoText].filter(Boolean).join(" • ");
   const engineRating = vehicle.engineRating || (vehicle as any).overallRating || (vehicle as any).rating;
+  const isFreelancerVehicle =
+    (vehicle as any).isFreelancer ||
+    (vehicle as any).sourceType === "FREELANCER" ||
+    (vehicle as any).inspector?.toLowerCase().includes("freelancer") ||
+    !!(vehicle as any).freelancerName;
+
+  const targetLink = isFreelancerVehicle
+    ? `/dealer/freelancer-vehicles/${vehicle.id}`
+    : `/dealer/vehicles/${vehicle.id}`;
 
   return (
     <Link
-      to={`/dealer/vehicles/${vehicle.id}`}
+      to={targetLink}
       className={cn(
         "group relative overflow-hidden rounded-3xl border transition-all duration-300 bg-card block cursor-pointer hover:-translate-y-1 hover:shadow-xl",
         isLive
@@ -425,29 +434,29 @@ export function VehicleCard({
         <div className="flex items-center justify-between gap-3 pt-0.5">
           <div>
             <span className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider block">
-              {isSoldOut ? "WINNING BID" : "HIGHEST BID"}
+              {isComingSoon ? "PRICE" : isSoldOut ? "WINNING BID" : vehicle.highestBid > 0 ? "HIGHEST BID" : "STARTING BID"}
             </span>
             <span className="text-lg font-black text-foreground tracking-tight block mt-0.5">
-              {inr(vehicle.highestBid > 0 ? vehicle.highestBid : vehicle.basePrice)}
+              {inr(isComingSoon ? vehicle.basePrice : (vehicle.highestBid > 0 ? vehicle.highestBid : vehicle.basePrice))}
             </span>
           </div>
 
-          {/* 3-Box Digital Timer Box */}
+          {/* 3-Circle Pill Digital Countdown Timer (Matching Image Spec) */}
           {isLive ? (
-            <div className="flex items-center gap-1 bg-secondary/80 border border-border/80 p-1.5 rounded-2xl shrink-0">
-              <div className="flex flex-col items-center bg-card border border-border/60 px-2 py-1 rounded-xl min-w-[34px]">
-                <span className="text-xs font-black text-foreground leading-none">{timerParts.hours}</span>
-                <span className="text-[8px] font-extrabold text-muted-foreground uppercase mt-0.5">hr</span>
+            <div className="flex items-center gap-1 bg-secondary/90 border border-border/80 p-1 px-2.5 rounded-full shrink-0 shadow-inner">
+              <div className="flex flex-col items-center justify-center bg-card border border-border/50 px-2 py-1 rounded-full min-w-[36px] shadow-xs">
+                <span className="text-[12px] font-black text-foreground leading-none">{timerParts.hours}</span>
+                <span className="text-[7.5px] font-black text-muted-foreground uppercase leading-none mt-0.5">hr</span>
               </div>
-              <span className="text-xs font-black text-muted-foreground">:</span>
-              <div className="flex flex-col items-center bg-card border border-border/60 px-2 py-1 rounded-xl min-w-[34px]">
-                <span className="text-xs font-black text-foreground leading-none">{timerParts.minutes}</span>
-                <span className="text-[8px] font-extrabold text-muted-foreground uppercase mt-0.5">min</span>
+              <span className="text-xs font-black text-muted-foreground/80 px-0.5">:</span>
+              <div className="flex flex-col items-center justify-center bg-card border border-border/50 px-2 py-1 rounded-full min-w-[36px] shadow-xs">
+                <span className="text-[12px] font-black text-foreground leading-none">{timerParts.minutes}</span>
+                <span className="text-[7.5px] font-black text-muted-foreground uppercase leading-none mt-0.5">min</span>
               </div>
-              <span className="text-xs font-black text-muted-foreground">:</span>
-              <div className="flex flex-col items-center bg-[#FFC700]/15 border border-[#FFC700]/40 px-2 py-1 rounded-xl min-w-[34px]">
-                <span className="text-xs font-black text-[#FFC700] leading-none">{timerParts.seconds}</span>
-                <span className="text-[8px] font-extrabold text-[#FFC700] uppercase mt-0.5">sec</span>
+              <span className="text-xs font-black text-muted-foreground/80 px-0.5">:</span>
+              <div className="flex flex-col items-center justify-center bg-[#FFC700]/20 border border-[#FFC700]/60 px-2 py-1 rounded-full min-w-[36px] shadow-xs animate-pulse">
+                <span className="text-[12px] font-black text-[#FFC700] leading-none">{timerParts.seconds}</span>
+                <span className="text-[7.5px] font-black text-[#FFC700] uppercase leading-none mt-0.5">sec</span>
               </div>
             </div>
           ) : (

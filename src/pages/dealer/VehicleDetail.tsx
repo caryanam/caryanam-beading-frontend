@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 
 import { createPortal } from "react-dom";
 
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 
 import {
 
@@ -128,6 +128,7 @@ const isActualVideoUrl = (url?: string | null): boolean => {
 export function DealerVehicleDetail() {
 
   const { vehicleId } = useParams<{ vehicleId: string }>();
+  const navigate = useNavigate();
 
   const [vehicle, setVehicle] = useState<any>(null);
 
@@ -739,303 +740,223 @@ export function DealerVehicleDetail() {
 
 
   useEffect(() => {
-
     const loadDetails = async () => {
-
       if (!vehicleId) return;
 
       setLoading(true);
 
       try {
+        let res: any = null;
 
-        const res = await getMarketplaceInspectionDetails(Number(vehicleId));
+        try {
+          res = await getMarketplaceInspectionDetails(Number(vehicleId));
+        } catch (e) {
+          console.warn("getMarketplaceInspectionDetails failed, attempting fallback...", e);
+        }
 
-        if (res.success && res.data) {
+        if (!res || !res.success || !res.data) {
+          try {
+            res = await getPublicInspectionDetails(Number(vehicleId));
+          } catch (e) {
+            console.warn("getPublicInspectionDetails fallback failed...", e);
+          }
+        }
 
-          const raw = res.data;
+        if (res && (res.success || res.data)) {
+          const raw = res.data || res;
+
+          // If Freelancer vehicle, redirect to dedicated Dealer Freelancer Details page
+          if (raw.freelancerName || raw.isFreelancer || raw.sourceType === "FREELANCER" || (raw.inspector && raw.inspector.role === "FREELANCER")) {
+            navigate(`/dealer/freelancer-vehicles/${vehicleId}`, { replace: true });
+            return;
+          }
 
           setRawDetails(raw);
 
-          const v = raw.vehicleDetails || {};
+          const v = raw.vehicleDetails || raw || {};
+          const inspectionId = raw.inspectionId || raw.id || Number(vehicleId);
 
-          const inspectionId = raw.inspectionId || Number(vehicleId);
-
-
-
-          const basePrice = v.suggestedPrice || 0;
-
-          const history = raw.bidHistory || [];
-
+          const basePrice = v.suggestedPrice || v.price || raw.suggestedPrice || raw.price || 0;
+          const history = raw.bidHistory || raw.bids || [];
           const topBidInHistory = history.length > 0 ? (history[0].amount || history[0].bidAmount || 0) : 0;
-
           const topBidderInHistory = history.length > 0 ? (history[0].dealerName || history[0].dealer || history[0].dealershipName) : null;
 
-
-
           const highestBid = Math.max(
-
-            v.currentHighestBid && v.currentHighestBid > 0 ? v.currentHighestBid : 0,
-
+            (v.currentHighestBid && v.currentHighestBid > 0) ? v.currentHighestBid : (raw.currentHighestBid || 0),
             topBidInHistory
-
           );
-
-          const bidCount = Math.max(v.totalBids || 0, history.length);
-
+          const bidCount = Math.max(v.totalBids || raw.totalBids || 0, history.length);
           const highestBidder = topBidderInHistory || (v.currentHighestBidder
-
-            ? v.currentHighestBidder.dealershipName || v.currentHighestBidder
-
-            : null);
-
-
+            ? (v.currentHighestBidder.dealershipName || v.currentHighestBidder)
+            : raw.currentHighestBidder || null);
 
           let fuelType = "Petrol";
-
-          const f = (v.fuelType || "").toLowerCase();
-
+          const f = (v.fuelType || v.fuel || raw.fuelType || raw.fuel || "").toLowerCase();
           if (f.includes("diesel")) fuelType = "Diesel";
-
           else if (f.includes("cng")) fuelType = "CNG";
-
           else if (f.includes("lpg")) fuelType = "LPG";
-
           else if (f.includes("hybrid")) fuelType = "Hybrid";
-
-          else if (f.includes("electric") || f.includes("ev"))
-
-            fuelType = "Electric";
-
-          else if (v.fuelType) fuelType = v.fuelType;
-
-
+          else if (f.includes("electric") || f.includes("ev")) fuelType = "Electric";
+          else if (v.fuelType || raw.fuelType) fuelType = v.fuelType || raw.fuelType;
 
           let transmissionType = "Manual";
-
-          const t = (v.transmission || "").toLowerCase();
-
+          const t = (v.transmission || raw.transmission || "").toLowerCase();
           if (t.includes("auto")) transmissionType = "Automatic";
 
-
-
-          const endsAtTime =
-
-            v.auctionEndTime || Date.now() + 1000 * 60 * 60 * 24;
-
-
+          const endsAtTime = v.auctionEndTime || raw.auctionEndTime || Date.now() + 1000 * 60 * 60 * 24;
 
           const r = raw.ratings || {};
-
           const extR = r.exterior || r.exteriorRating || 0;
-
           const mechR = r.mechanical || r.mechanicalRating || 0;
-
           const tyreR = r.tyre || r.tyreRating || 0;
-
           const intR = r.interior || r.interiorRating || 0;
-
           const hasRatings = extR > 0 || mechR > 0 || tyreR > 0 || intR > 0;
-
           const calculatedScore = hasRatings
-
             ? Math.round(((extR + mechR + tyreR + intR) / 4) * 20)
+            : 88 + (Number(inspectionId) % 10);
 
-            : 88 + (inspectionId % 10);
+          // Robust photo parsing for BOTH Inspector & Freelancer structures
+          let validPhotos: any[] = [];
+          if (Array.isArray(raw.inspectionPhotos) && raw.inspectionPhotos.length > 0) {
+            validPhotos = raw.inspectionPhotos
+              .filter((img: any) => img && (img.imageUrl || img.url))
+              .map((img: any) => ({
+                url: formatMediaUrl(img.imageUrl || img.url),
+                name: img.displayName || img.imageCategory || "Inspection View",
+                photoType: img.photoType,
+                category: img.imageCategory,
+              }));
+          } else if (Array.isArray(raw.photos) && raw.photos.length > 0) {
+            validPhotos = raw.photos
+              .filter((p: any) => p && typeof p === "string" && p.trim().length > 0)
+              .map((p: string, idx: number) => ({
+                url: formatMediaUrl(p),
+                name: idx === 0 ? "Front View" : `Inspection Photo ${idx + 1}`,
+                category: "Vehicle Photo",
+              }));
+          } else if (raw.vehicleImage || v.vehicleImage) {
+            validPhotos = [{
+              url: formatMediaUrl(raw.vehicleImage || v.vehicleImage),
+              name: "Front View",
+              category: "Vehicle Photo",
+            }];
+          }
 
-
-
-          const imageList = raw.inspectionPhotos || [];
-
-          const validPhotos = imageList
-
-            .filter((img: any) => img.imageUrl)
-
-            .map((img: any) => ({
-
-              url: formatMediaUrl(img.imageUrl),
-
-              name: img.displayName || img.imageCategory || "Inspection View",
-
-              photoType: img.photoType,
-
-              category: img.imageCategory,
-
-            }));
-
-          const imageOnlyPhotos = validPhotos.filter(
-
-            (p: any) => !isActualVideoUrl(p.url)
-
-          );
-
-          const finalImages =
-
-            validPhotos.length > 0
-
-              ? validPhotos
-
-              : [
-
-                {
-
-                  url: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=800&q=80",
-
-                  name: "Front View",
-
-                },
-
-              ];
-
+          const imageOnlyPhotos = validPhotos.filter((p: any) => !isActualVideoUrl(p.url));
+          const finalImages = validPhotos.length > 0
+            ? validPhotos
+            : [
+              {
+                url: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=800&q=80",
+                name: "Front View",
+              },
+            ];
           const primaryImage = (imageOnlyPhotos.length > 0 ? imageOnlyPhotos[0] : finalImages[0]).url;
 
+          // Robust video parsing for BOTH Inspector & Freelancer walkaround videos
+          let videoList: any[] = [];
+          if (raw.videoUrl || v.videoUrl) {
+            videoList.push({
+              id: 1,
+              displayName: "Vehicle Walkaround & Engine Video",
+              videoUrl: formatMediaUrl(raw.videoUrl || v.videoUrl),
+              imageUrl: primaryImage,
+              condition: "NORMAL",
+            });
+          }
+          if (Array.isArray(raw.inspectionVideos) && raw.inspectionVideos.length > 0) {
+            const rawVidList = raw.inspectionVideos
+              .filter((vid: any) => vid && vid.captured !== false && (vid.videoUrl || vid.imageUrl || vid.url))
+              .map((v: any) => ({
+                id: v.id,
+                displayName: v.displayName || v.videoType || "Inspection Video",
+                videoUrl: formatMediaUrl(v.videoUrl || v.imageUrl || v.url),
+                imageUrl: formatMediaUrl(v.videoUrl || v.imageUrl || v.url),
+                condition: v.condition || "NORMAL",
+              }));
+            videoList = [...videoList, ...rawVidList];
+          }
+          if (videoList.length === 0) {
+            const photoVideos = (raw.inspectionPhotos || [])
+              .filter((p: any) => p && p.captured !== false && (p.imageUrl || p.url) && isActualVideoUrl(p.imageUrl || p.url))
+              .map((p: any) => ({
+                id: p.id,
+                displayName: p.displayName || p.imageCategory || "Engine / Motor Noise Recording",
+                videoUrl: formatMediaUrl(p.imageUrl || p.url),
+                imageUrl: formatMediaUrl(p.imageUrl || p.url),
+                condition: p.condition || "NORMAL",
+              }));
+            videoList = [...photoVideos];
+          }
+          videoList = videoList.slice(0, 1);
 
-
-          const photoVideos = (raw.inspectionPhotos || [])
-            .filter((p: any) => p && p.captured !== false && (p.imageUrl || p.url) && isActualVideoUrl(p.imageUrl || p.url))
-            .map((p: any) => ({
-              id: p.id,
-              displayName: p.displayName || p.imageCategory || "Engine / Motor Noise Recording",
-              videoUrl: formatMediaUrl(p.imageUrl || p.url),
-              imageUrl: formatMediaUrl(p.imageUrl || p.url),
-              condition: p.condition || "NORMAL",
-            }));
-
-          const rawVidList = (raw.inspectionVideos || [])
-            .filter((vid: any) => vid && vid.captured !== false && (vid.videoUrl || vid.imageUrl || vid.url))
-            .map((v: any) => ({
-              id: v.id,
-              displayName: v.displayName || v.videoType || "Inspection Video",
-              videoUrl: formatMediaUrl(v.videoUrl || v.imageUrl || v.url),
-              imageUrl: formatMediaUrl(v.videoUrl || v.imageUrl || v.url),
-              condition: v.condition || "NORMAL",
-            }));
-
-          const videoList = [...photoVideos, ...rawVidList].slice(0, 1);
-
-
+          const statusStr = v.vehicleStatus || raw.vehicleStatus || raw.status || "APPROVED";
 
           const mapped = {
-
             id: String(inspectionId),
-
-            brand: v.brand || "Vehicle",
-
-            model: v.model || "Details",
-
-            variant: v.variant || "",
-
-            year: v.manufacturingYear || 2020,
+            brand: v.brand || raw.brand || "Vehicle",
+            model: v.model || raw.model || "Details",
+            variant: v.variant || raw.variant || "",
+            year: v.manufacturingYear || v.registrationYear || raw.manufacturingYear || raw.registrationYear || raw.year || 2021,
             registrationYear: v.registrationYear || raw.registrationYear || null,
-
             fuel: fuelType,
-
             transmission: transmissionType,
-
-            odometer: v.odometerReading || 45000,
-
-            insuranceStatus: v.insuranceStatus || "Expired / N/A",
-          location: v.location || "N/A",
-          rtoInformation: v.rtoInformation || v.rto || "N/A",
-          rsAvailability: v.rsAvailability || "N/A",
-          duplicateKey: v.duplicateKey || "N/A",
-          rtoNocIssued: v.rtoNocIssued || "N/A",
-          underHypothecation: v.underHypothecation || "N/A",
-          mismatchInRc: v.mismatchInRc || "N/A",
-          roadTaxPaid: v.roadTaxPaid || "N/A",
-          fitnessUpto: v.fitnessUpto || "N/A",
-
+            odometer: v.odometerReading || v.odometer || raw.odometerReading || raw.odometer || 45000,
+            insuranceStatus: v.insuranceStatus || raw.insuranceStatus || "Comprehensive",
+            location: v.location || raw.location || "N/A",
+            rtoInformation: v.rtoInformation || v.rto || raw.rtoInformation || "N/A",
+            rsAvailability: v.rsAvailability || raw.rsAvailability || "N/A",
+            duplicateKey: v.duplicateKey || raw.duplicateKey || "N/A",
+            rtoNocIssued: v.rtoNocIssued || raw.rtoNocIssued || "N/A",
+            underHypothecation: v.underHypothecation || raw.underHypothecation || "N/A",
+            mismatchInRc: v.mismatchInRc || raw.mismatchInRc || "N/A",
+            roadTaxPaid: v.roadTaxPaid || raw.roadTaxPaid || "N/A",
+            fitnessUpto: v.fitnessUpto || raw.fitnessUpto || "N/A",
+            accidental: v.accidental || raw.accidental || "No",
             score: calculatedScore,
-
             basePrice,
-
             highestBid,
-
             highestBidder,
-
             bids: bidCount,
-
             status: "approved",
-
             auction:
-
-              v.vehicleStatus === "LIVE"
-
+              statusStr === "LIVE"
                 ? "live"
-
-                : v.vehicleStatus === "SOLD OUT" ||
-
-                  v.vehicleStatus === "SOLD_OUT" ||
-
-                  v.vehicleStatus === "SOLD"
-
+                : (statusStr === "SOLD OUT" || statusStr === "SOLD_OUT" || statusStr === "SOLD")
                   ? "sold out"
-
-                  : v.vehicleStatus === "ENDED" ||
-
-                    v.vehicleStatus === "AUCTION ENDED" ||
-
-                    v.vehicleStatus === "AUCTION_ENDED"
-
+                  : (statusStr === "ENDED" || statusStr === "AUCTION ENDED" || statusStr === "AUCTION_ENDED")
                     ? "ended"
-
                     : "scheduled",
-
             image: primaryImage,
-
             images: finalImages,
-
             videos: videoList,
-
             endsAt: endsAtTime,
-
-            inspector: raw.inspectorName || "Certified Inspector",
-
-            owner: v.ownerNo || v.owner || raw.ownerNo || raw.owner || "1st Owner",
-
-            vehicleStatus: v.vehicleStatus,
-
-            sellerAgreed: v.sellerAgreed,
-
-            sellerCounterPrice: v.sellerCounterPrice,
-
-            sellerMessage: v.sellerMessage,
-
-            adminDealerMessage: v.adminDealerMessage,
-
-            dealerReplyMessage: v.dealerReplyMessage,
-
+            inspector: raw.freelancerName || raw.inspectorName || (raw.inspector ? (raw.inspector.fullName || raw.inspector) : "Certified Inspector"),
+            owner: v.ownerName || v.ownerNo || v.owner || raw.ownerName || raw.ownerNo || raw.owner || "1st Owner",
+            vehicleStatus: statusStr,
+            sellerAgreed: v.sellerAgreed ?? raw.sellerAgreed,
+            sellerCounterPrice: v.sellerCounterPrice ?? raw.sellerCounterPrice,
+            sellerMessage: v.sellerMessage ?? raw.sellerMessage,
+            adminDealerMessage: v.adminDealerMessage ?? raw.adminDealerMessage,
+            dealerReplyMessage: v.dealerReplyMessage ?? raw.dealerReplyMessage,
           };
 
           setVehicle(mapped);
+          setBidHistory(history);
 
-          setBidHistory(raw.bidHistory || []);
-
-          const startAmount =
-
-            highestBid > 0 ? highestBid + 2000 : basePrice || 2000;
-
+          const startAmount = highestBid > 0 ? highestBid + 2000 : basePrice || 2000;
           setAmount(startAmount);
-
           setRemaining(timeLeft(endsAtTime));
-
         }
-
       } catch (err: any) {
-
         console.error("Failed to load vehicle details", err);
-
         toast.error("Could not retrieve vehicle details.");
-
       } finally {
-
         setLoading(false);
-
       }
-
     };
 
     loadDetails();
-
   }, [vehicleId]);
 
 

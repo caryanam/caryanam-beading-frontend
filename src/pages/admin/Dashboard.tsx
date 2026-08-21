@@ -40,11 +40,14 @@ import { Panel, StatCard, StatusChip } from "@/components/premium";
 import {
   getSubmittedInspections,
   getRegisteredDealers,
+  getRegisteredInspectors,
+  getRegisteredFreelancers,
   updateInspectionVehicleStatus,
   sendAdminDealerMessage,
   type AdminInspectionSummary,
   type AdminDealer,
 } from "@/lib/api/admin-api";
+import { getFreelancerInspections } from "@/lib/api/freelancer-api";
 import { inr } from "@/lib/mock-data";
 import { toast } from "sonner";
 import { formatIndianDateTime } from "@/lib/utils";
@@ -327,21 +330,72 @@ function AdminPostAuctionNegotiationCard({
 export function AdminDashboard() {
   const [inspections, setInspections] = useState<AdminInspectionSummary[]>([]);
   const [dealers, setDealers] = useState<AdminDealer[]>([]);
+  const [freelancersCount, setFreelancersCount] = useState<number>(0);
+  const [inspectorsCount, setInspectorsCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadDashboardData = async () => {
       setLoading(true);
       try {
-        const [insRes, dealRes] = await Promise.all([
+        const [insRes, freeRes, dealRes, freeUsersRes, inspUsersRes] = await Promise.allSettled([
           getSubmittedInspections(),
+          getFreelancerInspections(),
           getRegisteredDealers(),
+          getRegisteredFreelancers(),
+          getRegisteredInspectors(),
         ]);
-        if (insRes.success && insRes.data) {
-          setInspections(insRes.data);
+
+        let inspectorList: any[] = [];
+        if (insRes.status === "fulfilled" && insRes.value?.success && insRes.value?.data) {
+          inspectorList = insRes.value.data.map((ins: any) => ({
+            ...ins,
+            inspectionId: ins.inspectionId || ins.id,
+            sourceType: "INSPECTOR",
+          }));
         }
-        if (dealRes.success && dealRes.data) {
-          setDealers(dealRes.data);
+
+        let freelancerList: any[] = [];
+        if (freeRes.status === "fulfilled" && freeRes.value?.success && freeRes.value?.data) {
+          freelancerList = freeRes.value.data.map((item: any) => {
+            const insId = item.inspectionId || item.id;
+            let curStatus = String(item.status || item.vehicleStatus || "APPROVED").toUpperCase();
+            if (curStatus === "SUBMITTED" || curStatus === "PENDING" || curStatus === "PENDING_APPROVAL") {
+              curStatus = "APPROVED";
+            }
+            return {
+              ...item,
+              inspectionId: insId,
+              vehicleNumber: item.vehicleNumber || item.registrationNumber || item.regNo || `INS-${insId}`,
+              brand: item.brand || "",
+              model: item.model || "",
+              variant: item.variant || "",
+              ownerName: item.ownerName || "1st Owner",
+              suggestedPrice: item.suggestedPrice || item.price || 0,
+              submittedAt: item.submittedAt || item.createdAt || null,
+              inspectorName: item.freelancerName || item.inspectorName || (item.inspectorId ? `Freelancer #${item.inspectorId}` : "Freelancer"),
+              status: curStatus,
+              vehicleStatus: item.vehicleStatus || curStatus,
+              sourceType: "FREELANCER",
+            };
+          });
+        }
+
+        setInspections([...inspectorList, ...freelancerList]);
+
+        if (dealRes.status === "fulfilled" && dealRes.value?.success && dealRes.value?.data) {
+          setDealers(dealRes.value.data);
+        }
+
+        if (freeUsersRes.status === "fulfilled" && freeUsersRes.value?.success && freeUsersRes.value?.data) {
+          setFreelancersCount(freeUsersRes.value.data.length);
+        } else {
+          const localList = JSON.parse(localStorage.getItem("freelancer_users_list") || "[]");
+          setFreelancersCount(localList.length);
+        }
+
+        if (inspUsersRes.status === "fulfilled" && inspUsersRes.value?.success && inspUsersRes.value?.data) {
+          setInspectorsCount(inspUsersRes.value.data.length);
         }
       } catch (err) {
         console.error("Failed to load admin telemetry dashboard", err);
@@ -485,7 +539,7 @@ export function AdminDashboard() {
       </div>
 
       {/* Primary KPI Metrics */}
-      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           label="Total Inventory"
           value={loading ? "..." : totalInventory.toString()}
@@ -513,9 +567,15 @@ export function AdminDashboard() {
         />
         <StatCard
           label="Active Inspectors"
-          value={loading ? "..." : uniqueInspectors.toString()}
+          value={loading ? "..." : (inspectorsCount || uniqueInspectors).toString()}
           delta="On-field team"
           icon={Users}
+        />
+        <StatCard
+          label="Total Freelancers"
+          value={loading ? "..." : freelancersCount.toString()}
+          delta="Freelancer submitters"
+          icon={User}
         />
         <StatCard
           label="Verified Dealers"

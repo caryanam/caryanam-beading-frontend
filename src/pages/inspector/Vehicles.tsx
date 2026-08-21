@@ -570,12 +570,15 @@ export function InspectorVehicles() {
                   >
                     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 items-start">
                       {(previewData.exteriorPanelDetails || []).map((p: any, idx: number) => {
-                        const cond = p.condition || "OK";
+                        const cond = (p.condition || "OK").toUpperCase();
+                        const isNA = cond === "NA" || cond === "N/A";
                         let colorClass = "text-emerald-500 bg-emerald-500/10 border-emerald-500/30";
                         if (cond === "REPAINTED" || cond === "CHANGED" || cond === "SCRATCH" || cond === "DENT") {
                           colorClass = "text-amber-500 bg-amber-500/10 border-amber-500/30";
                         } else if (cond === "DAMAGED" || cond === "RUST") {
                           colorClass = "text-rose-500 bg-rose-500/10 border-rose-500/30";
+                        } else if (isNA) {
+                          colorClass = "text-muted-foreground bg-secondary border-border";
                         }
 
                         return (
@@ -587,7 +590,7 @@ export function InspectorVehicles() {
                               </span>
                             </div>
 
-                            {p.imageUrl ? (
+                            {!isNA && p.imageUrl ? (
                               <div className="relative group aspect-[16/10] w-full overflow-hidden rounded-xl border border-border bg-secondary shadow-inner">
                                 <img
                                   src={p.imageUrl}
@@ -606,7 +609,7 @@ export function InspectorVehicles() {
                               </div>
                             ) : (
                               <div className="flex h-14 w-full items-center justify-center rounded-xl border border-dashed border-border/60 bg-secondary/30 text-[10px] font-bold text-muted-foreground">
-                                No panel photo attached
+                                {isNA ? "N/A - Not Applicable" : "No panel photo attached"}
                               </div>
                             )}
                           </div>
@@ -712,22 +715,36 @@ export function InspectorVehicles() {
                         { label: "Driveline / Axle", val: previewData.mechanicalDetails?.axle },
                         { label: "Engine / Motor Noise", val: previewData.mechanicalDetails?.engineNoise },
                       ].map((item, idx) => {
-                        const matchedPhoto = [
-                          ...(previewData.inspectionPhotos || []),
-                          ...(previewData.inspectionVideos || []),
-                        ]
-                          .filter((p: any) => p && (p.imageUrl || p.videoUrl || p.url))
-                          .find(
-                            (p: any) =>
-                              p.photoType?.toUpperCase() === item.label.toUpperCase() ||
-                              p.imageCategory?.toUpperCase() === item.label.toUpperCase() ||
-                              p.displayName?.toUpperCase() === item.label.toUpperCase() ||
-                              (item.label.includes("Noise") && (p.imageCategory?.toUpperCase().includes("NOISE") || p.displayName?.toUpperCase().includes("NOISE")))
-                          );
+                        const valStr = String(item.val || "OK").toUpperCase();
+                        const isNA = valStr === "NA" || valStr === "N/A";
+                        const isNoiseItem = item.label.includes("Noise");
+
+                        const videoObj = isNoiseItem
+                          ? ((previewData.inspectionVideos || []).find((v: any) => v && (v.videoUrl || v.url || v.imageUrl)) ||
+                             (previewData.videoUrl ? { videoUrl: previewData.videoUrl } : null))
+                          : null;
+
+                        const matchedPhoto = isNA
+                          ? null
+                          : (videoObj ||
+                             (previewData.inspectionPhotos || [])
+                              .filter((p: any) => p && (p.imageUrl || p.videoUrl || p.url))
+                              .find(
+                                (p: any) =>
+                                  p.photoType?.toUpperCase() === item.label.toUpperCase() ||
+                                  p.imageCategory?.toUpperCase() === item.label.toUpperCase() ||
+                                  p.displayName?.toUpperCase() === item.label.toUpperCase()
+                              ));
+
                         const rawUrl = matchedPhoto?.imageUrl || matchedPhoto?.videoUrl || matchedPhoto?.url;
                         const imgUrl = rawUrl && !rawUrl.startsWith("http") && !rawUrl.startsWith("data:")
                           ? `${API_BASE_URL.replace(/\/+$/, "")}${rawUrl.startsWith("/") ? rawUrl : `/${rawUrl}`}`
                           : rawUrl;
+
+                        const isVideoFile = isNoiseItem || (imgUrl && (
+                          /\.(mp4|webm|mov|avi|mkv|3gp|flv|wmv)($|\?)/i.test(imgUrl) || 
+                          matchedPhoto?.videoUrl
+                        ));
 
                         return (
                           <div key={idx} className="rounded-2xl border border-border bg-card p-3.5 shadow-soft flex flex-col gap-2.5">
@@ -738,10 +755,11 @@ export function InspectorVehicles() {
                               </span>
                             </div>
 
-                            {imgUrl && (
+                            {!isNA && imgUrl && (
                               <div className="relative group aspect-[16/10] w-full overflow-hidden rounded-xl border border-border bg-black shadow-inner">
-                                {/\.(mp4|webm|mov|avi|mkv|3gp|flv|wmv)($|\?)/i.test(imgUrl) ? (
+                                {isVideoFile ? (
                                   <video
+                                    key={imgUrl}
                                     src={imgUrl}
                                     controls
                                     preload="metadata"
@@ -763,7 +781,7 @@ export function InspectorVehicles() {
                                     onClick={() => window.open(imgUrl, "_blank")}
                                     className="inline-flex items-center gap-1 rounded-xl bg-[#FFC700] text-[#0D0E12] px-3 py-1.5 text-[11px] font-black shadow-md hover:bg-[#FFD633] transition-all cursor-pointer pointer-events-auto"
                                   >
-                                    <Eye className="size-3.5" /> {/\.(mp4|webm|mov|avi|mkv|3gp|flv|wmv)($|\?)/i.test(imgUrl) ? "View Video" : "View Photo"}
+                                    <Eye className="size-3.5" /> {isVideoFile ? "View Video" : "View Photo"}
                                   </button>
                                 </div>
                               </div>
@@ -1015,8 +1033,11 @@ export function InspectorVehicles() {
                         { label: "Central Lock", val: previewData.interiorDetails?.centralLock },
                         { label: "All Sensors", val: previewData.interiorDetails?.sensors },
                       ].map((item, idx) => {
+                        const valStr = String(item.val || "OK / WORKING").toUpperCase();
+                        const isNA = valStr === "NA" || valStr === "N/A" || valStr.includes("N/A") || valStr.includes("NOT APPLICABLE");
+
                         const itemClean = item.label.toUpperCase().replace(/[^A-Z]/g, "");
-                        const matchedPhoto = (previewData.inspectionPhotos || []).find((p: any) => {
+                        const matchedPhoto = isNA ? null : (previewData.inspectionPhotos || []).find((p: any) => {
                           const pType = (p.photoType || "").toUpperCase().replace(/[^A-Z]/g, "");
                           const pCat = (p.imageCategory || "").toUpperCase().replace(/[^A-Z]/g, "");
                           const pDisp = (p.displayName || "").toUpperCase().replace(/[^A-Z]/g, "");
@@ -1041,7 +1062,7 @@ export function InspectorVehicles() {
                               </span>
                             </div>
 
-                            {imgUrl && (
+                            {!isNA && imgUrl && (
                               <div className="relative group aspect-[16/10] w-full overflow-hidden rounded-xl border border-border bg-secondary shadow-inner">
                                 <img
                                   src={imgUrl}

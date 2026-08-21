@@ -12,6 +12,7 @@ import {
   updateInspectionVehicleStatus,
   type AdminInspectionSummary,
 } from "@/lib/api/admin-api";
+import { getFreelancerInspections } from "@/lib/api/freelancer-api";
 import { inr, timeLeft } from "@/lib/mock-data";
 import {
   Activity,
@@ -27,11 +28,15 @@ import {
   RefreshCw,
   Square,
   Tag,
+  User,
+  UserCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function AdminAuctions() {
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<"inspector" | "freelancer">("inspector");
+
   const [inspections, setInspections] = useState<AdminInspectionSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -60,18 +65,74 @@ export function AdminAuctions() {
 
   const fetchAuctions = async (showToast = false) => {
     if (showToast) setRefreshing(true);
+    setLoading(true);
     try {
-      const res = await getSubmittedInspections();
-      if (res.success && res.data) {
-        const approvedOnly = res.data.filter(
-          (ins: any) => ins.status === "APPROVED",
-        );
-        setInspections(approvedOnly);
-        if (showToast) toast.success("Auctions list updated");
+      if (activeTab === "inspector") {
+        const res = await getSubmittedInspections();
+        if (res.success && res.data) {
+          const approvedOnly = res.data.filter((ins: any) => {
+            const s = String(ins.status || ins.vehicleStatus || "").toUpperCase();
+            return (
+              s === "APPROVED" ||
+              s === "READY_FOR_AUCTION" ||
+              s === "LIVE" ||
+              s === "SOLD" ||
+              s === "SOLD OUT" ||
+              s === "COMPLETED"
+            );
+          });
+          setInspections(approvedOnly);
+          if (showToast) toast.success("Inspector auctions list updated");
+        } else {
+          setInspections([]);
+        }
+      } else {
+        const res = await getFreelancerInspections();
+        if (res.success && res.data) {
+          const processed = res.data
+            .filter((ins: any) => {
+              const s = String(ins.status || ins.vehicleStatus || "").toUpperCase();
+              return (
+                s === "APPROVED" ||
+                s === "READY_FOR_AUCTION" ||
+                s === "LIVE" ||
+                s === "SOLD" ||
+                s === "SOLD OUT" ||
+                s === "COMPLETED"
+              );
+            })
+            .map((item: any) => ({
+              ...item,
+              inspectionId: item.inspectionId || item.id,
+              vehicleNumber:
+                item.vehicleNumber ||
+                item.registrationNumber ||
+                item.regNo ||
+                `INS-${item.inspectionId || item.id}`,
+              brand: item.brand || "",
+              model: item.model || "",
+              variant: item.variant || "",
+              ownerName: item.ownerName || "1st Owner",
+              suggestedPrice: item.suggestedPrice || item.price || 0,
+              submittedAt: item.submittedAt || item.createdAt || null,
+              inspectorName:
+                item.freelancerName ||
+                item.inspectorName ||
+                item.inspector?.fullName ||
+                (item.inspectorId ? `Freelancer #${item.inspectorId}` : "N/A"),
+              status: item.status || item.vehicleStatus || "APPROVED",
+              vehicleStatus: item.vehicleStatus || item.status || "READY_FOR_AUCTION",
+            }));
+          setInspections(processed);
+          if (showToast) toast.success("Freelancer auctions list updated");
+        } else {
+          setInspections([]);
+        }
       }
     } catch (err: any) {
-      console.error("Failed to load approved auctions list", err);
-      toast.error("Could not load auctions list.");
+      console.error(`Failed to load ${activeTab} approved auctions list`, err);
+      toast.error(`Could not load ${activeTab} auctions list.`);
+      setInspections([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -80,7 +141,7 @@ export function AdminAuctions() {
 
   useEffect(() => {
     fetchAuctions();
-  }, []);
+  }, [activeTab]);
 
   // Ticking timer every 1 second for live countdowns
   useEffect(() => {
@@ -92,10 +153,11 @@ export function AdminAuctions() {
 
   const handleGoLive = async (id: number) => {
     try {
-      toast.info("Launching live auction room...");
-      const res = await startLiveAuction(id);
+      const duration = activeTab === "freelancer" ? 15 : 10;
+      toast.info(`Launching live ${duration}-minute auction room...`);
+      const res = await startLiveAuction(id, duration);
       if (res.success) {
-        toast.success("Auction is now LIVE!");
+        toast.success(`15-Minute Live Auction Started for Freelancer Vehicle #${id}!`);
         fetchAuctions();
       } else {
         toast.error("Failed to start auction.");
@@ -150,21 +212,27 @@ export function AdminAuctions() {
     {
       key: "vehicle",
       header: "Vehicle Details",
-      cell: (v) => (
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="px-2 py-0.5 rounded-lg border border-border bg-muted font-mono font-black text-[10px] text-foreground tracking-wider uppercase">
-              {v.vehicleNumber}
-            </span>
+      cell: (v) => {
+        const detailsPath = `/admin/auctions/${v.inspectionId}`;
+        return (
+          <div
+            onClick={() => navigate(detailsPath)}
+            className="min-w-0 group cursor-pointer"
+          >
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-0.5 rounded-lg border border-border bg-muted font-mono font-black text-[10px] text-foreground tracking-wider uppercase">
+                {v.vehicleNumber}
+              </span>
+            </div>
+            <p className="truncate text-sm font-black text-foreground group-hover:text-[#FFC700] transition-colors tracking-tight mt-1">
+              {v.brand} {v.model}
+            </p>
+            <p className="text-xs font-semibold text-muted-foreground">
+              Variant: {v.variant || "Standard"}
+            </p>
           </div>
-          <p className="truncate text-sm font-black text-foreground tracking-tight mt-1">
-            {v.brand} {v.model}
-          </p>
-          <p className="text-xs font-semibold text-muted-foreground">
-            Variant: {v.variant || "Standard"}
-          </p>
-        </div>
-      ),
+        );
+      },
     },
     {
       key: "suggestedPrice",
@@ -215,17 +283,18 @@ export function AdminAuctions() {
           v.vehicleStatus === "SOLD OUT" ||
           v.vehicleStatus === "SOLD" ||
           v.vehicleStatus === "ENDED";
+        const durationSec = (activeTab === "freelancer" ? 15 : 10) * 60;
 
         if (isLive) {
-          const rem = timeLeft(v.auctionEndTime || Date.now() + 600 * 1000);
-          const isLow = (v.auctionEndTime || Date.now() + 600 * 1000) - Date.now() <= 120000;
+          const rem = timeLeft(v.auctionEndTime || Date.now() + durationSec * 1000);
+          const isLow = (v.auctionEndTime || Date.now() + durationSec * 1000) - Date.now() <= 120000;
           return (
             <span
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-black shadow-sm transition-all",
                 isLow
                   ? "border-rose-500/40 bg-rose-500/10 text-rose-500 animate-pulse"
-                  : "border-[#FFC700]/30 bg-[#FFC700]/10 text-[#FFC700]",
+                  : "border-[#FFC700]/30 bg-[#FFC700]/10 text-[#FFC700]"
               )}
             >
               <Clock className="size-3.5" />
@@ -244,7 +313,7 @@ export function AdminAuctions() {
 
         return (
           <span className="text-xs font-bold text-muted-foreground flex items-center gap-1">
-            <Clock className="size-3.5 text-muted-foreground/70" /> 10 Mins (Ready)
+            <Clock className="size-3.5 text-muted-foreground/70" /> {activeTab === "freelancer" ? "15 Mins" : "10 Mins"} (Ready)
           </span>
         );
       },
@@ -300,11 +369,12 @@ export function AdminAuctions() {
         const isSold =
           v.vehicleStatus === "SOLD OUT" ||
           v.vehicleStatus === "SOLD";
+        const detailsPath = `/admin/auctions/${v.inspectionId}`;
 
         return (
           <div className="flex items-center gap-2">
             <button
-              onClick={() => navigate(`/admin/auctions/${v.inspectionId}`)}
+              onClick={() => navigate(detailsPath)}
               className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card hover:bg-secondary px-3 py-1.5 text-xs font-extrabold text-foreground transition-all cursor-pointer shadow-sm"
               title="View Dedicated Auction Page Details & Bidding History"
             >
@@ -371,111 +441,149 @@ export function AdminAuctions() {
       title="Auctions & Bidding Management"
       breadcrumb={["Admin", "Auctions"]}
     >
-      {/* Header Banner */}
-      <div className="relative overflow-hidden rounded-3xl border border-border bg-card p-6 shadow-soft transition-all mb-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="space-y-6">
+        {/* Top Two Tabs: Inspector & Freelancer */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-5">
           <div>
-            <div className="flex items-center gap-3">
-              <h2 className="text-2xl font-black text-foreground tracking-tight">
-                Auctions Control Dashboard
-              </h2>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FFC700]/15 border border-[#FFC700]/30 text-[#FFC700] text-xs font-extrabold">
-                <Radio className="size-3.5 animate-pulse text-[#FFC700]" />
-                {metrics.liveCount} Live {metrics.liveCount === 1 ? "Auction" : "Auctions"}
-              </span>
-            </div>
-            <p className="mt-1 text-xs font-semibold text-muted-foreground">
-              Launch live 10-minute bidding rooms, monitor active auctions, view details pages & negotiate with winning dealers
+            <h1 className="text-2xl font-extrabold tracking-tight">Auctions Control Dashboard</h1>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Launch and monitor live auctions for approved Inspector and Freelancer vehicles
             </p>
           </div>
 
-          <button
-            onClick={() => fetchAuctions(true)}
-            disabled={refreshing}
-            className="inline-flex items-center gap-2 rounded-2xl border border-border bg-card px-4 py-2.5 text-xs font-extrabold text-foreground shadow-soft transition-all hover:border-[#FFC700]/60 hover:bg-secondary disabled:opacity-50 cursor-pointer"
-          >
-            <RefreshCw className={cn("size-3.5 text-[#FFC700]", refreshing && "animate-spin")} />
-            <span>{refreshing ? "Refreshing..." : "Refresh List"}</span>
-          </button>
-        </div>
+          <div className="inline-flex rounded-2xl border border-border bg-card p-1.5 shadow-soft">
+            <button
+              type="button"
+              onClick={() => setActiveTab("inspector")}
+              className={`rounded-xl px-5 py-2 text-xs font-black transition-all cursor-pointer flex items-center gap-2 ${activeTab === "inspector"
+                  ? "bg-[#FFC700] text-black shadow-md"
+                  : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                }`}
+            >
+              <UserCheck className="size-4" /> Inspector Auctions
+            </button>
 
-        {/* 4 Summary Stat Cards */}
-        <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-4 mt-6">
-          <div className="rounded-2xl border border-border bg-secondary/40 p-4 shadow-sm">
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
-                Approved Vehicles
-              </span>
-              <Tag className="size-4 text-muted-foreground" />
-            </div>
-            <span className="text-xl font-black text-foreground block">
-              {metrics.total}
-            </span>
-            <span className="text-[10px] font-semibold text-muted-foreground block mt-0.5">
-              Ready for Auction
-            </span>
-          </div>
-
-          <div className="rounded-2xl border border-[#FFC700]/40 bg-[#FFC700]/5 p-4 shadow-sm">
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[10px] font-black text-[#FFC700] uppercase tracking-widest">
-                Active Live Rooms
-              </span>
-              <Flame className="size-4 text-[#FFC700]" />
-            </div>
-            <span className="text-xl font-black text-foreground block text-[#FFC700]">
-              {metrics.liveCount}
-            </span>
-            <span className="text-[10px] font-bold text-foreground/80 block mt-0.5">
-              Real-time Bidding Active
-            </span>
-          </div>
-
-          <div className="rounded-2xl border border-border bg-secondary/40 p-4 shadow-sm">
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
-                Live Bids Placed
-              </span>
-              <Gavel className="size-4 text-emerald-500" />
-            </div>
-            <span className="text-xl font-black text-foreground block">
-              {metrics.totalBidsCount}
-            </span>
-            <span className="text-[10px] font-semibold text-muted-foreground block mt-0.5">
-              Dealer Activity Count
-            </span>
-          </div>
-
-          <div className="rounded-2xl border border-border bg-secondary/40 p-4 shadow-sm">
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
-                Completed / Sold
-              </span>
-              <CheckCircle2 className="size-4 text-rose-500" />
-            </div>
-            <span className="text-xl font-black text-foreground block">
-              {metrics.soldCount}
-            </span>
-            <span className="text-[10px] font-semibold text-muted-foreground block mt-0.5">
-              Auctions Concluded
-            </span>
+            <button
+              type="button"
+              onClick={() => setActiveTab("freelancer")}
+              className={`rounded-xl px-5 py-2 text-xs font-black transition-all cursor-pointer flex items-center gap-2 ${activeTab === "freelancer"
+                  ? "bg-[#FFC700] text-black shadow-md"
+                  : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                }`}
+            >
+              <User className="size-4" /> Freelancer Auctions
+            </button>
           </div>
         </div>
+
+        {/* Header Banner */}
+        <div className="relative overflow-hidden rounded-3xl border border-border bg-card p-6 shadow-soft transition-all">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-3">
+                <h2 className="text-lg font-black text-foreground tracking-tight">
+                  {activeTab === "inspector" ? "Inspector Vehicles Bidding Control" : "Freelancer Vehicles Bidding Control"}
+                </h2>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FFC700]/15 border border-[#FFC700]/30 text-[#FFC700] text-xs font-extrabold">
+                  <Radio className="size-3.5 animate-pulse text-[#FFC700]" />
+                  {metrics.liveCount} Live {metrics.liveCount === 1 ? "Auction" : "Auctions"}
+                </span>
+              </div>
+              <p className="mt-1 text-xs font-semibold text-muted-foreground">
+                {activeTab === "freelancer"
+                  ? "Launch live 15-minute bidding rooms, monitor active freelancer auctions & negotiate with winning dealers"
+                  : "Launch live 10-minute bidding rooms, monitor active inspector auctions & negotiate with winning dealers"}
+              </p>
+            </div>
+
+            <button
+              onClick={() => fetchAuctions(true)}
+              disabled={refreshing}
+              className="inline-flex items-center gap-2 rounded-2xl border border-border bg-card px-4 py-2.5 text-xs font-extrabold text-foreground shadow-soft transition-all hover:border-[#FFC700]/60 hover:bg-secondary disabled:opacity-50 cursor-pointer"
+            >
+              <RefreshCw className={cn("size-3.5 text-[#FFC700]", refreshing && "animate-spin")} />
+              <span>{refreshing ? "Refreshing..." : "Refresh List"}</span>
+            </button>
+          </div>
+
+          {/* 4 Summary Stat Cards */}
+          <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-4 mt-6">
+            <div className="rounded-2xl border border-border bg-secondary/40 p-4 shadow-sm">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
+                  Approved Vehicles
+                </span>
+                <Tag className="size-4 text-muted-foreground" />
+              </div>
+              <span className="text-xl font-black text-foreground block">
+                {metrics.total}
+              </span>
+              <span className="text-[10px] font-semibold text-muted-foreground block mt-0.5">
+                Ready for Auction
+              </span>
+            </div>
+
+            <div className="rounded-2xl border border-[#FFC700]/40 bg-[#FFC700]/5 p-4 shadow-sm">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[10px] font-black text-[#FFC700] uppercase tracking-widest">
+                  Active Live Rooms
+                </span>
+                <Flame className="size-4 text-[#FFC700]" />
+              </div>
+              <span className="text-xl font-black text-foreground block text-[#FFC700]">
+                {metrics.liveCount}
+              </span>
+              <span className="text-[10px] font-bold text-foreground/80 block mt-0.5">
+                Real-time Bidding Active
+              </span>
+            </div>
+
+            <div className="rounded-2xl border border-border bg-secondary/40 p-4 shadow-sm">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
+                  Live Bids Placed
+                </span>
+                <Gavel className="size-4 text-emerald-500" />
+              </div>
+              <span className="text-xl font-black text-foreground block">
+                {metrics.totalBidsCount}
+              </span>
+              <span className="text-[10px] font-semibold text-muted-foreground block mt-0.5">
+                Dealer Activity Count
+              </span>
+            </div>
+
+            <div className="rounded-2xl border border-border bg-secondary/40 p-4 shadow-sm">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
+                  Completed / Sold
+                </span>
+                <CheckCircle2 className="size-4 text-rose-500" />
+              </div>
+              <span className="text-xl font-black text-foreground block">
+                {metrics.soldCount}
+              </span>
+              <span className="text-[10px] font-semibold text-muted-foreground block mt-0.5">
+                Auctions Concluded
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="flex h-60 items-center justify-center bg-card border border-border rounded-3xl shadow-soft">
+            <span className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          </div>
+        ) : (
+          <DataTable
+            rows={inspections}
+            columns={columns}
+            searchKeys={["brand", "model", "variant", "vehicleNumber", "currentHighestBidder"]}
+            placeholder={`Search ${activeTab === "inspector" ? "inspector" : "freelancer"} auctions by brand, model, vehicle no...`}
+            actions={null}
+          />
+        )}
       </div>
-
-      {loading ? (
-        <div className="flex h-60 items-center justify-center bg-card border border-border rounded-3xl shadow-soft">
-          <span className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-        </div>
-      ) : (
-        <DataTable
-          rows={inspections}
-          columns={columns}
-          searchKeys={["brand", "model", "variant", "vehicleNumber", "currentHighestBidder"]}
-          placeholder="Search auctions by brand, model, vehicle no, winner..."
-          actions={null}
-        />
-      )}
 
       <ConfirmModal
         isOpen={stopModal.isOpen}

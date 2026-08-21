@@ -10,6 +10,7 @@ import {
   sendAdminDealerMessage,
   type AdminInspectionSummary,
 } from "@/lib/api/admin-api";
+import { getFreelancerInspections } from "@/lib/api/freelancer-api";
 import { inr, timeLeft } from "@/lib/mock-data";
 import { toast } from "sonner";
 import {
@@ -38,6 +39,7 @@ import {
   Tag,
   TrendingUp,
   User,
+  UserCheck,
   Users,
   Zap,
 } from "lucide-react";
@@ -52,11 +54,12 @@ interface LiveBidRecord {
 
 export function AdminLiveBidding() {
   const navigate = useNavigate();
-  const [inspections, setInspections] = useState<AdminInspectionSummary[]>([]);
+  const [inspections, setInspections] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeTab, setActiveTab] = useState<"all" | "inspector" | "freelancer">("all");
 
   // Real-time tracking states for selected room
   const [highestBid, setHighestBid] = useState<number>(0);
@@ -123,20 +126,65 @@ export function AdminLiveBidding() {
   const fetchRooms = async (showToast = false) => {
     if (showToast) setRefreshing(true);
     try {
-      const res = await getSubmittedInspections();
-      if (res.success && res.data) {
-        // filter for LIVE auctions
-        const liveOnly = res.data.filter(
-          (ins: AdminInspectionSummary) =>
-            ins.status === "APPROVED" && ins.vehicleStatus === "LIVE",
-        );
-        setInspections(liveOnly);
-        if (liveOnly.length > 0 && (selectedId === null || !liveOnly.some((i: AdminInspectionSummary) => i.inspectionId === selectedId))) {
-          setSelectedId(liveOnly[0].inspectionId);
-        }
-        if (showToast) {
-          toast.success("Active live bidding rooms refreshed");
-        }
+      const [insRes, freeRes] = await Promise.allSettled([
+        getSubmittedInspections(),
+        getFreelancerInspections(),
+      ]);
+
+      let inspectorList: any[] = [];
+      if (insRes.status === "fulfilled" && insRes.value?.success && insRes.value?.data) {
+        inspectorList = insRes.value.data.map((ins: any) => ({
+          ...ins,
+          inspectionId: ins.inspectionId || ins.id,
+          sourceType: "INSPECTOR",
+        }));
+      }
+
+      let freelancerList: any[] = [];
+      if (freeRes.status === "fulfilled" && freeRes.value?.success && freeRes.value?.data) {
+        freelancerList = freeRes.value.data.map((item: any) => {
+          const insId = item.inspectionId || item.id;
+          return {
+            ...item,
+            inspectionId: insId,
+            vehicleNumber:
+              item.vehicleNumber ||
+              item.registrationNumber ||
+              item.regNo ||
+              `INS-${insId}`,
+            brand: item.brand || "",
+            model: item.model || "",
+            variant: item.variant || "",
+            ownerName: item.ownerName || "1st Owner",
+            suggestedPrice: item.suggestedPrice || item.price || 0,
+            submittedAt: item.submittedAt || item.createdAt || null,
+            inspectorName:
+              item.freelancerName ||
+              item.inspectorName ||
+              item.inspector?.fullName ||
+              (item.inspectorId ? `Freelancer #${item.inspectorId}` : "Freelancer"),
+            status: item.status || "APPROVED",
+            vehicleStatus: item.vehicleStatus || item.status || "LIVE",
+            sourceType: "FREELANCER",
+          };
+        });
+      }
+
+      const combined = [...inspectorList, ...freelancerList];
+      const liveOnly = combined.filter((ins: any) => {
+        const vStat = String(ins.vehicleStatus || ins.status || "").toUpperCase();
+        return vStat === "LIVE";
+      });
+
+      setInspections(liveOnly);
+      if (
+        liveOnly.length > 0 &&
+        (selectedId === null || !liveOnly.some((i: any) => i.inspectionId === selectedId))
+      ) {
+        setSelectedId(liveOnly[0].inspectionId);
+      }
+      if (showToast) {
+        toast.success("Active live bidding rooms refreshed");
       }
     } catch (err) {
       console.error("Failed to load active bidding list", err);
@@ -152,18 +200,25 @@ export function AdminLiveBidding() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Filtered rooms based on search query
+  // Filtered rooms based on activeTab and search query
   const filteredInspections = useMemo(() => {
-    if (!searchQuery.trim()) return inspections;
+    let list = inspections;
+    if (activeTab === "inspector") {
+      list = list.filter((i) => i.sourceType === "INSPECTOR");
+    } else if (activeTab === "freelancer") {
+      list = list.filter((i) => i.sourceType === "FREELANCER");
+    }
+
+    if (!searchQuery.trim()) return list;
     const q = searchQuery.toLowerCase();
-    return inspections.filter(
+    return list.filter(
       (i) =>
         i.brand?.toLowerCase().includes(q) ||
         i.model?.toLowerCase().includes(q) ||
         i.variant?.toLowerCase().includes(q) ||
         i.vehicleNumber?.toLowerCase().includes(q),
     );
-  }, [inspections, searchQuery]);
+  }, [inspections, activeTab, searchQuery]);
 
   // Initialize selected card details
   useEffect(() => {
@@ -362,6 +417,46 @@ export function AdminLiveBidding() {
               </h3>
             </div>
 
+            {/* Tab Filter Buttons */}
+            <div className="flex items-center gap-1.5 rounded-2xl bg-secondary/50 p-1 border border-border">
+              <button
+                type="button"
+                onClick={() => setActiveTab("all")}
+                className={cn(
+                  "flex-1 rounded-xl py-1.5 text-[11px] font-black transition-all cursor-pointer",
+                  activeTab === "all"
+                    ? "bg-[#FFC700] text-[#0D0E12] shadow-xs"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                All ({inspections.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("inspector")}
+                className={cn(
+                  "flex-1 rounded-xl py-1.5 text-[11px] font-black transition-all cursor-pointer flex items-center justify-center gap-1",
+                  activeTab === "inspector"
+                    ? "bg-[#FFC700] text-[#0D0E12] shadow-xs"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <UserCheck className="size-3" /> Inspector
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("freelancer")}
+                className={cn(
+                  "flex-1 rounded-xl py-1.5 text-[11px] font-black transition-all cursor-pointer flex items-center justify-center gap-1",
+                  activeTab === "freelancer"
+                    ? "bg-[#FFC700] text-[#0D0E12] shadow-xs"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <User className="size-3" /> Freelancer
+              </button>
+            </div>
+
             {/* Room Search Bar */}
             <div className="relative">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -377,11 +472,12 @@ export function AdminLiveBidding() {
             <div className="space-y-3 max-h-[620px] overflow-y-auto pr-1">
               {filteredInspections.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-border bg-card p-6 text-center text-xs font-bold text-muted-foreground">
-                  No live room matches "{searchQuery}"
+                  No live room matches filter
                 </div>
               ) : (
                 filteredInspections.map((v) => {
                   const isActive = v.inspectionId === selectedId;
+                  const isFreelancer = v.sourceType === "FREELANCER";
                   return (
                     <div
                       key={v.inspectionId}
@@ -399,10 +495,20 @@ export function AdminLiveBidding() {
                       )}
 
                       <div className="flex items-center justify-between gap-2 mb-2">
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase text-emerald-600 bg-emerald-500/10 border border-emerald-500/20 tracking-wider">
-                          <span className="size-1.5 animate-pulse rounded-full bg-emerald-500" />
-                          Live Room
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase text-emerald-600 bg-emerald-500/10 border border-emerald-500/20 tracking-wider">
+                            <span className="size-1.5 animate-pulse rounded-full bg-emerald-500" />
+                            Live
+                          </span>
+                          <span className={cn(
+                            "px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider border",
+                            isFreelancer
+                              ? "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20"
+                              : "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20"
+                          )}>
+                            {isFreelancer ? "Freelancer" : "Inspector"}
+                          </span>
+                        </div>
                         <span className="px-2 py-0.5 rounded-lg border border-border bg-muted/60 font-mono font-extrabold text-[10px] text-foreground tracking-wider uppercase">
                           {v.vehicleNumber}
                         </span>

@@ -151,6 +151,45 @@ export function useAuth() {
     }
   };
 
+  const registerFreelancer = async (data: {
+    fullName: string;
+    email: string;
+    mobile: string;
+    password: string;
+  }) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await publicClient.post("/api/freelancer/register", {
+        ...data,
+        confirmPassword: data.password,
+      });
+      const apiResponse = response.data;
+
+      if (apiResponse.success) {
+        toast.success(apiResponse.message || "Freelancer registered successfully! Please log in.");
+        return true;
+      } else {
+        throw new Error(apiResponse.message || "Registration failed.");
+      }
+    } catch (err: any) {
+      const apiErrors = err.response?.data?.errors;
+      if (Array.isArray(apiErrors) && apiErrors.length > 0) {
+        apiErrors.forEach((errorStr: string) => {
+          toast.error(errorStr);
+        });
+      }
+      const errMsg = err.response?.data?.message || err.message || "Freelancer registration failed.";
+      setError(errMsg);
+      if (!Array.isArray(apiErrors) || apiErrors.length === 0) {
+        toast.error(errMsg);
+      }
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const logout = () => {
     clearSession(user?.role);
     setUser(null);
@@ -269,6 +308,7 @@ export function useAuth() {
     login,
     registerDealer,
     registerInspector,
+    registerFreelancer,
     sendOtp,
     sendPasswordOtp,
     verifyOtp,

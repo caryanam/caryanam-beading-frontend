@@ -21,6 +21,7 @@ import { AppShell } from "@/components/app-shell";
 import { inspectorNav } from "@/components/nav-config";
 import { Panel } from "@/components/premium";
 import { cn } from "@/lib/utils";
+import { API_BASE_URL } from "@/lib/api";
 import {
   getInspectionDetails,
   saveInspectionDraft,
@@ -965,7 +966,24 @@ export function InspectorAddVehicle() {
           setComments(int.remarks || "");
         }
 
-        if (details.inspectionPhotos) {
+        const combinedMedia = [
+          ...(details.inspectionPhotos || []),
+          ...(details.inspectionVideos || []).map((v: any) => ({
+            ...v,
+            imageUrl: v.videoUrl || v.url || v.imageUrl,
+            imageCategory: v.displayName || v.videoType || "Engine / Motor Noise",
+          })),
+        ];
+
+        if (details.videoUrl) {
+          combinedMedia.push({
+            imageUrl: details.videoUrl,
+            imageCategory: "Engine / Motor Noise",
+            displayName: "Engine / Motor Noise",
+          });
+        }
+
+        if (combinedMedia.length > 0) {
           const imageMap: Record<string, string> = {};
           const checklistImageMap: Record<string, string> = {};
 
@@ -977,8 +995,13 @@ export function InspectorAddVehicle() {
             "Full Battery Number",
           ];
 
-          details.inspectionPhotos.forEach((img: any) => {
-            if (!img.imageUrl) return;
+          combinedMedia.forEach((img: any) => {
+            const rawUrl = img.imageUrl || img.videoUrl || img.url;
+            if (!rawUrl) return;
+
+            const url = rawUrl.startsWith("http://") || rawUrl.startsWith("https://") || rawUrl.startsWith("data:")
+              ? rawUrl
+              : `${API_BASE_URL.replace(/\/+$/, "")}${rawUrl.startsWith("/") ? rawUrl : `/${rawUrl}`}`;
 
             let slotKey = img.photoType ? photoTypeToSlotKeyMap[img.photoType] : undefined;
             if (!slotKey) {
@@ -989,18 +1012,22 @@ export function InspectorAddVehicle() {
             }
 
             if (slotKey) {
-              imageMap[slotKey] = img.imageUrl;
+              imageMap[slotKey] = url;
             }
 
             const rawCat = img.imageCategory || img.displayName;
             if (rawCat) {
-              checklistImageMap[rawCat] = img.imageUrl;
+              checklistImageMap[rawCat] = url;
               const matchName = allChecklistNames.find(
                 (name) => name.trim().toLowerCase() === rawCat.trim().toLowerCase()
               );
               if (matchName) {
-                checklistImageMap[matchName] = img.imageUrl;
+                checklistImageMap[matchName] = url;
               }
+            }
+
+            if (img.videoUrl || (rawCat && (rawCat.toLowerCase().includes("noise") || rawCat.toLowerCase().includes("video")))) {
+              checklistImageMap["Engine / Motor Noise"] = url;
             }
           });
 
@@ -2253,23 +2280,32 @@ export function InspectorAddVehicle() {
 
                             {/* Large Image / Video Preview Card */}
                             <div className="relative group w-full aspect-[16/10] rounded-xl overflow-hidden border border-border bg-black cursor-pointer shadow-inner">
-                              {panelImages[item.name]?.startsWith("data:video") || /\.(mp4|webm|mov|avi|mkv|3gp|flv|wmv)($|\?)/i.test(panelImages[item.name]) ? (
-                                <video
-                                  src={panelImages[item.name]}
-                                  controls
-                                  preload="metadata"
-                                  playsInline
-                                  className="size-full object-cover rounded-xl"
-                                >
-                                  <source src={panelImages[item.name]} type="video/mp4" />
-                                </video>
-                              ) : (
-                                <img
-                                  src={panelImages[item.name]}
-                                  alt={item.name}
-                                  className="size-full object-cover transition-transform duration-300 group-hover:scale-102"
-                                />
-                              )}
+                              {(() => {
+                                const rawMediaUrl = panelImages[item.name] || "";
+                                const mediaUrl = rawMediaUrl && !rawMediaUrl.startsWith("http") && !rawMediaUrl.startsWith("data:")
+                                  ? `${API_BASE_URL.replace(/\/+$/, "")}${rawMediaUrl.startsWith("/") ? rawMediaUrl : `/${rawMediaUrl}`}`
+                                  : rawMediaUrl;
+                                const isVideo = mediaUrl.startsWith("data:video") || /\.(mp4|webm|mov|avi|mkv|3gp|flv|wmv)($|\?)/i.test(mediaUrl) || item.name === "Engine / Motor Noise";
+
+                                return isVideo ? (
+                                  <video
+                                    key={mediaUrl}
+                                    src={mediaUrl}
+                                    controls
+                                    preload="metadata"
+                                    playsInline
+                                    className="size-full object-cover rounded-xl"
+                                  >
+                                    <source src={mediaUrl} type="video/mp4" />
+                                  </video>
+                                ) : (
+                                  <img
+                                    src={mediaUrl}
+                                    alt={item.name}
+                                    className="size-full object-cover transition-transform duration-300 group-hover:scale-102"
+                                  />
+                                );
+                              })()}
                               <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 pointer-events-none">
                                 <button
                                   type="button"
@@ -2632,7 +2668,8 @@ export function InspectorAddVehicle() {
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 items-start">
                   {electricalItems.map((item) => {
                     const status = electricalState[item] ?? "OK / WORKING";
-                    const hasImg = !!panelImages[item];
+                    const isNA = status === "N/A" || status === "NA" || status.includes("N/A");
+                    const hasImg = !isNA && !!panelImages[item];
                     const errorMsg = errors[item];
                     return (
                       <div

@@ -254,9 +254,9 @@ export function AdminVehicleDetail() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-3xl border border-border bg-card p-6 shadow-sm">
           <div className="flex items-center gap-3">
             <button
-              onClick={() => navigate("/admin/vehicles")}
+              onClick={() => navigate(-1)}
               className="inline-flex items-center justify-center size-10 rounded-2xl border border-border bg-secondary/50 text-foreground hover:bg-secondary hover:border-[#FFC700] transition-all cursor-pointer shadow-sm shrink-0"
-              title="Back to Vehicles List"
+              title="Back"
             >
               <ArrowLeft className="size-5 text-[#FFC700]" />
             </button>
@@ -491,12 +491,15 @@ export function AdminVehicleDetail() {
             >
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 items-start">
                 {(previewData.exteriorPanelDetails || []).map((p: any, idx: number) => {
-                  const cond = p.condition || "OK";
+                  const cond = (p.condition || "OK").toUpperCase();
+                  const isNA = cond === "NA" || cond === "N/A";
                   let colorClass = "text-emerald-500 bg-emerald-500/10 border-emerald-500/30";
                   if (cond === "REPAINTED" || cond === "CHANGED" || cond === "SCRATCH" || cond === "DENT") {
                     colorClass = "text-amber-500 bg-amber-500/10 border-amber-500/30";
                   } else if (cond === "DAMAGED" || cond === "RUST") {
                     colorClass = "text-rose-500 bg-rose-500/10 border-rose-500/30";
+                  } else if (isNA) {
+                    colorClass = "text-muted-foreground bg-secondary border-border";
                   }
 
                   const imgUrl = formatMediaUrl(p.imageUrl);
@@ -510,7 +513,7 @@ export function AdminVehicleDetail() {
                         </span>
                       </div>
 
-                      {imgUrl ? (
+                      {!isNA && imgUrl ? (
                         <div className="relative group aspect-[16/10] w-full overflow-hidden rounded-xl border border-border bg-secondary shadow-inner">
                           <img
                             src={imgUrl}
@@ -529,7 +532,7 @@ export function AdminVehicleDetail() {
                         </div>
                       ) : (
                         <div className="flex h-14 w-full items-center justify-center rounded-xl border border-dashed border-border/60 bg-secondary/30 text-[10px] font-bold text-muted-foreground">
-                          No panel photo attached
+                          {isNA ? "N/A - Not Applicable" : "No panel photo attached"}
                         </div>
                       )}
                     </div>
@@ -563,7 +566,7 @@ export function AdminVehicleDetail() {
                       <div className="relative group aspect-[16/10] w-full overflow-hidden rounded-xl border border-border bg-secondary shadow-inner flex items-center justify-center">
                         {imgUrl ? (
                           <>
-                            <img src={imgUrl} alt={slot.label} className="size-full object-cover" />
+                            <img src={imgUrl} alt={slot.label} className="size-full object-cover transition-transform duration-300 group-hover:scale-105" />
                             <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                               <button
                                 type="button"
@@ -590,8 +593,8 @@ export function AdminVehicleDetail() {
         {activeDetailStep === 2 && (
           <div className="space-y-8">
             <Panel
-              title="Step 3: Engine Room & Mechanical Diagnostics"
-              description="Under-bonnet fluid levels, brake booster, suspension, and apron condition."
+              title="Step 3: Mechanical Health Diagnostics"
+              description="Check items inside engine compartment, transmission bay and brake assemblies."
               action={
                 <div className="flex items-center gap-1.5">
                   {[1, 2, 3, 4, 5].map((star) => (
@@ -599,38 +602,158 @@ export function AdminVehicleDetail() {
                       key={star}
                       className={cn(
                         "size-5 transition-colors",
-                        star <= Math.round(previewData.ratings?.mechanical || 4)
+                        star <= Math.round(previewData.ratings?.mechanical || 5)
                           ? "fill-[#FFC700] text-[#FFC700]"
                           : "text-border fill-transparent"
                       )}
                     />
                   ))}
                   <span className="ml-2 text-xs font-bold text-foreground">
-                    {previewData.ratings?.mechanical ? `${previewData.ratings.mechanical} / 5 Stars` : "4.5 / 5 Stars"}
+                    {previewData.ratings?.mechanical ? `${previewData.ratings.mechanical} / 5 Stars` : "5 / 5 Stars"}
                   </span>
                 </div>
               }
             >
-              <div className="grid gap-4.5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 items-start">
                 {[
-                  { label: "Engine Status", val: previewData.mechanicalDetails?.engineStatus },
-                  { label: "Engine Oil Level", val: previewData.mechanicalDetails?.engineOil },
-                  { label: "Brake Oil Level", val: previewData.mechanicalDetails?.brakeOil },
-                  { label: "Coolant Level", val: previewData.mechanicalDetails?.coolant },
-                  { label: "Steering Oil Level", val: previewData.mechanicalDetails?.steeringOil },
-                  { label: "Suspension Working", val: previewData.mechanicalDetails?.suspension },
-                  { label: "Brake Booster", val: previewData.mechanicalDetails?.brakeBooster },
-                  { label: "Chassis Alignment", val: previewData.mechanicalDetails?.chassis },
+                  { label: "Engine / Motor Status", val: previewData.mechanicalDetails?.engineStatus },
+                  { label: "Engine Oil", val: previewData.mechanicalDetails?.engineOil },
+                  { label: "Brakes Oil", val: previewData.mechanicalDetails?.brakeOil },
+                  { label: "Steering Oil", val: previewData.mechanicalDetails?.steeringOil },
+                  { label: "Coolant", val: previewData.mechanicalDetails?.coolant },
+                  { label: "Brakes Booster", val: previewData.mechanicalDetails?.brakeBooster },
+                  { label: "Brakes Working", val: previewData.mechanicalDetails?.brakeWorking },
                   { label: "Apron Condition", val: previewData.mechanicalDetails?.apron },
-                  { label: "Transmission Fluid Level", val: previewData.mechanicalDetails?.transmission },
+                  { label: "Chassis Alignment", val: previewData.mechanicalDetails?.chassis },
+                  { label: "Suspension", val: previewData.mechanicalDetails?.suspension },
+                  { label: "Suspension Bushing", val: previewData.mechanicalDetails?.bush },
+                  { label: "Oil Leakage", val: previewData.mechanicalDetails?.leakage },
+                  { label: "Exhaust Smoke Color", val: previewData.mechanicalDetails?.smoke },
+                  { label: "Manual Transmission Fluid Level", val: previewData.mechanicalDetails?.transmission },
+                  { label: "Differential Fluid Level", val: previewData.mechanicalDetails?.differential },
                   { label: "Fluid Leakages", val: previewData.mechanicalDetails?.fluidLeakage },
-                  { label: "Engine Motor Noise", val: previewData.mechanicalDetails?.engineNoise },
-                ].map((item, idx) => (
-                  <div key={idx} className="rounded-2xl border border-border bg-secondary/30 p-4">
-                    <span className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">{item.label}</span>
-                    <span className="font-extrabold text-foreground text-sm">{item.val || "OK / Normal"}</span>
-                  </div>
-                ))}
+                  { label: "Steering Gearbox & Linkage", val: previewData.mechanicalDetails?.gearbox },
+                  { label: "Driveline / Axle", val: previewData.mechanicalDetails?.axle },
+                  { label: "Engine / Motor Noise", val: previewData.mechanicalDetails?.engineNoise },
+                ].map((item, idx) => {
+                  const valStr = String(item.val || "OK").toUpperCase();
+                  const isNA = valStr === "NA" || valStr === "N/A";
+                  const isNoiseItem = item.label.includes("Noise");
+
+                  const videoObj = isNoiseItem
+                    ? ((previewData.inspectionVideos || []).find((v: any) => v && (v.videoUrl || v.url || v.imageUrl)) ||
+                       (previewData.videoUrl ? { videoUrl: previewData.videoUrl } : null))
+                    : null;
+
+                  const matchedPhoto = isNA
+                    ? null
+                    : (videoObj ||
+                       (previewData.inspectionPhotos || [])
+                        .filter((p: any) => p && (p.imageUrl || p.videoUrl || p.url))
+                        .find(
+                          (p: any) =>
+                            p.photoType?.toUpperCase() === item.label.toUpperCase() ||
+                            p.imageCategory?.toUpperCase() === item.label.toUpperCase() ||
+                            p.displayName?.toUpperCase() === item.label.toUpperCase()
+                        ));
+
+                  const rawUrl = matchedPhoto?.imageUrl || matchedPhoto?.videoUrl || matchedPhoto?.url;
+                  const imgUrl = formatMediaUrl(rawUrl);
+
+                  const isVideoFile = isNoiseItem || (imgUrl && (
+                    /\.(mp4|webm|mov|avi|mkv|3gp|flv|wmv)($|\?)/i.test(imgUrl) || 
+                    matchedPhoto?.videoUrl
+                  ));
+
+                  return (
+                    <div key={idx} className="rounded-2xl border border-border bg-card p-3.5 shadow-soft flex flex-col gap-2.5">
+                      <div className="flex items-center justify-between gap-2 w-full">
+                        <span className="text-xs font-bold text-foreground truncate min-w-0">{item.label}</span>
+                        <span className="rounded-xl border border-border bg-secondary px-2.5 py-1 text-xs font-extrabold text-foreground shrink-0">
+                          {item.val || "OK"}
+                        </span>
+                      </div>
+
+                      {!isNA && imgUrl && (
+                        <div className="relative group aspect-[16/10] w-full overflow-hidden rounded-xl border border-black bg-black shadow-inner">
+                          {isVideoFile ? (
+                            <video
+                              key={imgUrl}
+                              src={imgUrl}
+                              controls
+                              preload="metadata"
+                              playsInline
+                              className="size-full object-cover rounded-xl"
+                            >
+                              <source src={imgUrl} type="video/mp4" />
+                            </video>
+                          ) : (
+                            <img
+                              src={imgUrl}
+                              alt={item.label}
+                              className="size-full object-cover transition-transform duration-300 group-hover:scale-105"
+                            />
+                          )}
+                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                            <button
+                              type="button"
+                              onClick={() => window.open(imgUrl, "_blank")}
+                              className="inline-flex items-center gap-1 rounded-xl bg-[#FFC700] text-[#0D0E12] px-3 py-1.5 text-[11px] font-black shadow-md hover:bg-[#FFD633] transition-all cursor-pointer pointer-events-auto"
+                            >
+                              <Eye className="size-3.5" /> {isVideoFile ? "View Video" : "View Photo"}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </Panel>
+
+            <Panel
+              title="Under-Bonnet Engine Room Photos"
+              description="Engine compartment and battery bay photos."
+            >
+              <div className="grid gap-4.5 sm:grid-cols-2 lg:grid-cols-2">
+                {[
+                  { type: "ENGINE_IMAGE", label: "ENGINE ROOM PHOTO" },
+                  { type: "BATTERY_IMAGE", label: "BATTERY BAY PHOTO" },
+                ].map((slot) => {
+                  const matchedPhoto = (previewData.inspectionPhotos || []).find(
+                    (p: any) =>
+                      p.photoType?.toUpperCase() === slot.type ||
+                      (slot.type === "ENGINE_IMAGE" && (p.imageCategory?.toUpperCase().includes("ENGINE") || p.displayName?.toUpperCase().includes("ENGINE"))) ||
+                      (slot.type === "BATTERY_IMAGE" && (p.imageCategory?.toUpperCase().includes("BATTERY") || p.imageCategory?.toUpperCase().includes("INTERIOR") || p.displayName?.toUpperCase().includes("BATTERY")))
+                  );
+                  const imgUrl = formatMediaUrl(matchedPhoto?.imageUrl);
+
+                  return (
+                    <div key={slot.type} className="rounded-2xl border border-border bg-card p-4 shadow-soft flex flex-col gap-2">
+                      <span className="text-xs font-extrabold text-foreground truncate">{slot.label}</span>
+                      <div className="relative group aspect-[16/10] w-full overflow-hidden rounded-xl border border-border bg-secondary shadow-inner flex items-center justify-center">
+                        {imgUrl ? (
+                          <>
+                            <img src={imgUrl} alt={slot.label} className="size-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                              <button
+                                type="button"
+                                onClick={() => window.open(imgUrl, "_blank")}
+                                className="inline-flex items-center gap-1 rounded-xl bg-[#FFC700] text-[#0D0E12] px-3 py-1.5 text-[11px] font-black shadow-md hover:bg-[#FFD633] transition-all cursor-pointer"
+                              >
+                                <Eye className="size-3.5" /> View Photo
+                              </button>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="flex size-full items-center justify-center text-[10px] text-muted-foreground font-bold">
+                            No Image Attached
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </Panel>
           </div>
@@ -640,8 +763,8 @@ export function AdminVehicleDetail() {
         {activeDetailStep === 3 && (
           <div className="space-y-8">
             <Panel
-              title="Step 4: Tyres Condition & Emergency Equipment"
-              description="Brand name, remaining tread depth percentage, and emergency toolkit checklist."
+              title="Step 4: Tyres Specifications"
+              description="Enter remaining tread depth percentage and brand names for all wheels."
               action={
                 <div className="flex items-center gap-1.5">
                   {[1, 2, 3, 4, 5].map((star) => (
@@ -661,20 +784,100 @@ export function AdminVehicleDetail() {
                 </div>
               }
             >
-              <div className="grid gap-4.5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+              <div className="grid gap-5 md:grid-cols-2">
                 {[
-                  { label: "Front Right Tyre", brand: previewData.tyreDetails?.frontRightBrand, tread: previewData.tyreDetails?.frontRightTread },
-                  { label: "Front Left Tyre", brand: previewData.tyreDetails?.frontLeftBrand, tread: previewData.tyreDetails?.frontLeftTread },
-                  { label: "Rear Right Tyre", brand: previewData.tyreDetails?.rearRightBrand, tread: previewData.tyreDetails?.rearRightTread },
-                  { label: "Rear Left Tyre", brand: previewData.tyreDetails?.rearLeftBrand, tread: previewData.tyreDetails?.rearLeftTread },
-                  { label: "Spare Wheel", brand: previewData.tyreDetails?.spareBrand, tread: previewData.tyreDetails?.spareTread },
+                  { label: "Front Right Tyre", brand: previewData.tyreDetails?.frontRightBrand, tread: previewData.tyreDetails?.frontRightTread, year: previewData.tyreDetails?.frontRightYear },
+                  { label: "Rear Right Tyre", brand: previewData.tyreDetails?.rearRightBrand, tread: previewData.tyreDetails?.rearRightTread, year: previewData.tyreDetails?.rearRightYear },
+                  { label: "Rear Left Tyre", brand: previewData.tyreDetails?.rearLeftBrand, tread: previewData.tyreDetails?.rearLeftTread, year: previewData.tyreDetails?.rearLeftYear },
+                  { label: "Front Left Tyre", brand: previewData.tyreDetails?.frontLeftBrand, tread: previewData.tyreDetails?.frontLeftTread, year: previewData.tyreDetails?.frontLeftYear },
+                  { label: "Spare Wheel", brand: previewData.tyreDetails?.spareBrand, tread: previewData.tyreDetails?.spareTread, year: previewData.tyreDetails?.spareYear },
                 ].map((t, idx) => (
-                  <div key={idx} className="rounded-2xl border border-border bg-card p-4 shadow-soft">
-                    <span className="text-xs font-extrabold text-foreground block mb-1">{t.label}</span>
-                    <span className="text-[11px] font-bold text-muted-foreground block">Brand: {t.brand || "Standard"}</span>
-                    <span className="text-xs font-black text-[#10B981] block mt-1">Tread: {t.tread || 75}% remaining</span>
+                  <div key={idx} className="rounded-2xl border border-border bg-card p-5 shadow-soft flex flex-col gap-3">
+                    <div className="flex items-center justify-between border-b border-border pb-2.5">
+                      <p className="text-sm font-extrabold text-foreground">{t.label}</p>
+                      <span className="rounded-xl border border-border bg-[#FFC700]/15 border-[#FFC700]/30 px-3 py-1 text-xs font-black text-[#FFC700]">
+                        Tread: {t.tread ? `${t.tread}%` : "60%"}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs font-extrabold text-muted-foreground">
+                      <span>Brand & Model:</span>
+                      <span className="text-foreground font-black">{t.brand || "JK 2019"}</span>
+                    </div>
                   </div>
                 ))}
+              </div>
+
+              <h4 className="text-xs font-extrabold uppercase text-muted-foreground mt-6 mb-3">Emergency Toolkit & Equipment</h4>
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs">
+                {[
+                  { name: "Jack", present: previewData.tyreDetails?.hasJack },
+                  { name: "Handle", present: previewData.tyreDetails?.hasHandle },
+                  { name: "Tool Kit", present: previewData.tyreDetails?.hasToolkit },
+                  { name: "First Aid Box", present: previewData.tyreDetails?.hasFirstAidBox },
+                  { name: "Emergency Triangle", present: previewData.tyreDetails?.hasTriangle },
+                ].map((eq, idx) => (
+                  <div key={idx} className="rounded-2xl border border-border bg-card p-3.5 flex items-center justify-between shadow-soft">
+                    <span className="font-bold text-foreground text-xs">{eq.name}</span>
+                    <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full ${eq.present ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20" : "bg-rose-500/10 text-rose-600 border border-rose-500/20"}`}>
+                      {eq.present ? "Available" : "Missing"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </Panel>
+
+            <Panel
+              title="Tyres & Spare Wheel Photos"
+              description="Individual photos of four active tyres and spare wheel in boot."
+            >
+              <div className="grid gap-4.5 sm:grid-cols-2 lg:grid-cols-3">
+                {[
+                  { type: "FRONT_RIGHT_TYRE", label: "RIGHT SIDE FRONT TYRE IMG" },
+                  { type: "REAR_RIGHT_TYRE", label: "RIGHT SIDE REAR TYRE IMG" },
+                  { type: "REAR_LEFT_TYRE", label: "LEFT SIDE REAR TYRE IMG" },
+                  { type: "FRONT_LEFT_TYRE", label: "LEFT SIDE FRONT TYRE IMG" },
+                  { type: "SPARE_WHEEL", label: "SPARE WHEEL IMG" },
+                  { type: "TYRES_OVERVIEW", label: "TYRES OVERVIEW IMAGE" },
+                ].map((slot) => {
+                  const matchedPhoto = (previewData.inspectionPhotos || []).find((p: any) => {
+                    if (p.photoType?.toUpperCase() === slot.type) return true;
+                    const cat = (p.imageCategory || p.displayName || "").toUpperCase().replace(/[^A-Z]/g, "");
+                    if (slot.type === "FRONT_RIGHT_TYRE") return cat.includes("FRONTRIGHT") || cat.includes("RFTYRE") || cat === "RF";
+                    if (slot.type === "REAR_RIGHT_TYRE") return cat.includes("REARRIGHT") || cat.includes("RRTYRE") || cat === "RR";
+                    if (slot.type === "FRONT_LEFT_TYRE") return cat.includes("FRONTLEFT") || cat.includes("LFTYRE") || cat === "LF";
+                    if (slot.type === "REAR_LEFT_TYRE") return cat.includes("REARLEFT") || cat.includes("LRTYRE") || cat === "LR";
+                    if (slot.type === "SPARE_WHEEL") return cat.includes("SPARE");
+                    if (slot.type === "TYRES_OVERVIEW") return cat.includes("OVERVIEW") || cat === "TYRES" || cat.includes("GENERAL");
+                    return false;
+                  });
+                  const imgUrl = formatMediaUrl(matchedPhoto?.imageUrl);
+
+                  return (
+                    <div key={slot.type} className="rounded-2xl border border-border bg-card p-4 shadow-soft flex flex-col gap-2">
+                      <span className="text-xs font-extrabold text-foreground truncate">{slot.label}</span>
+                      <div className="relative group aspect-[16/10] w-full overflow-hidden rounded-xl border border-border bg-secondary shadow-inner flex items-center justify-center">
+                        {imgUrl ? (
+                          <>
+                            <img src={imgUrl} alt={slot.label} className="size-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                              <button
+                                type="button"
+                                onClick={() => window.open(imgUrl, "_blank")}
+                                className="inline-flex items-center gap-1 rounded-xl bg-[#FFC700] text-[#0D0E12] px-3 py-1.5 text-[11px] font-black shadow-md hover:bg-[#FFD633] transition-all cursor-pointer"
+                              >
+                                <Eye className="size-3.5" /> View Photo
+                              </button>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="flex size-full items-center justify-center text-[10px] text-muted-foreground font-bold">
+                            No Image Attached
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </Panel>
           </div>
@@ -685,7 +888,7 @@ export function AdminVehicleDetail() {
           <div className="space-y-8">
             <Panel
               title="Step 5: Interior & Electrical Checklist"
-              description="Dashboard condition, AC performance, infotainment, and cabin features."
+              description="Evaluate interior electronics, battery brand, AC cooling and accessories."
               action={
                 <div className="flex items-center gap-1.5">
                   {[1, 2, 3, 4, 5].map((star) => (
@@ -700,28 +903,162 @@ export function AdminVehicleDetail() {
                     />
                   ))}
                   <span className="ml-2 text-xs font-bold text-foreground">
-                    {previewData.ratings?.interior ? `${previewData.ratings.interior} / 5 Stars` : "4.4 / 5 Stars"}
+                    {previewData.ratings?.interior ? `${previewData.ratings.interior} / 5 Stars` : "4 / 5 Stars"}
                   </span>
                 </div>
               }
             >
-              <div className="grid gap-4.5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+              <div className="grid gap-4 sm:grid-cols-3 mb-6">
+                <div className="rounded-2xl border border-border bg-card p-4 shadow-soft flex flex-col gap-1">
+                  <span className="text-[10px] font-bold uppercase text-muted-foreground">Battery Company</span>
+                  <span className="text-sm font-extrabold text-foreground">{previewData.interiorDetails?.batteryBrand || "N/A"}</span>
+                </div>
+                <div className="rounded-2xl border border-border bg-card p-4 shadow-soft flex flex-col gap-1">
+                  <span className="text-[10px] font-bold uppercase text-muted-foreground">Full Battery Serial Number</span>
+                  <span className="text-sm font-extrabold text-foreground">{previewData.interiorDetails?.batterySerialNumber || "N/A"}</span>
+                </div>
+                <div className="rounded-2xl border border-border bg-card p-4 shadow-soft flex flex-col gap-1">
+                  <span className="text-[10px] font-bold uppercase text-muted-foreground">AC Cooling Performance</span>
+                  <span className="text-sm font-extrabold text-foreground">{previewData.interiorDetails?.acCooling || "N/A"}</span>
+                </div>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 items-start">
                 {[
-                  { label: "Battery Brand", val: previewData.interiorDetails?.batteryBrand },
-                  { label: "AC Cooling Performance", val: previewData.interiorDetails?.acCooling },
-                  { label: "Dashboard Condition", val: previewData.interiorDetails?.dashboard },
-                  { label: "Infotainment System", val: previewData.interiorDetails?.infotainment },
-                  { label: "Music System", val: previewData.interiorDetails?.musicSystem },
-                  { label: "Power Windows", val: previewData.interiorDetails?.powerWindows },
-                  { label: "Central Locking", val: previewData.interiorDetails?.centralLock },
+                  { label: "Push Start Button", val: previewData.interiorDetails?.pushButton },
                   { label: "Sunroof", val: previewData.interiorDetails?.sunroof },
+                  { label: "Right Side Tail Lamp", val: previewData.interiorDetails?.rightTailLamp },
+                  { label: "Left Side Tail Lamp", val: previewData.interiorDetails?.leftTailLamp },
+                  { label: "Right Side Head Light", val: previewData.interiorDetails?.rightHeadLamp },
+                  { label: "Left Side Head Light", val: previewData.interiorDetails?.leftHeadLamp },
+                  { label: "Right Indicator", val: previewData.interiorDetails?.indicators },
+                  { label: "Left Indicator", val: previewData.interiorDetails?.indicators },
+                  { label: "Boot Floor", val: previewData.interiorDetails?.bootFloor },
+                  { label: "Washer Fluid", val: "OK" },
+                  { label: "Dashboard", val: previewData.interiorDetails?.dashboard },
+                  { label: "Left Side Fog Lamp", val: previewData.interiorDetails?.fogLamps },
+                  { label: "Right Side Fog Lamp", val: previewData.interiorDetails?.fogLamps },
+                  { label: "Rear Stop Light", val: "OK" },
+                  { label: "Power Window All Buttons", val: previewData.interiorDetails?.powerWindows },
+                  { label: "Music System", val: previewData.interiorDetails?.musicSystem },
+                  { label: "Adjustable Steering", val: "OK" },
+                  { label: "Steering Mounted Controls", val: previewData.interiorDetails?.steeringMountedControls },
+                  { label: "Wiper Washer Front", val: previewData.interiorDetails?.wiper },
+                  { label: "Rear Defogger", val: previewData.interiorDetails?.rearDefogger },
+                  { label: "Rear Wiper Washer", val: previewData.interiorDetails?.rearWasher },
                   { label: "Instrument Cluster", val: previewData.interiorDetails?.instrumentCluster },
-                ].map((item, idx) => (
-                  <div key={idx} className="rounded-2xl border border-border bg-secondary/30 p-4">
-                    <span className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">{item.label}</span>
-                    <span className="font-extrabold text-foreground text-sm">{item.val || "OK / Working"}</span>
+                  { label: "Infotainment System", val: previewData.interiorDetails?.infotainment },
+                  { label: "Central Lock", val: previewData.interiorDetails?.centralLock },
+                  { label: "All Sensors", val: previewData.interiorDetails?.sensors },
+                ].map((item, idx) => {
+                  const valStr = String(item.val || "OK / WORKING").toUpperCase();
+                  const isNA = valStr === "NA" || valStr === "N/A" || valStr.includes("N/A") || valStr.includes("NOT APPLICABLE");
+
+                  const itemClean = item.label.toUpperCase().replace(/[^A-Z]/g, "");
+                  const matchedPhoto = isNA ? null : (previewData.inspectionPhotos || []).find((p: any) => {
+                    const pType = (p.photoType || "").toUpperCase().replace(/[^A-Z]/g, "");
+                    const pCat = (p.imageCategory || "").toUpperCase().replace(/[^A-Z]/g, "");
+                    const pDisp = (p.displayName || "").toUpperCase().replace(/[^A-Z]/g, "");
+
+                    if (pCat === itemClean || pDisp === itemClean) return true;
+                    if (pCat === "INTERIOR" || pCat === "EXTERIOR" || pCat === "MECHANICAL" || pCat === "TYRE" || pCat === "TYRES") return false;
+
+                    if (pType && (pType === itemClean || itemClean.includes(pType) || pType.includes(itemClean))) return true;
+                    if (pCat && (pCat.includes(itemClean) || itemClean.includes(pCat))) return true;
+                    if (pDisp && (pDisp.includes(itemClean) || itemClean.includes(pDisp))) return true;
+                    if (itemClean.includes("POWERWINDOW") && (pCat.includes("POWERWINDOW") || pDisp.includes("POWERWINDOW"))) return true;
+                    return false;
+                  });
+                  const imgUrl = formatMediaUrl(matchedPhoto?.imageUrl);
+
+                  return (
+                    <div key={idx} className="rounded-2xl border border-border bg-card p-3.5 shadow-soft flex flex-col gap-2.5">
+                      <div className="flex items-center justify-between gap-2 w-full">
+                        <span className="text-xs font-bold text-foreground truncate min-w-0">{item.label}</span>
+                        <span className="rounded-xl border border-border bg-secondary px-2.5 py-1 text-xs font-extrabold text-foreground shrink-0">
+                          {item.val || "OK / WORKING"}
+                        </span>
+                      </div>
+
+                      {!isNA && imgUrl && (
+                        <div className="relative group aspect-[16/10] w-full overflow-hidden rounded-xl border border-border bg-secondary shadow-inner">
+                          <img
+                            src={imgUrl}
+                            alt={item.label}
+                            className="size-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          />
+                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <button
+                              type="button"
+                              onClick={() => window.open(imgUrl, "_blank")}
+                              className="inline-flex items-center gap-1 rounded-xl bg-[#FFC700] text-[#0D0E12] px-3 py-1.5 text-[11px] font-black shadow-md hover:bg-[#FFD633] transition-all cursor-pointer"
+                            >
+                              <Eye className="size-3.5" /> View Photo
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="mt-6 space-y-4">
+                <div>
+                  <label className="block text-xs font-extrabold text-foreground mb-1.5">
+                    Inspector Remarks & Notes
+                  </label>
+                  <div className="w-full rounded-2xl border border-border bg-card p-4 text-sm font-semibold text-foreground shadow-soft min-h-[100px]">
+                    {previewData.interiorDetails?.remarks || "No remarks entered."}
                   </div>
-                ))}
+                </div>
+              </div>
+            </Panel>
+
+            <Panel
+              title="Interior & Cabin Mandatory Photos"
+              description="Odometer reading and AC panel photos."
+            >
+              <div className="grid gap-4.5 sm:grid-cols-2 lg:grid-cols-4">
+                {[
+                  { type: "ODOMETER_IMAGE", label: "ODOMETER READING PHOTO" },
+                  { type: "AC_CONTROL_IMAGE", label: "AC CONTROL PANEL PHOTO" },
+                ].map((slot) => {
+                  const matchedPhoto = (previewData.inspectionPhotos || []).find((p: any) => {
+                    if (p.photoType?.toUpperCase() === slot.type) return true;
+                    const cat = (p.imageCategory || p.displayName || "").toUpperCase().replace(/[^A-Z]/g, "");
+                    if (slot.type === "ODOMETER_IMAGE") return cat.includes("ODOMETER");
+                    if (slot.type === "AC_CONTROL_IMAGE") return cat.includes("AC");
+                    return false;
+                  });
+                  const imgUrl = formatMediaUrl(matchedPhoto?.imageUrl);
+
+                  return (
+                    <div key={slot.type} className="rounded-2xl border border-border bg-card p-4 shadow-soft flex flex-col gap-2">
+                      <span className="text-xs font-extrabold text-foreground truncate">{slot.label}</span>
+                      <div className="relative group aspect-[16/10] w-full overflow-hidden rounded-xl border border-border bg-secondary shadow-inner flex items-center justify-center">
+                        {imgUrl ? (
+                          <>
+                            <img src={imgUrl} alt={slot.label} className="size-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                              <button
+                                type="button"
+                                onClick={() => window.open(imgUrl, "_blank")}
+                                className="inline-flex items-center gap-1 rounded-xl bg-[#FFC700] text-[#0D0E12] px-3 py-1.5 text-[11px] font-black shadow-md hover:bg-[#FFD633] transition-all cursor-pointer"
+                              >
+                                <Eye className="size-3.5" /> View Photo
+                              </button>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="flex size-full items-center justify-center text-[10px] text-muted-foreground font-bold">
+                            No Image Attached
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </Panel>
           </div>

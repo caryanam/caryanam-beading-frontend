@@ -17,6 +17,7 @@ import { AppShell } from "@/components/app-shell";
 import { adminNav } from "@/components/nav-config";
 import { Panel, StatCard } from "@/components/premium";
 import { getSubmittedInspections, getRegisteredDealers, AdminDealer, AdminInspectionSummary } from "@/lib/api/admin-api";
+import { getFreelancerInspections } from "@/lib/api/freelancer-api";
 
 const axis = { stroke: "var(--muted-foreground)", fontSize: 11, tickLine: false, axisLine: false };
 const tip = {
@@ -29,23 +30,59 @@ const tip = {
 
 export function AdminAnalytics() {
   const [dealers, setDealers] = useState<AdminDealer[]>([]);
-  const [inspections, setInspections] = useState<AdminInspectionSummary[]>([]);
+  const [inspections, setInspections] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchAnalytics = async () => {
       setLoading(true);
       try {
-        const [dealRes, insRes] = await Promise.all([
+        const [dealRes, insRes, freeRes] = await Promise.allSettled([
           getRegisteredDealers(),
           getSubmittedInspections(),
+          getFreelancerInspections(),
         ]);
-        if (dealRes.success && dealRes.data) {
-          setDealers(dealRes.data);
+
+        if (dealRes.status === "fulfilled" && dealRes.value?.success && dealRes.value?.data) {
+          setDealers(dealRes.value.data);
         }
-        if (insRes.success && insRes.data) {
-          setInspections(insRes.data);
+
+        let inspectorList: any[] = [];
+        if (insRes.status === "fulfilled" && insRes.value?.success && insRes.value?.data) {
+          inspectorList = insRes.value.data.map((ins: any) => ({
+            ...ins,
+            inspectionId: ins.inspectionId || ins.id,
+            sourceType: "INSPECTOR",
+          }));
         }
+
+        let freelancerList: any[] = [];
+        if (freeRes.status === "fulfilled" && freeRes.value?.success && freeRes.value?.data) {
+          freelancerList = freeRes.value.data.map((item: any) => {
+            const insId = item.inspectionId || item.id;
+            let curStatus = String(item.status || item.vehicleStatus || "APPROVED").toUpperCase();
+            if (curStatus === "SUBMITTED" || curStatus === "PENDING" || curStatus === "PENDING_APPROVAL") {
+              curStatus = "APPROVED";
+            }
+            return {
+              ...item,
+              inspectionId: insId,
+              vehicleNumber: item.vehicleNumber || item.registrationNumber || item.regNo || `INS-${insId}`,
+              brand: item.brand || "",
+              model: item.model || "",
+              variant: item.variant || "",
+              ownerName: item.ownerName || "1st Owner",
+              suggestedPrice: item.suggestedPrice || item.price || 0,
+              submittedAt: item.submittedAt || item.createdAt || null,
+              inspectorName: item.freelancerName || item.inspectorName || (item.inspectorId ? `Freelancer #${item.inspectorId}` : "Freelancer"),
+              status: curStatus,
+              vehicleStatus: item.vehicleStatus || curStatus,
+              sourceType: "FREELANCER",
+            };
+          });
+        }
+
+        setInspections([...inspectorList, ...freelancerList]);
       } catch (err) {
         console.error("Failed to load analytics datasets", err);
         toast.error("Failed to load analytics datasets");
