@@ -43,8 +43,8 @@ export const freelancerNav: NavItem[] = [
 
 export const dealerNav: NavItem[] = [
   { label: "Dashboard", to: "/dealer", icon: Gauge },
-  { label: "Marketplace", to: "/dealer/marketplace", icon: Car },
-  { label: "Freelancer Vehicles", to: "/dealer/freelancer-vehicles", icon: Car },
+  { label: "Marketplace", to: "/dealer/marketplace", icon: Store },
+  { label: "Freelancer Vehicles", to: "/dealer/freelancer-vehicles", icon: UserCheck },
   { label: "My Bids", to: "/dealer/bids", icon: Gavel },
   { label: "Favourites", to: "/dealer/favourites", icon: Heart },
   { label: "Profile", to: "/dealer/profile", icon: UserRound },
