@@ -307,7 +307,7 @@ export function FreelancerVehicles() {
       header: "Actions",
       cell: (v) => {
         const s = String(v.status || "").toLowerCase();
-        const canDelete = s === "draft" || s === "in_progress";
+        const canDelete = s === "draft";
         const vId = v.id || v.inspectionId || "1";
 
         return (

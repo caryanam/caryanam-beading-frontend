@@ -219,9 +219,17 @@ export function AdminLiveBidding() {
         i.vehicleNumber?.toLowerCase().includes(q),
     );
   }, [inspections, activeTab, searchQuery]);
+  // Auto-select first room when activeTab changes
+  useEffect(() => {
+    if (filteredInspections.length > 0 && (!selectedId || !filteredInspections.some(i => i.inspectionId === selectedId))) {
+      setSelectedId(filteredInspections[0].inspectionId);
+    } else if (filteredInspections.length === 0) {
+      setSelectedId(null);
+    }
+  }, [activeTab, filteredInspections]);
 
   // Initialize selected card details
-  useEffect(() => {
+useEffect(() => {
     if (!selectedRoom) return;
     setHighestBid(
       selectedRoom.currentHighestBid || selectedRoom.suggestedPrice || 0,

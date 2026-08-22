@@ -696,11 +696,8 @@ export function DealerFreelancerVehicleDetail() {
 
                 <div className="absolute bottom-4 left-4 right-4 z-10 flex items-center justify-between text-white">
                   <div>
-                    <p className="text-lg font-black tracking-tight drop-shadow-md uppercase">
+                    <p className="text-xl font-extrabold text-white drop-shadow-md">
                       {vehicle.brand} {vehicle.model} {vehicle.variant}
-                    </p>
-                    <p className="text-xs text-white/80 font-semibold drop-shadow">
-                      Evaluated by {vehicle.inspector}
                     </p>
                   </div>
                   <span className="inline-flex items-center gap-1.5 rounded-xl bg-white/10 backdrop-blur-md px-3 py-1.5 text-xs font-extrabold border border-white/20">

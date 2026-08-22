@@ -222,33 +222,7 @@ export function AdminAnalytics() {
 
   return (
     <AppShell role="admin" nav={adminNav} title="Analytics" breadcrumb={["Admin", "Analytics"]}>
-      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          label="Gross Bidding Volume"
-          value={loading ? "..." : `₹${grossBiddingValue.toLocaleString("en-IN")}`}
-          delta={`${totalBidsCount} total active bids`}
-          icon={IndianRupee}
-          accent
-        />
-        <StatCard
-          label="Approved Vehicles"
-          value={loading ? "..." : approvedCount.toString()}
-          delta={`Out of ${totalInspections} submitted`}
-          icon={LineIcon}
-        />
-        <StatCard
-          label="Approval Rate"
-          value={loading ? "..." : approvalRate}
-          delta={`${liveCount} live in auction`}
-          icon={Percent}
-        />
-        <StatCard
-          label="Active Dealers"
-          value={loading ? "..." : dealers.length.toString()}
-          delta="Enrolled dealer network"
-          icon={Users}
-        />
-      </div>
+      
 
       <div className="flex flex-wrap items-center gap-3">
         <button

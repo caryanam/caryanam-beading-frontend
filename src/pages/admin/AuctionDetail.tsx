@@ -333,11 +333,9 @@ export function AdminAuctionDetail() {
     vehicleStatus === "COMPLETED";
 
   const topBidder = v.currentHighestBidder
-    ? v.currentHighestBidder.dealershipName ||
-    v.currentHighestBidder.ownerName ||
-    v.currentHighestBidder
-    : bidHistory[0]?.dealer || "No Bids";
-  const topBid = v.currentHighestBid || bidHistory[0]?.amount || 0;
+    ? (typeof v.currentHighestBidder === 'string' ? v.currentHighestBidder : (v.currentHighestBidder.dealershipName || v.currentHighestBidder.ownerName || v.currentHighestBidder))
+    : (bidHistory.length > 0 ? (bidHistory[0].dealer || bidHistory[0].dealerName || bidHistory[0].dealershipName || bidHistory[0].bidderName || `Dealer #${bidHistory[0].userId}`) : "No Bids");
+  const topBid = v.currentHighestBid || v.highestBidAmount || (bidHistory.length > 0 ? (bidHistory[0].amount || bidHistory[0].bidAmount || 0) : 0);
   const basePrice = v.suggestedPrice || v.price || 0;
   const totalBids = v.totalBids || bidHistory.length || 0;
 
@@ -481,7 +479,7 @@ export function AdminAuctionDetail() {
                     {v.brand} {v.model} {v.variant}
                   </h4>
                   <p className="text-xs text-muted-foreground font-semibold">
-                    {v.vehicleNumber} · Winner: <strong className="text-foreground">{topBidder}</strong> ({inr(topBid)})
+                    {v.vehicleNumber} · Winner: <strong className="text-foreground">{topBidder}</strong>
                   </p>
                 </div>
                 {!isSold && (
@@ -564,39 +562,43 @@ export function AdminAuctionDetail() {
 
         {/* 4 Summary Stat Cards */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-3xl border border-[#FFC700]/40 bg-[#FFC700]/5 p-5 shadow-soft flex flex-col justify-between">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-black text-[#FFC700] uppercase tracking-widest">
-                {isSold ? "Auction Winner" : "Highest Active Bidder"}
-              </span>
-              <Crown className="size-5 text-[#FFC700]" />
-            </div>
-            <div className="mt-3">
-              <p className="text-xl font-black text-foreground truncate">
-                {topBidder}
-              </p>
-              <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
-                {isSold ? "Confirmed Winner" : "Bidding Leader"}
-              </p>
-            </div>
-          </div>
+          {(isLive || isSold) && (
+            <>
+              <div className="rounded-3xl border border-[#FFC700]/40 bg-[#FFC700]/5 p-5 shadow-soft flex flex-col justify-between">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black text-[#FFC700] uppercase tracking-widest">
+                    {isSold ? "Auction Winner" : "Highest Active Bidder"}
+                  </span>
+                  <Crown className="size-5 text-[#FFC700]" />
+                </div>
+                <div className="mt-3">
+                  <p className="text-xl font-black text-foreground truncate">
+                    {topBidder}
+                  </p>
+                  <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
+                    {isSold ? "Confirmed Winner" : "Bidding Leader"}
+                  </p>
+                </div>
+              </div>
 
-          <div className="rounded-3xl border border-border bg-card p-5 shadow-soft flex flex-col justify-between">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
-                Highest Bid
-              </span>
-              <Gavel className="size-5 text-emerald-500" />
-            </div>
-            <div className="mt-3">
-              <p className="text-xl font-black text-emerald-600 dark:text-emerald-400">
-                {topBid > 0 ? inr(topBid) : "No Bids Yet"}
-              </p>
-              <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
-                Current Best Offer
-              </p>
-            </div>
-          </div>
+              <div className="rounded-3xl border border-border bg-card p-5 shadow-soft flex flex-col justify-between">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
+                    Highest Bid
+                  </span>
+                  <Gavel className="size-5 text-emerald-500" />
+                </div>
+                <div className="mt-3">
+                  <p className="text-xl font-black text-emerald-600 dark:text-emerald-400">
+                    {topBid > 0 ? inr(topBid) : "No Bids Yet"}
+                  </p>
+                  <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
+                    Current Best Offer
+                  </p>
+                </div>
+              </div>
+            </>
+          )}
 
           <div className="rounded-3xl border border-border bg-card p-5 shadow-soft flex flex-col justify-between">
             <div className="flex items-center justify-between">
@@ -752,12 +754,14 @@ export function AdminAuctionDetail() {
                   <span className="text-white/60">Reserve Base:</span>
                   <span className="font-black text-[#FFC700]">{inr(basePrice)}</span>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-white/60">Leading Bid:</span>
-                  <span className={cn("font-black", topBid > 0 ? "text-emerald-400" : "text-emerald-400")}>
-                    {topBid > 0 ? inr(topBid) : "No bids"}
-                  </span>
-                </div>
+                {(isLive || isSold) && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-white/60">Leading Bid:</span>
+                    <span className={cn("font-black", topBid > 0 ? "text-emerald-400" : "text-emerald-400")}>
+                      {topBid > 0 ? inr(topBid) : "No bids"}
+                    </span>
+                  </div>
+                )}
               </div>
 
               {isLive ? (
