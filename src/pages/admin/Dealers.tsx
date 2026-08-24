@@ -22,6 +22,7 @@ export function AdminDealers() {
 
   // Selected dealer modal state
   const [selectedDealer, setSelectedDealer] = useState<AdminDealer | null>(null);
+  const [dealerToDelete, setDealerToDelete] = useState<AdminDealer | null>(null);
   const [deleting, setDeleting] = useState(false);
 
   const fetchDealers = async () => {
@@ -70,14 +71,16 @@ export function AdminDealers() {
   };
 
   const handleDeleteDealer = async () => {
-    if (!selectedDealer) return;
+    const targetDealer = dealerToDelete || selectedDealer;
+    if (!targetDealer) return;
 
     setDeleting(true);
     try {
-      const res = await deleteAdminDealer(selectedDealer.id);
+      const res = await deleteAdminDealer(targetDealer.id);
       if (res.success) {
         toast.success("Dealer account removed.");
         setSelectedDealer(null);
+        setDealerToDelete(null);
         setShowDeleteConfirm(false);
         fetchDealers();
       } else {
@@ -385,7 +388,10 @@ export function AdminDealers() {
               {/* Sticky Footer Controls */}
               <div className="flex items-center justify-between border-t border-border bg-card/95 backdrop-blur-sm px-6 py-4 shrink-0">
                 <button
-                  onClick={() => setShowDeleteConfirm(true)}
+                  onClick={() => {
+                    setDealerToDelete(selectedDealer);
+                    setShowDeleteConfirm(true);
+                  }}
                   disabled={deleting}
                   className="inline-flex items-center gap-1.5 rounded-2xl border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 px-4 py-2.5 text-xs font-black text-rose-600 dark:text-rose-400 transition-all cursor-pointer"
                 >
@@ -407,10 +413,13 @@ export function AdminDealers() {
 
       <ConfirmModal
         isOpen={showDeleteConfirm}
-        onClose={() => setShowDeleteConfirm(false)}
+        onClose={() => {
+          setShowDeleteConfirm(false);
+          setDealerToDelete(null);
+        }}
         onConfirm={handleDeleteDealer}
         title="Delete Dealer Account"
-        description={`Are you sure you want to permanently delete dealership "${selectedDealer?.dealershipName}"? This action cannot be undone.`}
+        description={`Are you sure you want to permanently delete dealership "${dealerToDelete?.dealershipName || selectedDealer?.dealershipName || ""}"? This action cannot be undone.`}
         confirmText="Delete Dealer"
         cancelText="Cancel"
         variant="danger"

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+﻿import { useEffect } from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -72,6 +72,7 @@ export function App() {
         <Route path="/contact" element={<LandingPage page="contact" />} />
         <Route path="/privacy" element={<LandingPage page="privacy" />} />
         <Route path="/terms" element={<LandingPage page="terms" />} />
+        <Route path="/delete-account" element={<LandingPage page="delete-account" />} />
         <Route path="/login" element={<LandingPage page="auth" initialMode="login" />} />
         <Route path="/register" element={<LandingPage page="auth" initialMode="signup" />} />
         <Route path="/signup" element={<LandingPage page="auth" initialMode="signup" />} />

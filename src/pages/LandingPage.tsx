@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
-import { Menu, X, ShieldCheck, User, LogIn, UserPlus, MapPin, Phone, Mail } from "lucide-react";
+import { Menu, X, LogIn, UserPlus, MapPin, Phone, Mail } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Role } from "@/lib/mock-data";
 
@@ -12,9 +12,10 @@ import { Contact } from "./landingpage/Contact";
 import { Privacy } from "./landingpage/Privacy";
 import { Terms } from "./landingpage/Terms";
 import { Login } from "./landingpage/Login";
+import { DeleteAccount } from "./landingpage/DeleteAccount";
 
 interface LandingPageProps {
-  page?: "home" | "about" | "why" | "contact" | "privacy" | "terms" | "auth";
+  page?: "home" | "about" | "why" | "contact" | "privacy" | "terms" | "auth" | "delete-account";
   initialMode?: "login" | "signup";
 }
 
@@ -38,58 +39,46 @@ export function LandingPage({ page = "home", initialMode = "login" }: LandingPag
 
   const navigateToAuth = (
     mode: "login" | "signup",
-    role: Role | null = null,
+    role: Role = "dealer"
   ) => {
-    setMobileMenuOpen(false);
-    if (mode === "login") {
-      navigate("/login");
-    } else {
-      navigate("/register");
-    }
+    navigate(mode === "login" ? "/login" : "/register", {
+      state: { mode, role },
+    });
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-background font-sans antialiased text-foreground">
-      {/* Premium Glassmorphic Sticky Navigation Header */}
+    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans selection:bg-[#FFC700] selection:text-[#0D0E12]">
+      {/* Dynamic Header Navbar */}
       {!isAuth && (
-        <header className="sticky top-0 z-50 w-full border-b border-border/50 bg-background/85 backdrop-blur-xl shadow-sm">
+        <header className="sticky top-0 z-50 w-full border-b border-border/80 bg-background/80 backdrop-blur-xl transition-all">
           <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-6 lg:px-8">
-
-            {/* Brand Logo & Badging */}
-            <Link
-              to="/"
-              className="flex items-center gap-3 cursor-pointer focus:outline-none group"
-            >
-              <div className="relative grid size-11 place-items-center rounded-2xl overflow-hidden shadow-[0_4px_16px_rgba(255,199,0,0.35)] bg-[#0D0E12] border border-[#FFC700]/50 transition-transform group-hover:scale-105 shrink-0">
+            {/* Brand Logo */}
+            <Link to="/" className="flex items-center gap-3 group">
+              <span className="relative grid size-11 place-items-center rounded-2xl overflow-hidden bg-[#0D0E12] border border-[#FFC700]/40 shadow-[0_0_20px_rgba(255,199,0,0.15)] group-hover:border-[#FFC700] transition-all">
                 <img src="/logo.png" alt="Caryanam Bidding" className="size-full object-cover" />
-              </div>
-              <div className="text-left flex flex-col justify-center">
-                <div className="flex items-center gap-2">
-                  <span className="text-base font-black tracking-wider uppercase text-foreground">
-                    Caryanam
-                  </span>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-[#FFC700]/15 text-[#FFC700] border border-[#FFC700]/30 hidden sm:inline-block">
-                    B2B Auctions
-                  </span>
-                </div>
-                <span className="text-xs font-bold tracking-wider text-muted-foreground uppercase">
-                  Used Car Inspection & Bidding
+              </span>
+              <div className="flex flex-col">
+                <span className="text-base font-black tracking-wider uppercase text-foreground group-hover:text-[#FFC700] transition-colors">
+                  Caryanam Bidding
+                </span>
+                <span className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase -mt-0.5">
+                  Remarketing Telemetry
                 </span>
               </div>
             </Link>
 
-            {/* Desktop Nav Links Pill Bar */}
-            <nav className="hidden md:flex items-center gap-1.5 rounded-full border border-border/80 bg-secondary/40 p-1.5 backdrop-blur-md">
+            {/* Navigation Items (Desktop) */}
+            <nav className="hidden md:flex items-center gap-1.5 bg-secondary/40 p-1.5 rounded-2xl border border-border/60">
               {navLinks.map((link) => {
-                const isActive = location.pathname === link.path || (link.path === "/" && location.pathname === "");
+                const isActive = location.pathname === link.path;
                 return (
                   <Link
                     key={link.id}
                     to={link.path}
                     className={cn(
-                      "px-4 py-2 rounded-full text-sm font-bold transition-all cursor-pointer",
+                      "px-4 py-2 text-sm font-extrabold rounded-xl transition-all cursor-pointer",
                       isActive
-                        ? "bg-[#FFC700] text-[#0D0E12] shadow-sm font-black"
+                        ? "bg-[#FFC700] text-[#0D0E12] shadow-sm"
                         : "text-muted-foreground hover:text-foreground hover:bg-secondary/80",
                     )}
                   >
@@ -99,7 +88,7 @@ export function LandingPage({ page = "home", initialMode = "login" }: LandingPag
               })}
             </nav>
 
-            {/* Desktop Action Buttons */}
+            {/* Auth Buttons */}
             <div className="hidden md:flex items-center gap-3">
               <Link
                 to="/login"
@@ -184,6 +173,7 @@ export function LandingPage({ page = "home", initialMode = "login" }: LandingPag
         {page === "contact" && <Contact />}
         {page === "privacy" && <Privacy />}
         {page === "terms" && <Terms />}
+        {page === "delete-account" && <DeleteAccount />}
         {page === "auth" && (
           <Login initialMode={initialMode} />
         )}
@@ -253,7 +243,7 @@ export function LandingPage({ page = "home", initialMode = "login" }: LandingPag
                   </li>
                   <li className="flex items-start gap-2 text-zinc-300">
                     <MapPin className="size-4 text-[#FFC700] shrink-0 mt-0.5" />
-                    <span>Kharadi, Pune, Maharashtra 411014</span>
+                    <span>Pune, Maharashtra 411014</span>
                   </li>
                 </ul>
               </div>
@@ -273,6 +263,11 @@ export function LandingPage({ page = "home", initialMode = "login" }: LandingPag
                       Terms of Service
                     </Link>
                   </li>
+                  <li>
+                    <Link to="/delete-account" className="hover:text-white transition-colors">
+                      Delete My Account
+                    </Link>
+                  </li>
                 </ul>
               </div>
             </div>
@@ -282,9 +277,7 @@ export function LandingPage({ page = "home", initialMode = "login" }: LandingPag
                 Developed by Caryanamindia Pvt Ltd
               </p>
               <p className="mt-2 md:mt-0 font-medium">
-                © 2026 Caryanam Bidding. All rights reserved by Caryanamindia Pvt Ltd
-
-
+                Ac 2026 Caryanam Bidding. All rights reserved by Caryanamindia Pvt Ltd
               </p>
             </div>
           </div>
