@@ -194,12 +194,14 @@ export function AdminVehicles() {
           fetchInspections();
         }
       } else if (modalAction.type === "go-live") {
+        const duration = activeTab === "freelancer" ? 15 : 10;
+        const vehicleTypeLabel = activeTab === "freelancer" ? "Freelancer" : "Inspector";
         try {
-          await startLiveAuction(insId);
+          await startLiveAuction(insId, duration);
         } catch {
           // Fallback if offline
         }
-        toast.success(`15-Minute Live Auction Started for Vehicle #${insId}!`);
+        toast.success(`${duration}-Minute Live Auction Started for ${vehicleTypeLabel} Vehicle #${insId}!`);
         setModalAction(null);
         fetchInspections();
       }
@@ -585,7 +587,7 @@ export function AdminVehicles() {
                 </div>
               ) : modalAction.type === "go-live" ? (
                 <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-xs font-bold text-amber-600 space-y-1">
-                  <p>This will start a 15-minute live auction timer for this vehicle on the dealer portal.</p>
+                  <p>This will start a {activeTab === "freelancer" ? "15-minute" : "10-minute"} live auction timer for this vehicle on the dealer portal.</p>
                   <p className="text-[11px] opacity-80">Dealers will be able to place live bids immediately.</p>
                 </div>
               ) : (

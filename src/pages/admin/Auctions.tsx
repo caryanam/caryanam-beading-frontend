@@ -154,10 +154,11 @@ export function AdminAuctions() {
   const handleGoLive = async (id: number) => {
     try {
       const duration = activeTab === "freelancer" ? 15 : 10;
+      const vehicleTypeLabel = activeTab === "freelancer" ? "Freelancer" : "Inspector";
       toast.info(`Launching live ${duration}-minute auction room...`);
       const res = await startLiveAuction(id, duration);
       if (res.success) {
-        toast.success(`15-Minute Live Auction Started for Freelancer Vehicle #${id}!`);
+        toast.success(`${duration}-Minute Live Auction Started for ${vehicleTypeLabel} Vehicle #${id}!`);
         fetchAuctions();
       } else {
         toast.error("Failed to start auction.");
