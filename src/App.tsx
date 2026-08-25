@@ -16,6 +16,7 @@ import { AdminLiveBidding } from "@/pages/admin/LiveBidding";
 import { AdminDealers } from "@/pages/admin/Dealers";
 import { AdminInspectors } from "@/pages/admin/Inspectors";
 import { AdminFreelancers } from "@/pages/admin/Freelancers";
+import { AdminEnquiries } from "@/pages/admin/Enquiries";
 
 import { AdminReports } from "@/pages/admin/Reports";
 import { AdminSettings } from "@/pages/admin/Settings";
@@ -90,6 +91,7 @@ export function App() {
           <Route path="freelancers" element={<AdminFreelancers />} />
 
           <Route path="reports" element={<AdminReports />} />
+          <Route path="enquiries" element={<AdminEnquiries />} />
           <Route path="settings" element={<AdminSettings />} />
           <Route path="vehicles" element={<AdminVehicles />} />
           <Route path="freelancer-vehicles" element={<AdminVehicles />} />

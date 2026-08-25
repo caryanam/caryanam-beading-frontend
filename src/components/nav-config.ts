@@ -2,7 +2,7 @@ import {
   Bell,
   Car,
   FileBarChart,
-  FileText,
+  FileText, MessageSquare,
   Gauge,
   Gavel,
   Heart,
@@ -25,6 +25,7 @@ export const adminNav: NavItem[] = [
   { label: "Inspectors", to: "/admin/inspectors", icon: Users },
   { label: "Freelancers", to: "/admin/freelancers", icon: UserCheck },
   { label: "Analytics", to: "/admin/analytics", icon: FileBarChart },
+  { label: "Enquiries", to: "/admin/enquiries", icon: MessageSquare },
 ];
 
 export const inspectorNav: NavItem[] = [
