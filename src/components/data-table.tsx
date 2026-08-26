@@ -44,8 +44,8 @@ export function DataTable<T>({
 
   return (
     <div className="rounded-3xl border border-border bg-card shadow-soft overflow-hidden">
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-b border-border p-5">
-        <label className="flex min-w-0 items-center gap-2 rounded-2xl border border-border bg-secondary px-4 py-2.5">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-border p-4 sm:p-5">
+        <label className="flex min-w-0 flex-1 items-center gap-2 rounded-2xl border border-border bg-secondary px-4 py-2.5">
           <Search className="size-4 shrink-0 text-muted-foreground" />
           <input
             value={query}
@@ -57,7 +57,7 @@ export function DataTable<T>({
             className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
           />
         </label>
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2 overflow-x-auto no-scrollbar pb-1 md:pb-0">
           {actions !== undefined ? (
             actions
           ) : (

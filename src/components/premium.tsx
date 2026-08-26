@@ -39,16 +39,16 @@ export function StatCard({
   return (
     <div
       className={cn(
-        "group relative overflow-hidden rounded-3xl p-6 transition-all duration-300",
+        "group relative overflow-hidden rounded-2xl sm:rounded-3xl p-4 sm:p-6 transition-all duration-300",
         accent
           ? "surface-dark border border-[#FFC700]/40 text-white shadow-lift"
           : "border border-border bg-card shadow-soft hover:border-[#FFC700]/35 hover:shadow-md",
       )}
     >
-      <div className="flex items-center justify-between">
+      <div className="flex items-start sm:items-center justify-between gap-2">
         <span
           className={cn(
-            "text-xs font-black uppercase tracking-wider",
+            "text-[10px] sm:text-xs font-black uppercase tracking-wider line-clamp-2",
             accent ? "text-[#FFC700]" : "text-muted-foreground",
           )}
         >
@@ -56,18 +56,18 @@ export function StatCard({
         </span>
         <span
           className={cn(
-            "grid size-11 shrink-0 place-items-center rounded-2xl border transition-colors shadow-sm",
+            "grid size-9 sm:size-11 shrink-0 place-items-center rounded-xl sm:rounded-2xl border transition-colors shadow-sm",
             accent
               ? "border-[#FFC700]/50 bg-[#FFC700]/25 text-[#FFC700]"
               : "border-[#FFC700]/30 bg-[#FFC700]/10 text-[#FFC700]",
           )}
         >
-          <Icon className="size-5" />
+          <Icon className="size-4 sm:size-5" />
         </span>
       </div>
       <p
         className={cn(
-          "relative z-10 mt-6 text-3xl font-extrabold tracking-tight",
+          "relative z-10 mt-3 sm:mt-6 text-2xl sm:text-3xl font-extrabold tracking-tight",
           accent ? "text-white" : "text-foreground",
         )}
       >
@@ -76,12 +76,12 @@ export function StatCard({
       {delta && (
         <p
           className={cn(
-            "relative z-10 mt-2 flex items-center gap-1 text-xs font-semibold",
+            "relative z-10 mt-1 sm:mt-2 flex items-center gap-1 text-[11px] sm:text-xs font-semibold truncate",
             accent ? "text-[#FFC700]" : "text-muted-foreground",
           )}
         >
-          <ArrowUpRight className="size-3.5 text-[#FFC700]" />
-          {delta}
+          <ArrowUpRight className="size-3 sm:size-3.5 text-[#FFC700] shrink-0" />
+          <span className="truncate">{delta}</span>
         </p>
       )}
     </div>
@@ -104,25 +104,25 @@ export function Panel({
   return (
     <section
       className={cn(
-        "rounded-3xl border border-border bg-card p-6 shadow-soft transition-all duration-300 hover:border-[#FFC700]/35",
+        "rounded-2xl sm:rounded-3xl border border-border bg-card p-4 sm:p-6 shadow-soft transition-all duration-300 hover:border-[#FFC700]/35",
         className,
       )}
     >
       {(title || action) && (
-        <header className="mb-6 grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4">
-          <div className="min-w-0">
+        <header className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="min-w-0 flex-1">
             {title && (
-              <h2 className="truncate text-lg font-extrabold tracking-tight text-foreground">
+              <h2 className="truncate text-base sm:text-lg font-extrabold tracking-tight text-foreground">
                 {title}
               </h2>
             )}
             {description && (
-              <p className="mt-1 text-sm font-medium text-muted-foreground">
+              <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm font-medium text-muted-foreground">
                 {description}
               </p>
             )}
           </div>
-          {action}
+          {action && <div className="shrink-0">{action}</div>}
         </header>
       )}
       {children}

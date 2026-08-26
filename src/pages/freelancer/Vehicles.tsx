@@ -377,7 +377,7 @@ export function FreelancerVehicles() {
   };
 
   const actionButtons = (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 max-w-full">
       {["All", "Draft", "Pending", "Approved", "Rejected"].map((status) => {
         const active = statusFilter === status;
         const count = getStatusCount(status);
@@ -385,7 +385,7 @@ export function FreelancerVehicles() {
           <button
             key={status}
             onClick={() => setStatusFilter(status)}
-            className={`rounded-2xl border px-3.5 py-2 text-xs font-extrabold transition-all cursor-pointer flex items-center gap-2 ${
+            className={`rounded-2xl border px-3 sm:px-3.5 py-2 text-xs font-extrabold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 ${
               active
                 ? "bg-[#FFC700] border-[#FFC700] text-[#0D0E12] shadow-sm"
                 : "border-border bg-card text-foreground hover:bg-secondary"
@@ -423,17 +423,17 @@ export function FreelancerVehicles() {
       }
     >
       {previewId === null ? (
-        <div className="space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="space-y-5 sm:space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
             <div>
-              <h1 className="text-2xl font-extrabold tracking-tight">My Uploaded Vehicles</h1>
-              <p className="text-xs text-muted-foreground">
+              <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight">My Uploaded Vehicles</h1>
+              <p className="text-xs text-muted-foreground mt-0.5">
                 Manage your submitted vehicles and track approval status
               </p>
             </div>
             <Link
               to="/freelancer/add-vehicle"
-              className="inline-flex items-center gap-2 rounded-2xl bg-[#FFC700] hover:bg-[#FFD633] px-5 py-3 text-xs font-black text-black transition-all shadow-md cursor-pointer self-start sm:self-auto"
+              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#FFC700] hover:bg-[#FFD633] px-5 py-3 text-xs font-black text-black transition-all shadow-md cursor-pointer w-full sm:w-auto"
             >
               <PlusCircle className="size-4" /> Add New Vehicle
             </Link>
@@ -444,34 +444,140 @@ export function FreelancerVehicles() {
               <span className="h-8 w-8 animate-spin rounded-full border-2 border-amber-500 border-t-transparent" />
             </div>
           ) : (
-            <DataTable
-              rows={filteredVehicles}
-              columns={columns}
-              searchKeys={["registrationNumber", "regNo", "brand", "model", "customerName"]}
-              placeholder="Search by registration number, brand, model, customer name..."
-              actions={actionButtons}
-            />
+            <div className="space-y-4">
+              {/* Mobile View Vehicles Cards (< 768px) */}
+              <div className="md:hidden space-y-3.5">
+                {/* Status Filter Bar for Mobile */}
+                <div className="rounded-2xl border border-border bg-card p-3 shadow-soft">
+                  <p className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground mb-2 px-1">
+                    Filter Status
+                  </p>
+                  {actionButtons}
+                </div>
+
+                {filteredVehicles.length === 0 ? (
+                  <div className="rounded-3xl border border-border bg-card p-8 text-center text-xs font-bold text-muted-foreground">
+                    No vehicle submissions match your filter criteria.
+                  </div>
+                ) : (
+                  filteredVehicles.map((v, idx) => {
+                    const s = String(v.status || v.vehicleStatus || "").toLowerCase();
+                    let chipStatus = "draft";
+                    if (s === "approved" || s === "live") chipStatus = "approved";
+                    else if (s === "rejected") chipStatus = "rejected";
+                    else if (s === "pending" || s === "submitted" || s === "pending_approval") chipStatus = "submitted";
+                    else if (s === "draft") chipStatus = "draft";
+
+                    const vId = v.id || v.inspectionId || "1";
+                    const canDelete = s === "draft";
+                    const priceVal = v.price || v.suggestedPrice || 0;
+
+                    return (
+                      <div
+                        key={vId || idx}
+                        className="rounded-3xl border border-border bg-card p-4 sm:p-5 shadow-soft hover:border-[#FFC700]/50 transition-all flex flex-col gap-3"
+                      >
+                        {/* Top Bar: Title & Status */}
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <h3 className="font-extrabold text-sm sm:text-base text-foreground leading-tight truncate">
+                              {v.brand} {v.model} {v.variant}
+                            </h3>
+                            <p className="text-xs font-bold text-muted-foreground mt-0.5 truncate">
+                              {v.registrationNumber || v.regNo || v.vehicleNumber || "No Reg #"}
+                            </p>
+                          </div>
+                          <StatusChip status={chipStatus} />
+                        </div>
+
+                        {s === "rejected" && v.rejectionReason && (
+                          <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-2.5 text-xs text-rose-500 font-extrabold leading-tight">
+                            Reason: {v.rejectionReason}
+                          </div>
+                        )}
+
+                        {/* Spec Highlights Grid */}
+                        <div className="grid grid-cols-2 gap-2 bg-secondary/40 rounded-2xl p-3 border border-border/60 text-xs">
+                          <div>
+                            <span className="text-[10px] font-bold text-muted-foreground uppercase block">Suggested Price</span>
+                            <span className="font-black text-[#FFC700]">{priceVal ? inr(priceVal) : "N/A"}</span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] font-bold text-muted-foreground uppercase block">Owner</span>
+                            <span className="font-extrabold text-foreground truncate block">{v.ownerProfileStatus || v.ownerName || "1st Owner"}</span>
+                          </div>
+                          <div className="col-span-2 text-[11px] font-medium text-muted-foreground pt-1 border-t border-border/40 flex items-center justify-between">
+                            <span>Submitted</span>
+                            <span className="font-bold text-foreground">
+                              {v.createdAt || v.submittedAt ? formatIndianDateTime(v.createdAt || v.submittedAt || "") : "Recently"}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Action Buttons Row */}
+                        <div className="flex items-center gap-2 pt-1 border-t border-border/40">
+                          <button
+                            onClick={() => openPreview(v)}
+                            className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl border border-border bg-secondary/50 py-2 text-xs font-extrabold text-foreground hover:border-[#FFC700] hover:text-[#FFC700] transition-colors"
+                          >
+                            <Eye className="size-3.5" /> Preview
+                          </button>
+
+                          <Link
+                            to={`/freelancer/add-vehicle?id=${vId}`}
+                            className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl border border-[#FFC700]/30 bg-[#FFC700]/10 py-2 text-xs font-black text-[#FFC700] hover:bg-[#FFC700] hover:text-[#0D0E12] transition-all"
+                          >
+                            <Edit3 className="size-3.5" /> Edit
+                          </Link>
+
+                          {canDelete && (
+                            <button
+                              onClick={() => setDeleteTargetId(vId)}
+                              className="size-9 grid place-items-center rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white transition-colors shrink-0"
+                              title="Delete Draft"
+                            >
+                              <Trash2 className="size-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Desktop DataTable (>= 768px) */}
+              <div className="hidden md:block">
+                <DataTable
+                  rows={filteredVehicles}
+                  columns={columns}
+                  searchKeys={["registrationNumber", "regNo", "brand", "model", "customerName"]}
+                  placeholder="Search by registration number, brand, model, customer name..."
+                  actions={actionButtons}
+                />
+              </div>
+            </div>
           )}
         </div>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-5 sm:space-y-6">
           {/* Header Action Bar */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-3xl border border-border bg-card p-6 shadow-sm">
-            <div className="flex items-center gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-3xl border border-border bg-card p-4 sm:p-6 shadow-sm">
+            <div className="flex items-start sm:items-center gap-3 min-w-0">
               <button
                 onClick={closeDetailView}
-                className="inline-flex items-center justify-center size-10 rounded-2xl border border-border bg-secondary/50 text-foreground hover:bg-secondary hover:border-[#FFC700] transition-all cursor-pointer shadow-sm shrink-0"
+                className="inline-flex items-center justify-center size-9 sm:size-10 rounded-2xl border border-border bg-secondary/50 text-foreground hover:bg-secondary hover:border-[#FFC700] transition-all cursor-pointer shadow-sm shrink-0"
                 title="Back to My Vehicles"
               >
-                <ArrowLeft className="size-5 text-[#FFC700]" />
+                <ArrowLeft className="size-4 sm:size-5 text-[#FFC700]" />
               </button>
 
-              <div>
+              <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h2 className="text-xl font-black text-foreground tracking-tight">
+                  <h2 className="text-lg sm:text-xl font-black text-foreground tracking-tight truncate">
                     {previewData?.brand} {previewData?.model} {previewData?.variant}
                   </h2>
-                  <span className="rounded-lg bg-secondary border border-border px-2.5 py-0.5 text-xs font-extrabold text-foreground">
+                  <span className="rounded-lg bg-secondary border border-border px-2.5 py-0.5 text-xs font-extrabold text-foreground shrink-0">
                     {previewData?.registrationNumber || previewData?.regNo || `#${previewId}`}
                   </span>
                   {previewData?.status && <StatusChip status={previewData.status} />}
@@ -482,10 +588,10 @@ export function FreelancerVehicles() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2.5 shrink-0 self-start sm:self-auto">
+            <div className="flex items-center gap-2.5 shrink-0 w-full sm:w-auto">
               <Link
                 to={`/freelancer/add-vehicle?id=${previewId}`}
-                className="inline-flex items-center gap-2 rounded-2xl border border-border bg-secondary/60 hover:bg-secondary text-foreground px-4 py-2.5 text-xs font-black shadow-sm transition-all"
+                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-border bg-secondary/60 hover:bg-secondary text-foreground px-4 py-2.5 text-xs font-black shadow-sm transition-all w-full sm:w-auto"
               >
                 <Edit3 className="size-4 text-[#FFC700]" /> Edit & Update
               </Link>
@@ -493,10 +599,10 @@ export function FreelancerVehicles() {
           </div>
 
           {/* Details Content */}
-          <div className="space-y-6">
+          <div className="space-y-5 sm:space-y-6">
             {/* Status Rejection Banner */}
             {previewData?.status?.toLowerCase() === "rejected" && (
-              <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-5 text-rose-500 flex items-start gap-3">
+              <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-4 sm:p-5 text-rose-500 flex items-start gap-3">
                 <AlertCircle className="size-5 shrink-0 mt-0.5" />
                 <div>
                   <p className="font-extrabold text-sm">Submission Rejected by Admin</p>
@@ -509,76 +615,76 @@ export function FreelancerVehicles() {
 
             {/* Customer & Basic Specifications Panel */}
             <Panel title="Vehicle Specifications & Customer Info" description="Basic specifications captured by freelancer">
-              <div className="grid gap-4.5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-                <div className="rounded-2xl border border-border bg-secondary/30 p-4">
+              <div className="grid gap-3 sm:gap-4.5 grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+                <div className="rounded-2xl border border-border bg-secondary/30 p-3.5 sm:p-4">
                   <span className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">Customer Name</span>
-                  <span className="font-extrabold text-foreground text-sm">{previewData?.customerName || "N/A"}</span>
+                  <span className="font-extrabold text-foreground text-xs sm:text-sm">{previewData?.customerName || "N/A"}</span>
                 </div>
-                <div className="rounded-2xl border border-border bg-secondary/30 p-4">
+                <div className="rounded-2xl border border-border bg-secondary/30 p-3.5 sm:p-4">
                   <span className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">Customer Mobile</span>
-                  <span className="font-extrabold text-foreground text-sm">{previewData?.customerMobileNumber || "N/A"}</span>
+                  <span className="font-extrabold text-foreground text-xs sm:text-sm">{previewData?.customerMobileNumber || "N/A"}</span>
                 </div>
-                <div className="rounded-2xl border border-border bg-secondary/30 p-4">
+                <div className="rounded-2xl border border-border bg-secondary/30 p-3.5 sm:p-4">
                   <span className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">Registration Number</span>
-                  <span className="font-black text-[#FFC700] text-sm">
+                  <span className="font-black text-[#FFC700] text-xs sm:text-sm">
                     {previewData?.registrationNumber || previewData?.regNo || "N/A"}
                   </span>
                 </div>
-                <div className="rounded-2xl border border-border bg-secondary/30 p-4">
+                <div className="rounded-2xl border border-border bg-secondary/30 p-3.5 sm:p-4">
                   <span className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">Make & Model</span>
-                  <span className="font-extrabold text-foreground text-sm">
+                  <span className="font-extrabold text-foreground text-xs sm:text-sm">
                     {previewData?.brand} {previewData?.model} {previewData?.variant}
                   </span>
                 </div>
-                <div className="rounded-2xl border border-border bg-secondary/30 p-4">
+                <div className="rounded-2xl border border-border bg-secondary/30 p-3.5 sm:p-4">
                   <span className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">Manufacturing Year</span>
-                  <span className="font-extrabold text-foreground text-sm">{previewData?.manufacturingYear || previewData?.year || "N/A"}</span>
+                  <span className="font-extrabold text-foreground text-xs sm:text-sm">{previewData?.manufacturingYear || previewData?.year || "N/A"}</span>
                 </div>
-                <div className="rounded-2xl border border-border bg-secondary/30 p-4">
+                <div className="rounded-2xl border border-border bg-secondary/30 p-3.5 sm:p-4">
                   <span className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">Registration Year</span>
-                  <span className="font-extrabold text-foreground text-sm">{previewData?.registrationYear || previewData?.year || "N/A"}</span>
+                  <span className="font-extrabold text-foreground text-xs sm:text-sm">{previewData?.registrationYear || previewData?.year || "N/A"}</span>
                 </div>
-                <div className="rounded-2xl border border-border bg-secondary/30 p-4">
+                <div className="rounded-2xl border border-border bg-secondary/30 p-3.5 sm:p-4">
                   <span className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">Fuel Type & Transmission</span>
-                  <span className="font-extrabold text-foreground text-sm">
+                  <span className="font-extrabold text-foreground text-xs sm:text-sm">
                     {previewData?.fuelType || previewData?.fuel || "Petrol"} / {previewData?.transmission || "Manual"}
                   </span>
                 </div>
-                <div className="rounded-2xl border border-border bg-secondary/30 p-4">
+                <div className="rounded-2xl border border-border bg-secondary/30 p-3.5 sm:p-4">
                   <span className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">Odometer Reading</span>
-                  <span className="font-extrabold text-foreground text-sm">
+                  <span className="font-extrabold text-foreground text-xs sm:text-sm">
                     {previewData?.odometerReading || previewData?.odometer ? `${previewData.odometerReading || previewData.odometer} km` : "N/A"}
                   </span>
                 </div>
-                <div className="rounded-2xl border border-border bg-secondary/30 p-4">
+                <div className="rounded-2xl border border-border bg-secondary/30 p-3.5 sm:p-4">
                   <span className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">Owner Profile Status</span>
-                  <span className="font-extrabold text-foreground text-sm">{previewData?.ownerProfileStatus || "1st Owner"}</span>
+                  <span className="font-extrabold text-foreground text-xs sm:text-sm">{previewData?.ownerProfileStatus || "1st Owner"}</span>
                 </div>
-                <div className="rounded-2xl border border-border bg-secondary/30 p-4">
+                <div className="rounded-2xl border border-border bg-secondary/30 p-3.5 sm:p-4">
                   <span className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">Insurance Validity</span>
-                  <span className="font-extrabold text-foreground text-sm">{previewData?.insuranceValidity || "Valid"}</span>
+                  <span className="font-extrabold text-foreground text-xs sm:text-sm">{previewData?.insuranceValidity || "Valid"}</span>
                 </div>
-                <div className="rounded-2xl border border-border bg-secondary/30 p-4">
+                <div className="rounded-2xl border border-border bg-secondary/30 p-3.5 sm:p-4">
                   <span className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">Expected Price</span>
-                  <span className="font-black text-[#FFC700] text-sm">
+                  <span className="font-black text-[#FFC700] text-xs sm:text-sm">
                     {previewData?.price || previewData?.suggestedPrice ? inr(previewData.price || previewData.suggestedPrice || 0) : "N/A"}
                   </span>
                 </div>
-                <div className="rounded-2xl border border-border bg-secondary/30 p-4">
+                <div className="rounded-2xl border border-border bg-secondary/30 p-3.5 sm:p-4">
                   <span className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">Location</span>
-                  <span className="font-extrabold text-foreground text-sm">{previewData?.location || "N/A"}</span>
+                  <span className="font-extrabold text-foreground text-xs sm:text-sm">{previewData?.location || "N/A"}</span>
                 </div>
-                <div className="rounded-2xl border border-border bg-secondary/30 p-4">
+                <div className="rounded-2xl border border-border bg-secondary/30 p-3.5 sm:p-4">
                   <span className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">Under Hypothecation</span>
-                  <span className="font-extrabold text-foreground text-sm">{previewData?.underHypothecation || "No"}</span>
+                  <span className="font-extrabold text-foreground text-xs sm:text-sm">{previewData?.underHypothecation || "No"}</span>
                 </div>
-                <div className="rounded-2xl border border-border bg-secondary/30 p-4">
+                <div className="rounded-2xl border border-border bg-secondary/30 p-3.5 sm:p-4">
                   <span className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">Accidental History</span>
-                  <span className="font-extrabold text-foreground text-sm">{previewData?.accidental || "No"}</span>
+                  <span className="font-extrabold text-foreground text-xs sm:text-sm">{previewData?.accidental || "No"}</span>
                 </div>
-                <div className="rounded-2xl border border-border bg-secondary/30 p-4 sm:col-span-2">
+                <div className="rounded-2xl border border-border bg-secondary/30 p-3.5 sm:p-4 col-span-1 xs:col-span-2">
                   <span className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">RTO Information</span>
-                  <span className="font-extrabold text-foreground text-sm">{previewData?.rtoInformation || "N/A"}</span>
+                  <span className="font-extrabold text-foreground text-xs sm:text-sm">{previewData?.rtoInformation || "N/A"}</span>
                 </div>
               </div>
             </Panel>
@@ -590,7 +696,7 @@ export function FreelancerVehicles() {
                   No photos uploaded for this vehicle.
                 </div>
               ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
                   {(previewData.photoList && previewData.photoList.length > 0
                     ? previewData.photoList
                     : (previewData.photos || []).map((url, idx) => ({ name: `Photo #${idx + 1}`, url }))

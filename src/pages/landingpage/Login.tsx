@@ -76,7 +76,7 @@ function Field({
 }) {
   return (
     <div className="flex flex-col items-start gap-1.5 w-full">
-      <label className="text-[10px] font-black text-zinc-400 tracking-wider uppercase px-1 flex items-center">
+      <label className="text-[10px] sm:text-[11px] font-extrabold text-zinc-700 dark:text-zinc-300 tracking-wider uppercase px-1 flex items-center">
         {label}
         {required && <span className="text-red-500 font-bold ml-1 text-[11px]">*</span>}
       </label>
@@ -87,7 +87,7 @@ function Field({
           placeholder={placeholder || `Enter ${label}`}
           onChange={(e) => onChange(e.target.value)}
           required={required}
-          className="w-full rounded-[14px] bg-[#f1f3f6] border border-transparent focus:bg-white px-5 py-3.5 text-sm font-semibold text-zinc-800 placeholder-zinc-400 outline-none transition-all focus:ring-1 focus:ring-[#FFC700]/15"
+          className="w-full rounded-[14px] bg-[#f4f5f8] dark:bg-[#181A24] border border-zinc-200/80 dark:border-zinc-800 focus:bg-white dark:focus:bg-[#1C1E2B] focus:border-[#FFC700] px-4.5 py-3 sm:py-3.5 text-sm font-semibold text-zinc-900 dark:text-white placeholder-zinc-400 outline-none transition-all focus:ring-2 focus:ring-[#FFC700]/20"
         />
         {trailing && (
           <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center">
@@ -900,290 +900,367 @@ export function Login({
         </div>
       </div>
 
-      {/* Mobile Form Layout */}
-      <div className="lg:hidden w-full min-h-screen bg-zinc-50 flex flex-col justify-center relative overflow-hidden px-6 py-12">
-        {/* Back to Home Button Mobile */}
-        <Link
-          to="/"
-          className="absolute top-6 left-6 z-30 inline-flex items-center gap-2 text-xs font-black text-white bg-[#0D0E12]/80 backdrop-blur-md px-3.5 py-2 rounded-full border border-[#FFC700]/40 shadow-md hover:bg-[#0D0E12] transition-all cursor-pointer"
-        >
-          <ArrowLeft className="size-4 text-[#FFC700]" />
-          <span>Back to Home</span>
-        </Link>
+      {/* Mobile & Tablet Form Layout (< 1024px) - Premium Combination Theme */}
+      <div className="lg:hidden w-full min-h-screen bg-slate-50 dark:bg-zinc-950 flex flex-col justify-between relative overflow-hidden px-4 sm:px-6 py-6 sm:py-10">
+        {/* Top Dark Hero Backdrop */}
+        <div className="absolute top-0 left-0 w-full h-64 sm:h-72 bg-[#0D0E12] overflow-hidden">
+          <img
+            src={authImage}
+            alt="Luxury Supercar Background"
+            className="w-full h-full object-cover opacity-30"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#0D0E12]/80 via-[#0D0E12]/60 to-slate-50 dark:to-zinc-950" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] sm:w-[500px] h-[200px] bg-[#FFC700]/15 rounded-full blur-[100px] pointer-events-none" />
+        </div>
 
-        {/* Background Car Image for brand feeling */}
-        <div
-          className="absolute top-0 left-0 w-full h-44 bg-cover bg-center"
-          style={{ backgroundImage: `url(${authImage})` }}
-        />
-        <div className="absolute top-0 left-0 w-full h-44 bg-gradient-to-b from-[#0D0E12]/80 to-zinc-50" />
+        {/* Top Bar Navigation */}
+        <div className="relative z-20 flex items-center justify-between w-full max-w-md sm:max-w-xl mx-auto mb-4 sm:mb-6 pt-1">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 text-xs font-bold text-zinc-200 hover:text-white transition-all bg-[#0D0E12]/80 backdrop-blur-md px-3.5 sm:px-4 py-2 rounded-full border border-white/15 hover:border-[#FFC700]/50 shadow-md group cursor-pointer"
+          >
+            <ArrowLeft className="size-4 text-[#FFC700] group-hover:-translate-x-1 transition-transform" />
+            <span>Back to Home</span>
+          </Link>
 
-        {/* Top corporate brand logo */}
-        <div className="flex items-center justify-end w-full max-w-md mx-auto mb-4 mt-6 relative z-10 px-4">
-          <div className="flex items-center gap-2">
-            <span className="relative grid size-8 place-items-center rounded-xl overflow-hidden bg-[#0D0E12] border border-[#FFC700]/40 shadow-sm">
+          <div className="flex items-center gap-2 bg-[#0D0E12]/80 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/15 shadow-md">
+            <span className="relative grid size-6 place-items-center rounded-lg overflow-hidden bg-[#0D0E12] border border-[#FFC700]/40">
               <img src="/logo.png" alt="Caryanam Bidding" className="size-full object-cover" />
             </span>
-            <p className="text-xs font-extrabold tracking-[0.15em] text-[#0D0E12] uppercase">
+            <span className="text-[10px] sm:text-[11px] font-black tracking-[0.15em] text-[#FFC700] uppercase">
               Caryanam Bidding
-            </p>
+            </span>
           </div>
         </div>
 
-        {mode === "login" ? (
-          <form onSubmit={submit} className="w-full max-w-md mx-auto flex flex-col items-center relative z-10 bg-white p-8 rounded-[24px] shadow-md border border-zinc-100">
-            <h1 className="text-3xl font-extrabold text-zinc-900 tracking-tight mb-1">Sign In</h1>
+        {/* Combination Glass Card */}
+        <div className="relative z-20 w-full max-w-md sm:max-w-xl mx-auto my-auto bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 p-6 sm:p-8 rounded-[28px] sm:rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.12)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex flex-col">
 
-            <p className="text-xs font-bold text-zinc-400 mb-5 uppercase tracking-wider">
-              Sign in With Email / Mobile & Password
-            </p>
+          {/* Mode Switcher Tabs (Sign In vs Sign Up) */}
+          <div className="grid grid-cols-2 gap-1.5 rounded-2xl bg-zinc-100 dark:bg-zinc-800/80 p-1.5 border border-zinc-200/60 dark:border-zinc-700 mb-6">
+            <button
+              type="button"
+              onClick={() => {
+                setMode("login");
+                setRole(null);
+                setValues({});
+              }}
+              className={cn(
+                "rounded-xl py-2.5 sm:py-3 text-xs font-extrabold uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2",
+                mode === "login"
+                  ? "bg-[#FFC700] text-[#0D0E12] shadow-md font-black"
+                  : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white"
+              )}
+            >
+              <Zap className={cn("size-4", mode === "login" ? "text-[#0D0E12]" : "text-[#FFC700]")} />
+              <span>Sign In</span>
+            </button>
 
-            <div className="w-full space-y-3">
-              <Field
-                label="Email Address or Mobile Number"
-                placeholder="Enter Email or 10-digit Mobile"
-                type="text"
-                value={values.email ?? ""}
-                onChange={handleEmailOrMobileChange}
-                required
-              />
-              <Field
-                label="Account Password"
-                placeholder="Enter Password"
-                type={showPassword ? "text" : "password"}
-                value={values.password ?? ""}
-                onChange={set("password")}
-                trailing={
+            <button
+              type="button"
+              onClick={() => {
+                setMode("signup");
+                setRole("dealer");
+                setValues({});
+              }}
+              className={cn(
+                "rounded-xl py-2.5 sm:py-3 text-xs font-extrabold uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2",
+                mode === "signup"
+                  ? "bg-[#FFC700] text-[#0D0E12] shadow-md font-black"
+                  : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white"
+              )}
+            >
+              <UserCheck className={cn("size-4", mode === "signup" ? "text-[#0D0E12]" : "text-[#FFC700]")} />
+              <span>Sign Up</span>
+            </button>
+          </div>
+
+          {/* Render Sign In Form */}
+          {mode === "login" ? (
+            <form onSubmit={submit} className="w-full flex flex-col">
+              <div className="text-left mb-5">
+                <h1 className="text-2xl sm:text-3xl font-black text-zinc-900 dark:text-white tracking-tight">Welcome Back</h1>
+                <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 mt-1">
+                  Sign in with your Email Address or Mobile Number
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <Field
+                  label="Email Address or Mobile Number"
+                  placeholder="Enter Email or 10-digit Mobile"
+                  type="text"
+                  value={values.email ?? ""}
+                  onChange={handleEmailOrMobileChange}
+                  required
+                />
+                <Field
+                  label="Account Password"
+                  placeholder="Enter Password"
+                  type={showPassword ? "text" : "password"}
+                  value={values.password ?? ""}
+                  onChange={set("password")}
+                  trailing={
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((s) => !s)}
+                      className="text-zinc-400 hover:text-[#FFC700] transition-colors cursor-pointer"
+                      aria-label="Toggle password visibility"
+                    >
+                      {showPassword ? (
+                        <EyeOff className="size-4" />
+                      ) : (
+                        <Eye className="size-4" />
+                      )}
+                    </button>
+                  }
+                  required
+                />
+              </div>
+
+              <div className="flex justify-end items-center my-4 text-xs">
+                <button
+                  type="button"
+                  onClick={openForgotModal}
+                  className="font-bold text-zinc-600 dark:text-zinc-400 hover:text-[#FFC700] transition-colors cursor-pointer"
+                >
+                  Forgot Password?
+                </button>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-[#FFC700] hover:bg-[#FFD633] text-[#0D0E12] py-3.5 sm:py-4 rounded-xl font-black text-xs uppercase tracking-wider transition-all duration-300 shadow-[0_4px_16px_rgba(255,199,0,0.35)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2"
+              >
+                {loading ? (
+                  <span className="flex items-center gap-2">
+                    <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#0D0E12] border-t-transparent" />
+                    Processing...
+                  </span>
+                ) : (
+                  "Sign In to Bidding Portal"
+                )}
+              </button>
+            </form>
+          ) : (
+            /* Render Sign Up Form */
+            <form onSubmit={submit} className="w-full flex flex-col">
+              <div className="text-left mb-4">
+                <h1 className="text-2xl sm:text-3xl font-black text-zinc-900 dark:text-white tracking-tight">Create Account</h1>
+                <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 mt-1">
+                  Select your role to start bidding and remarketing
+                </p>
+              </div>
+
+              {/* Role selector - 3 Tabs for Dealer, Inspector & Freelancer */}
+              <div className="grid grid-cols-3 gap-1.5 rounded-2xl bg-zinc-100 dark:bg-zinc-800/80 p-1 border border-zinc-200/60 dark:border-zinc-700 w-full mb-4">
+                {(["dealer", "inspector", "freelancer"] as const).map((r) => (
                   <button
+                    key={r}
                     type="button"
-                    onClick={() => setShowPassword((s) => !s)}
-                    className="text-zinc-400 hover:text-[#FFC700] transition-colors cursor-pointer"
-                    aria-label="Toggle password visibility"
+                    onClick={() => {
+                      setRole(r);
+                      setValues({});
+                    }}
+                    className={cn(
+                      "rounded-xl py-2 sm:py-2.5 px-1 text-[10px] xs:text-xs font-extrabold capitalize transition-all cursor-pointer flex items-center justify-center gap-1.5",
+                      role === r
+                        ? "bg-[#FFC700] text-[#0D0E12] shadow-sm font-black"
+                        : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white"
+                    )}
                   >
-                    {showPassword ? (
-                      <EyeOff className="size-4" />
+                    {r === "dealer" ? (
+                      <>
+                        <Building2 className="size-3.5 shrink-0" />
+                        <span className="truncate">Dealer</span>
+                      </>
+                    ) : r === "inspector" ? (
+                      <>
+                        <ClipboardCheck className="size-3.5 shrink-0" />
+                        <span className="truncate">Inspector</span>
+                      </>
                     ) : (
-                      <Eye className="size-4" />
+                      <>
+                        <UserCheck className="size-3.5 shrink-0" />
+                        <span className="truncate">Freelancer</span>
+                      </>
                     )}
                   </button>
-                }
-                required
-              />
-            </div>
+                ))}
+              </div>
 
-            <div className="w-full flex justify-end items-center my-4 text-xs">
+              {/* Inputs Stack */}
+              <div className="w-full space-y-3 max-h-[48vh] sm:max-h-[55vh] overflow-y-auto no-scrollbar pr-1">
+                {(role === "inspector" || role === "freelancer") && (
+                  <div className="space-y-3">
+                    <Field
+                      label="Full Name"
+                      placeholder="Full Name"
+                      value={values.fullName ?? ""}
+                      onChange={set("fullName")}
+                      required
+                    />
+                    <Field
+                      label="Email Address"
+                      placeholder="Enter E-mail"
+                      type="email"
+                      value={values.email ?? ""}
+                      onChange={set("email")}
+                      required
+                    />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <Field
+                        label="Mobile Number"
+                        placeholder="Mobile Number"
+                        value={values.mobile ?? ""}
+                        onChange={handleMobileChange}
+                        required
+                      />
+                      <Field
+                        label="Account Password"
+                        placeholder="Password"
+                        type={showPassword ? "text" : "password"}
+                        value={values.password ?? ""}
+                        onChange={set("password")}
+                        trailing={
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword((s) => !s)}
+                            className="text-zinc-400 hover:text-[#FFC700] transition-colors cursor-pointer"
+                            aria-label="Toggle password visibility"
+                          >
+                            {showPassword ? (
+                              <EyeOff className="size-4" />
+                            ) : (
+                              <Eye className="size-4" />
+                            )}
+                          </button>
+                        }
+                        required
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {role === "dealer" && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="col-span-1">
+                      <Field
+                        label="Dealership / Shop Name"
+                        placeholder="Dealership Name"
+                        value={values.shopName ?? ""}
+                        onChange={set("shopName")}
+                        required
+                      />
+                    </div>
+                    <div className="col-span-1">
+                      <Field
+                        label="Owner Name"
+                        placeholder="Owner Name"
+                        value={values.ownerName ?? ""}
+                        onChange={set("ownerName")}
+                        required
+                      />
+                    </div>
+
+                    <div className="col-span-1 sm:col-span-2">
+                      <Field
+                        label="Email Address"
+                        placeholder="Enter E-mail"
+                        type="email"
+                        value={values.email ?? ""}
+                        onChange={set("email")}
+                        required
+                      />
+                    </div>
+                    <div className="col-span-1">
+                      <Field
+                        label="Mobile Number"
+                        placeholder="Mobile Number"
+                        value={values.mobile ?? ""}
+                        onChange={handleMobileChange}
+                        required
+                      />
+                    </div>
+                    <div className="col-span-1">
+                      <Field
+                        label="Account Password"
+                        placeholder="Password"
+                        type={showPassword ? "text" : "password"}
+                        value={values.password ?? ""}
+                        onChange={set("password")}
+                        trailing={
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword((s) => !s)}
+                            className="text-zinc-400 hover:text-[#FFC700] transition-colors cursor-pointer"
+                            aria-label="Toggle password visibility"
+                          >
+                            {showPassword ? (
+                              <EyeOff className="size-4" />
+                            ) : (
+                              <Eye className="size-4" />
+                            )}
+                          </button>
+                        }
+                        required
+                      />
+                    </div>
+
+                    <div className="col-span-1 sm:col-span-2">
+                      <Field
+                        label="Address"
+                        placeholder="Dealership Address"
+                        value={values.address ?? ""}
+                        onChange={set("address")}
+                        required
+                      />
+                    </div>
+                    <div className="col-span-1">
+                      <Field
+                        label="Area"
+                        placeholder="Area"
+                        value={values.area ?? ""}
+                        onChange={set("area")}
+                        required
+                      />
+                    </div>
+                    <div className="col-span-1">
+                      <Field
+                        label="City"
+                        placeholder="City"
+                        value={values.city ?? ""}
+                        onChange={set("city")}
+                        required
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <button
-                type="button"
-                onClick={openForgotModal}
-                className="text-xs font-bold text-zinc-600 dark:text-zinc-400 hover:text-[#FFC700] dark:hover:text-[#FFC700] transition-colors cursor-pointer"
+                type="submit"
+                disabled={loading}
+                className="mt-5 w-full bg-[#FFC700] hover:bg-[#FFD633] text-[#0D0E12] py-3.5 sm:py-4 rounded-xl font-black text-xs uppercase tracking-wider transition-all duration-300 shadow-[0_4px_16px_rgba(255,199,0,0.35)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2"
               >
-                Forgot Password?
+                {loading ? (
+                  <span className="flex items-center gap-2">
+                    <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#0D0E12] border-t-transparent" />
+                    Processing...
+                  </span>
+                ) : (
+                  "Create Account"
+                )}
               </button>
-            </div>
+            </form>
+          )}
+        </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-[#FFC700] hover:bg-[#FFD633] text-[#0D0E12] py-3.5 rounded-xl font-black tracking-wide uppercase transition-all duration-300 shadow-[0_4px_14px_rgba(255,199,0,0.3)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer text-xs"
-            >
-              {loading ? "Processing..." : "Sign In"}
-            </button>
-
-            <div className="mt-6 text-center text-xs font-semibold text-zinc-400">
-              Don't have an account?{" "}
-              <button
-                type="button"
-                onClick={() => {
-                  setMode("signup");
-                  setRole("dealer");
-                  setValues({});
-                }}
-                className="font-bold text-[#FFC700] hover:underline cursor-pointer"
-              >
-                Sign Up
-              </button>
-            </div>
-          </form>
-        ) : (
-          <form onSubmit={submit} className="w-full max-w-md mx-auto flex flex-col items-center relative z-10 bg-white p-8 rounded-[24px] shadow-md border border-zinc-100">
-            <h1 className="text-3xl font-extrabold text-zinc-900 tracking-tight mb-4">Sign Up</h1>
-
-            {/* Role selector */}
-            <div className="grid grid-cols-2 gap-1 rounded-[14px] bg-zinc-100 p-1 border border-zinc-200/50 w-full mb-4">
-              {(["dealer", "inspector"] as const).map((r) => (
-                <button
-                  key={r}
-                  type="button"
-                  onClick={() => {
-                    setRole(r);
-                    setValues({});
-                  }}
-                  className={cn(
-                    "rounded-xl py-2 text-xs font-bold capitalize transition-all cursor-pointer flex items-center justify-center gap-1",
-                    role === r
-                      ? "bg-[#FFC700] text-[#0D0E12] shadow-sm font-black"
-                      : "text-zinc-500 hover:text-zinc-800",
-                  )}
-                >
-                  {r === "dealer" ? "Dealer" : "Inspector"}
-                </button>
-              ))}
-            </div>
-
-            {/* Inputs Stack */}
-            <div className="w-full space-y-3 max-h-[300px] overflow-y-auto no-scrollbar pr-1">
-
-              {role === "inspector" && (
-                <>
-                  <Field
-                    label="Full Name"
-                    placeholder="Full Name"
-                    value={values.fullName ?? ""}
-                    onChange={set("fullName")}
-                    required
-                  />
-                  <Field
-                    label="Email Address"
-                    placeholder="Enter E-mail"
-                    type="email"
-                    value={values.email ?? ""}
-                    onChange={set("email")}
-                    required
-                  />
-                  <Field
-                    label="Mobile Number"
-                    placeholder="Mobile Number"
-                    value={values.mobile ?? ""}
-                    onChange={handleMobileChange}
-                    required
-                  />
-                  <Field
-                    label="Account Password"
-                    placeholder="Password"
-                    type={showPassword ? "text" : "password"}
-                    value={values.password ?? ""}
-                    onChange={set("password")}
-                    trailing={
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword((s) => !s)}
-                        className="text-zinc-400 hover:text-[#FFC700] transition-colors cursor-pointer"
-                        aria-label="Toggle password visibility"
-                      >
-                        {showPassword ? (
-                          <EyeOff className="size-4" />
-                        ) : (
-                          <Eye className="size-4" />
-                        )}
-                      </button>
-                    }
-                    required
-                  />
-                </>
-              )}
-
-              {role === "dealer" && (
-                <>
-                  <Field
-                    label="Dealership / Shop Name"
-                    placeholder="Dealership Name"
-                    value={values.shopName ?? ""}
-                    onChange={set("shopName")}
-                    required
-                  />
-                  <Field
-                    label="Owner Name"
-                    placeholder="Owner Name"
-                    value={values.ownerName ?? ""}
-                    onChange={set("ownerName")}
-                    required
-                  />
-                  <Field
-                    label="Email Address"
-                    placeholder="Enter E-mail"
-                    type="email"
-                    value={values.email ?? ""}
-                    onChange={set("email")}
-                    required
-                  />
-                  <Field
-                    label="Mobile Number"
-                    placeholder="Mobile Number"
-                    value={values.mobile ?? ""}
-                    onChange={handleMobileChange}
-                    required
-                  />
-                  <Field
-                    label="Account Password"
-                    placeholder="Password"
-                    type={showPassword ? "text" : "password"}
-                    value={values.password ?? ""}
-                    onChange={set("password")}
-                    trailing={
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword((s) => !s)}
-                        className="text-zinc-400 hover:text-[#FFC700] transition-colors cursor-pointer"
-                        aria-label="Toggle password visibility"
-                      >
-                        {showPassword ? (
-                          <EyeOff className="size-4" />
-                        ) : (
-                          <Eye className="size-4" />
-                        )}
-                      </button>
-                    }
-                    required
-                  />
-                  <Field
-                    label="Address"
-                    placeholder="Dealership Address"
-                    value={values.address ?? ""}
-                    onChange={set("address")}
-                    required
-                  />
-                  <Field
-                    label="Area"
-                    placeholder="Area"
-                    value={values.area ?? ""}
-                    onChange={set("area")}
-                    required
-                  />
-                  <Field
-                    label="City"
-                    placeholder="City"
-                    value={values.city ?? ""}
-                    onChange={set("city")}
-                    required
-                  />
-                </>
-              )}
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="mt-6 w-full bg-[#FFC700] hover:bg-[#FFD633] text-[#0D0E12] py-3.5 rounded-xl font-black tracking-wide uppercase transition-all duration-300 shadow-[0_4px_14px_rgba(255,199,0,0.3)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer text-xs"
-            >
-              {loading ? "Processing..." : "Sign Up"}
-            </button>
-
-            <div className="mt-6 text-center text-xs font-semibold text-zinc-400">
-              Already have an account?{" "}
-              <button
-                type="button"
-                onClick={() => {
-                  setMode("login");
-                  setRole(null);
-                  setValues({});
-                }}
-                className="font-bold text-[#FFC700] hover:underline cursor-pointer"
-              >
-                Sign In
-              </button>
-            </div>
-          </form>
-        )}
+        {/* Footer info text */}
+        <div className="relative z-20 text-center text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 mt-4">
+          © 2026 Caryanam Bidding • Encrypted & Verifiable B2B Telemetry
+        </div>
       </div>
 
       {/* OTP Verification Modal Popup */}

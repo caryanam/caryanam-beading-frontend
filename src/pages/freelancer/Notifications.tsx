@@ -118,11 +118,11 @@ export function FreelancerNotifications() {
               return (
                 <li
                   key={n.id}
-                  className={`flex items-start justify-between gap-4 py-4 first:pt-0 last:pb-0 transition-opacity duration-200 ${
+                  className={`flex flex-col sm:flex-row sm:items-start justify-between gap-2.5 sm:gap-4 py-4 first:pt-0 last:pb-0 transition-opacity duration-200 ${
                     isRead ? "opacity-60" : "opacity-100"
                   }`}
                 >
-                  <div className="flex items-start gap-4 min-w-0 flex-1">
+                  <div className="flex items-start gap-3 min-w-0 flex-1">
                     <span className={`mt-2 size-2.5 shrink-0 rounded-full transition-all ${dotColor}`} />
                     <div className="min-w-0 flex-1">
                       <p className={`text-sm text-foreground ${isRead ? "font-bold" : "font-extrabold"}`}>
@@ -132,7 +132,7 @@ export function FreelancerNotifications() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3 shrink-0">
+                  <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pl-5 sm:pl-0 pt-1 sm:pt-0">
                     <span className="text-[10px] font-bold text-muted-foreground">{n.time}</span>
                     {!isRead && (
                       <button

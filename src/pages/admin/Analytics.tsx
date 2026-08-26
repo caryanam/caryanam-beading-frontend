@@ -222,7 +222,7 @@ export function AdminAnalytics() {
 
   return (
     <AppShell role="admin" nav={adminNav} title="Analytics" breadcrumb={["Admin", "Analytics"]}>
-      
+
 
       <div className="flex flex-wrap items-center gap-3">
         <button

@@ -261,7 +261,7 @@ export function InspectorVehicles() {
   };
 
   const actionButtons = (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1 max-w-full">
       {["All", "Draft", "Submitted", "Approved", "Rejected"].map((status) => {
         const active = statusFilter === status;
         const count = getStatusCount(status);
@@ -269,7 +269,7 @@ export function InspectorVehicles() {
           <button
             key={status}
             onClick={() => setStatusFilter(status)}
-            className={`rounded-2xl border px-3.5 py-2 text-xs font-extrabold transition-all cursor-pointer flex items-center gap-2 ${active
+            className={`rounded-2xl border px-3.5 py-2 text-xs font-extrabold transition-all cursor-pointer flex items-center gap-2 shrink-0 ${active
               ? "bg-[#FFC700] border-[#FFC700] text-[#0D0E12] shadow-sm"
               : "border-border bg-card text-foreground hover:bg-secondary"
               }`}
@@ -312,66 +312,190 @@ export function InspectorVehicles() {
             <span className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
           </div>
         ) : (
-          <DataTable
-            rows={filteredInspections}
-            columns={columns}
-            searchKeys={["vehicleName", "vehicleNumber", "ownerName"]}
-            placeholder="Search by vehicle name, owner name..."
-            actions={actionButtons}
-          />
+          <div className="space-y-4">
+            {/* Desktop View: DataTable */}
+            <div className="hidden md:block">
+              <DataTable
+                rows={filteredInspections}
+                columns={columns}
+                searchKeys={["vehicleName", "vehicleNumber", "ownerName"]}
+                placeholder="Search by vehicle name, owner name..."
+                actions={actionButtons}
+              />
+            </div>
+
+            {/* Mobile View: Touch-friendly Vehicle Cards (< 768px) */}
+            <div className="block md:hidden space-y-4">
+              <div className="rounded-2xl border border-border bg-card p-4 space-y-3 shadow-soft">
+                <div className="flex items-center justify-between gap-2 border-b border-border pb-3">
+                  <h3 className="text-sm font-extrabold text-foreground">My Vehicle Inspections</h3>
+                  <Link
+                    to="/inspector/add-vehicle"
+                    className="rounded-xl bg-[#FFC700] px-3 py-1.5 text-xs font-extrabold text-[#0D0E12] shadow-sm"
+                  >
+                    + Add Vehicle
+                  </Link>
+                </div>
+                {actionButtons}
+              </div>
+
+              {filteredInspections.length === 0 ? (
+                <div className="rounded-2xl border border-border bg-card p-8 text-center text-muted-foreground font-semibold text-xs">
+                  No vehicles found matching criteria.
+                </div>
+              ) : (
+                <div className="grid gap-3.5 sm:grid-cols-2">
+                  {filteredInspections.map((v) => {
+                    const s = (v.status || "").toUpperCase();
+                    let chipStatus = "draft";
+                    if (s === "APPROVED") chipStatus = "approved";
+                    else if (s === "REJECTED") chipStatus = "rejected";
+                    else if (s === "SUBMITTED") chipStatus = "submitted";
+                    else if (s === "DRAFT" || s === "IN_PROGRESS") chipStatus = "draft";
+
+                    const canEdit = v.status !== "APPROVED";
+                    const canDelete = v.status === "DRAFT" || v.status === "REJECTED";
+
+                    return (
+                      <div
+                        key={v.inspectionId}
+                        className="rounded-2xl border border-border bg-card p-4 shadow-soft space-y-3.5 hover:border-[#FFC700]/40 transition-all"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-[10px] font-black text-muted-foreground bg-secondary px-2 py-0.5 rounded-md">
+                                #{v.inspectionId}
+                              </span>
+                              <h4 className="font-extrabold text-sm text-foreground truncate">
+                                {v.brand} {v.model} {v.variant}
+                              </h4>
+                            </div>
+                            <p className="text-xs font-bold text-[#FFC700] mt-1">{v.vehicleNumber}</p>
+                          </div>
+                          <StatusChip status={chipStatus} />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 text-xs border-y border-border/80 py-2.5 bg-secondary/20 rounded-xl px-3">
+                          <div>
+                            <span className="text-[10px] text-muted-foreground font-semibold block">Suggested Price</span>
+                            <span className="font-extrabold text-foreground">{v.suggestedPrice ? inr(v.suggestedPrice) : "N/A"}</span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-muted-foreground font-semibold block">Submitted On</span>
+                            <span className="font-extrabold text-foreground truncate block">
+                              {v.submittedAt ? formatIndianDateTime(v.submittedAt) : "Draft"}
+                            </span>
+                          </div>
+                        </div>
+
+                        {s === "REJECTED" && v.rejectionReason && (
+                          <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-2.5 text-xs text-rose-500 font-semibold leading-relaxed">
+                            <strong className="font-extrabold block mb-0.5">Rejection Reason:</strong>
+                            {v.rejectionReason}
+                          </div>
+                        )}
+
+                        <div className="flex items-center gap-2 pt-1">
+                          <button
+                            onClick={() => openPreview(v.inspectionId)}
+                            className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl border border-border bg-secondary hover:bg-secondary/80 px-3 py-2 text-xs font-extrabold text-foreground transition-all cursor-pointer"
+                          >
+                            <Eye className="size-3.5" /> Preview
+                          </button>
+
+                          {canEdit && (
+                            <Link
+                              to={`/inspector/add-vehicle?id=${v.inspectionId}`}
+                              className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-[#FFC700] hover:bg-[#FFD633] px-3 py-2 text-xs font-extrabold text-[#0D0E12] shadow-xs transition-all"
+                            >
+                              <Edit3 className="size-3.5" /> Edit
+                            </Link>
+                          )}
+
+                          <button
+                            type="button"
+                            disabled={downloadingPdfId === v.inspectionId}
+                            onClick={() => handleDownloadPdf(v.inspectionId)}
+                            className="p-2 rounded-xl border border-border bg-card text-foreground hover:border-[#FFC700] transition-all cursor-pointer disabled:opacity-50"
+                            title="Download PDF"
+                          >
+                            {downloadingPdfId === v.inspectionId ? (
+                              <Loader2 className="size-4 animate-spin text-[#FFC700]" />
+                            ) : (
+                              <Download className="size-4 text-[#FFC700]" />
+                            )}
+                          </button>
+
+                          {canDelete && (
+                            <button
+                              onClick={() => setDeleteTargetId(v.inspectionId)}
+                              className="p-2 rounded-xl border border-border bg-card text-rose-500 hover:border-rose-500/50 hover:bg-rose-500/10 transition-all cursor-pointer"
+                              title="Delete Draft"
+                            >
+                              <Trash2 className="size-4" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
         )
       ) : (
         <div className="space-y-6">
           {/* Header Action Bar */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-3xl border border-border bg-card p-6 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl sm:rounded-3xl border border-border bg-card p-4 sm:p-6 shadow-sm">
             <div className="flex items-center gap-3">
               <button
                 onClick={closeDetailView}
-                className="inline-flex items-center justify-center size-10 rounded-2xl border border-border bg-secondary/50 text-foreground hover:bg-secondary hover:border-[#FFC700] transition-all cursor-pointer shadow-sm shrink-0"
+                className="inline-flex items-center justify-center size-9 sm:size-10 rounded-2xl border border-border bg-secondary/50 text-foreground hover:bg-secondary hover:border-[#FFC700] transition-all cursor-pointer shadow-sm shrink-0"
                 title="Back to My Vehicles"
               >
-                <ArrowLeft className="size-5 text-[#FFC700]" />
+                <ArrowLeft className="size-4 sm:size-5 text-[#FFC700]" />
               </button>
 
-              <div>
+              <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h2 className="text-xl font-black text-foreground tracking-tight">
+                  <h2 className="text-lg sm:text-xl font-black text-foreground tracking-tight truncate">
                     {previewData?.vehicleDetails?.brand} {previewData?.vehicleDetails?.model} {previewData?.vehicleDetails?.variant}
                   </h2>
-                  <span className="rounded-lg bg-secondary border border-border px-2.5 py-0.5 text-xs font-extrabold text-foreground">
+                  <span className="rounded-lg bg-secondary border border-border px-2 py-0.5 text-xs font-extrabold text-foreground shrink-0">
                     {previewData?.vehicleDetails?.vehicleNumber || `#${previewId}`}
                   </span>
                   {previewData?.status && (
                     <StatusChip status={previewData.status} />
                   )}
                 </div>
-                <p className="text-xs font-semibold text-muted-foreground mt-1">
-                  Inspection Report  • Submitted on {previewData?.submittedAt ? formatIndianDateTime(previewData.submittedAt) : "Draft"}
+                <p className="text-[11px] sm:text-xs font-semibold text-muted-foreground mt-1 truncate">
+                  Inspection Report • Submitted on {previewData?.submittedAt ? formatIndianDateTime(previewData.submittedAt) : "Draft"}
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2.5 shrink-0 self-start sm:self-auto">
-
+            <div className="flex items-center gap-2 sm:gap-2.5 shrink-0 self-stretch sm:self-auto justify-end">
               <button
                 type="button"
                 disabled={previewId !== null && downloadingPdfId === previewId}
                 onClick={() => previewId && handleDownloadPdf(previewId)}
-                className="inline-flex items-center gap-2 rounded-2xl bg-[#FFC700] hover:bg-[#FFD633] text-[#0D0E12] px-4 py-2.5 text-xs font-black shadow-sm transition-all cursor-pointer disabled:opacity-50"
+                className="inline-flex items-center justify-center gap-1.5 rounded-2xl bg-[#FFC700] hover:bg-[#FFD633] text-[#0D0E12] px-3.5 sm:px-4 py-2.5 text-xs font-black shadow-sm transition-all cursor-pointer disabled:opacity-50 flex-1 sm:flex-none"
               >
                 {previewId !== null && downloadingPdfId === previewId ? (
                   <>
-                    <Loader2 className="size-4 animate-spin" /> Generating PDF...
+                    <Loader2 className="size-4 animate-spin" /> Generating...
                   </>
                 ) : (
                   <>
-                    <Download className="size-4" /> Download PDF Report
+                    <Download className="size-4" /> Download PDF
                   </>
                 )}
               </button>
               <Link
                 to={`/inspector/add-vehicle?id=${previewId}`}
-                className="inline-flex items-center gap-2 rounded-2xl border border-border bg-secondary/60 hover:bg-secondary text-foreground px-4 py-2.5 text-xs font-black shadow-sm transition-all"
+                className="inline-flex items-center justify-center gap-1.5 rounded-2xl border border-border bg-secondary/60 hover:bg-secondary text-foreground px-3.5 sm:px-4 py-2.5 text-xs font-black shadow-sm transition-all flex-1 sm:flex-none"
               >
                 <Edit3 className="size-4 text-[#FFC700]" /> Edit & Update
               </Link>
@@ -387,10 +511,10 @@ export function InspectorVehicles() {
               Failed to load inspection details.
             </div>
           ) : (
-            <div className="space-y-8">
+            <div className="space-y-6 sm:space-y-8">
               {/* Status Alert Banner */}
               {previewData.status === "REJECTED" && (
-                <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-5 text-rose-500 flex items-start gap-3">
+                <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-4 sm:p-5 text-rose-500 flex items-start gap-3">
                   <AlertCircle className="size-5 shrink-0 mt-0.5" />
                   <div>
                     <p className="font-extrabold text-sm">Report Rejected by Admin</p>
@@ -407,8 +531,8 @@ export function InspectorVehicles() {
                 </div>
               )}
 
-              {/* 5-Step Stepper Indicator Bar (Matches AddVehicle.tsx) */}
-              <div className="grid gap-3 sm:grid-cols-5">
+              {/* 5-Step Stepper Indicator Bar */}
+              <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-5 gap-2.5 sm:gap-3">
                 {detailSteps.map((s, idx) => {
                   const isActive = idx === activeDetailStep;
                   const isDone = idx < activeDetailStep;
@@ -417,7 +541,7 @@ export function InspectorVehicles() {
                       key={s.title}
                       onClick={() => setActiveDetailStep(idx)}
                       className={cn(
-                        "rounded-2xl border p-4 shadow-soft transition-all duration-200 cursor-pointer",
+                        "rounded-2xl border p-3 sm:p-4 shadow-soft transition-all duration-200 cursor-pointer",
                         isActive
                           ? "border-[#FFC700] bg-card shadow-md ring-2 ring-[#FFC700]/30"
                           : isDone
@@ -428,7 +552,7 @@ export function InspectorVehicles() {
                       <div className="flex items-center gap-2">
                         <div
                           className={cn(
-                            "flex size-7 items-center justify-center rounded-xl text-xs font-black transition-colors",
+                            "flex size-6 sm:size-7 items-center justify-center rounded-xl text-xs font-black transition-colors shrink-0",
                             isActive
                               ? "bg-[#FFC700] text-[#0D0E12]"
                               : isDone
@@ -436,13 +560,13 @@ export function InspectorVehicles() {
                                 : "bg-secondary text-muted-foreground",
                           )}
                         >
-                          {isDone ? <CheckCircle2 className="size-4" /> : idx + 1}
+                          {isDone ? <CheckCircle2 className="size-3.5 sm:size-4" /> : idx + 1}
                         </div>
-                        <span className="text-xs font-extrabold text-foreground">
+                        <span className="text-[11px] sm:text-xs font-extrabold text-foreground truncate">
                           {s.title}
                         </span>
                       </div>
-                      <p className="mt-2 line-clamp-1 text-[11px] font-semibold text-muted-foreground">
+                      <p className="mt-1.5 line-clamp-1 text-[10px] sm:text-[11px] font-semibold text-muted-foreground">
                         {s.subtitle}
                       </p>
                     </div>
@@ -457,7 +581,7 @@ export function InspectorVehicles() {
                     title="Step 1: Vehicle Specs & Registration"
                     description="Owner details, car registration, manufacturing year, and valuation."
                   >
-                    <div className="grid gap-4.5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+                    <div className="grid gap-3 sm:gap-4.5 grid-cols-1 xs:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                       <div className="rounded-2xl border border-border bg-secondary/30 p-4">
                         <span className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">Customer Name</span>
                         <span className="font-extrabold text-foreground text-sm">{previewData.vehicleDetails?.customerName || "N/A"}</span>
@@ -889,7 +1013,7 @@ export function InspectorVehicles() {
                     </div>
 
                     <h4 className="text-xs font-extrabold uppercase text-muted-foreground mt-6 mb-3">Emergency Toolkit & Equipment</h4>
-                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs">
+                    <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3 text-xs">
                       {[
                         { name: "Jack", present: previewData.tyreDetails?.hasJack },
                         { name: "Handle", present: previewData.tyreDetails?.hasHandle },

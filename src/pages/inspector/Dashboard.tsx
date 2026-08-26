@@ -128,166 +128,175 @@ export function InspectorDashboard() {
       title="Inspection Overview"
       breadcrumb={["Inspector", "Dashboard"]}
     >
-      <div className="space-y-6">
-        {/* Welcome Banner - Only Welcome Message */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#FFC700] via-yellow-500 to-amber-500 p-8 text-black shadow-xl">
-          <div className="relative z-10 max-w-2xl space-y-2">
-            <span className="inline-flex items-center gap-2 rounded-full bg-black/15 px-3 py-1 text-xs font-black uppercase tracking-wider backdrop-blur-md">
-              <ShieldCheck className="size-4" /> Inspector Workspace
+      <div className="space-y-5 sm:space-y-6">
+        {/* Welcome Banner */}
+        <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-r from-[#FFC700] via-yellow-500 to-amber-500 p-5 sm:p-8 text-black shadow-xl">
+          <div className="relative z-10 max-w-2xl space-y-1.5 sm:space-y-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-black/15 px-3 py-1 text-[11px] sm:text-xs font-black uppercase tracking-wider backdrop-blur-md">
+              <ShieldCheck className="size-3.5 sm:size-4" /> Inspector Workspace
             </span>
-            <h1 className="text-3xl font-extrabold tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
               Welcome back, {user?.name || "Inspector"}!
             </h1>
-            <p className="text-sm font-medium opacity-90">
+            <p className="text-xs sm:text-sm font-semibold opacity-90 leading-relaxed">
               Welcome to your Inspector portal. Manage your vehicle inspection reports and track 200-point evaluations.
             </p>
           </div>
         </div>
-      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard 
-          label="Draft Inspections" 
-          value={loading ? "..." : draftCount.toString()} 
-          delta="In progress & saved drafts" 
-          icon={FileText} 
-          accent 
-        />
-        <StatCard 
-          label="Submitted Inspections" 
-          value={loading ? "..." : submittedCount.toString()} 
-          delta="Awaiting admin approval" 
-          icon={Upload} 
-        />
-        <StatCard 
-          label="Approved Inspections" 
-          value={loading ? "..." : approvedCount.toString()} 
-          delta="Live in marketplace" 
-          icon={CheckCircle2} 
-        />
-        <StatCard 
-          label="Rejected Inspections" 
-          value={loading ? "..." : rejectedCount.toString()} 
-          delta="Needs photo / data revision" 
-          icon={XCircle} 
-        />
-      </div>
 
-      <Panel
-        title="Start a new inspection"
-        description="Capture vehicle details, images and the 200-point report."
-        action={
-          <Link
-            to="/inspector/add-vehicle"
-            className="rounded-2xl bg-primary px-5 py-3 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 cursor-pointer"
-          >
-            Add vehicle
-          </Link>
-        }
-      >
-        <div className="grid gap-4 sm:grid-cols-3">
-          {[
-            ["1. Vehicle details", "RC, insurance, owner and specification capture."],
-            ["2. Condition & media", "Upload multiple images with drag & drop preview."],
-            ["3. Report & submit", "Attach the PDF report and submit to admin."],
-          ].map(([t, d]) => (
-            <div key={t} className="rounded-2xl border border-border bg-secondary p-5">
-              <p className="text-sm font-medium">{t}</p>
-              <p className="mt-2 text-xs text-muted-foreground">{d}</p>
-            </div>
-          ))}
+        {/* Responsive Stat Cards Grid (2 cols on mobile, 4 cols on desktop) */}
+        <div className="grid gap-3.5 sm:gap-5 grid-cols-2 lg:grid-cols-4">
+          <StatCard 
+            label="Draft Inspections" 
+            value={loading ? "..." : draftCount.toString()} 
+            delta="In progress drafts" 
+            icon={FileText} 
+            accent 
+          />
+          <StatCard 
+            label="Submitted Inspections" 
+            value={loading ? "..." : submittedCount.toString()} 
+            delta="Awaiting approval" 
+            icon={Upload} 
+          />
+          <StatCard 
+            label="Approved Inspections" 
+            value={loading ? "..." : approvedCount.toString()} 
+            delta="Live in marketplace" 
+            icon={CheckCircle2} 
+          />
+          <StatCard 
+            label="Rejected Inspections" 
+            value={loading ? "..." : rejectedCount.toString()} 
+            delta="Needs revision" 
+            icon={XCircle} 
+          />
         </div>
-      </Panel>
 
-      <div className="grid gap-5 xl:grid-cols-3">
-        <Panel title="Recent uploads" className="xl:col-span-2">
-          {loading ? (
-            <div className="flex h-40 items-center justify-center">
-              <span className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-            </div>
-          ) : inspections.length === 0 ? (
-            <div className="flex h-40 flex-col items-center justify-center text-center">
-              <p className="text-sm font-semibold text-muted-foreground">No inspections uploaded yet.</p>
-              <p className="text-xs text-muted-foreground mt-1">Start by clicking "Add vehicle" to create your first report.</p>
-            </div>
-          ) : (
-            <ul className="divide-y divide-border">
-              {inspections.slice(0, 5).map((v) => {
-                const s = (v.status || "").toUpperCase();
-                let chipStatus = "draft";
-                if (s === "APPROVED") chipStatus = "approved";
-                else if (s === "REJECTED") chipStatus = "rejected";
-                else if (s === "SUBMITTED") chipStatus = "submitted";
-                else if (s === "DRAFT" || s === "IN_PROGRESS") chipStatus = "draft";
+        {/* Quick Action Panel */}
+        <Panel
+          title="Start a new inspection"
+          description="Capture vehicle details, images and the 200-point report."
+          action={
+            <Link
+              to="/inspector/add-vehicle"
+              className="inline-flex items-center justify-center rounded-2xl bg-primary px-4 py-2.5 text-xs sm:text-sm font-bold text-primary-foreground transition-opacity hover:opacity-90 cursor-pointer w-full sm:w-auto"
+            >
+              + Add vehicle
+            </Link>
+          }
+        >
+          <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-3">
+            {[
+              ["1. Vehicle details", "RC, insurance, owner and specification capture."],
+              ["2. Condition & media", "Upload multiple images with drag & drop preview."],
+              ["3. Report & submit", "Attach the PDF report and submit to admin."],
+            ].map(([t, d]) => (
+              <div key={t} className="rounded-2xl border border-border bg-secondary p-4 sm:p-5">
+                <p className="text-xs sm:text-sm font-bold text-foreground">{t}</p>
+                <p className="mt-1.5 text-[11px] sm:text-xs text-muted-foreground leading-relaxed">{d}</p>
+              </div>
+            ))}
+          </div>
+        </Panel>
 
-                return (
-                  <li key={v.inspectionId} className="flex items-center gap-4 py-4 first:pt-0 last:pb-0">
-                    {v.vehicleImage ? (
-                      <img
-                        src={v.vehicleImage}
-                        alt=""
-                        loading="lazy"
-                        className="size-14 shrink-0 rounded-2xl object-cover shadow-soft"
-                      />
-                    ) : (
-                      <span className="grid size-14 shrink-0 place-items-center rounded-2xl bg-secondary text-base font-extrabold text-muted-foreground border border-border shadow-soft uppercase">
-                        {((v.brand || "").slice(0, 1) + (v.model || "").slice(0, 1)) || "VE"}
-                      </span>
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="truncate text-sm font-bold text-foreground">
-                          {v.brand} {v.model} {v.variant}
-                        </p>
-                        <span className="text-[10px] font-bold text-muted-foreground bg-secondary px-1.5 py-0.5 rounded-md">
-                          #{v.inspectionId}
-                        </span>
+        {/* Uploads and Activity Grid */}
+        <div className="grid gap-5 lg:grid-cols-3">
+          <Panel title="Recent uploads" className="lg:col-span-2">
+            {loading ? (
+              <div className="flex h-40 items-center justify-center">
+                <span className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              </div>
+            ) : inspections.length === 0 ? (
+              <div className="flex h-40 flex-col items-center justify-center text-center p-4">
+                <p className="text-sm font-semibold text-muted-foreground">No inspections uploaded yet.</p>
+                <p className="text-xs text-muted-foreground mt-1">Start by clicking "Add vehicle" to create your first report.</p>
+              </div>
+            ) : (
+              <ul className="divide-y divide-border">
+                {inspections.slice(0, 5).map((v) => {
+                  const s = (v.status || "").toUpperCase();
+                  let chipStatus = "draft";
+                  if (s === "APPROVED") chipStatus = "approved";
+                  else if (s === "REJECTED") chipStatus = "rejected";
+                  else if (s === "SUBMITTED") chipStatus = "submitted";
+                  else if (s === "DRAFT" || s === "IN_PROGRESS") chipStatus = "draft";
+
+                  return (
+                    <li key={v.inspectionId} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-3.5 first:pt-0 last:pb-0">
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        {v.vehicleImage ? (
+                          <img
+                            src={v.vehicleImage}
+                            alt=""
+                            loading="lazy"
+                            className="size-12 sm:size-14 shrink-0 rounded-2xl object-cover shadow-soft"
+                          />
+                        ) : (
+                          <span className="grid size-12 sm:size-14 shrink-0 place-items-center rounded-2xl bg-secondary text-sm sm:text-base font-extrabold text-muted-foreground border border-border shadow-soft uppercase">
+                            {((v.brand || "").slice(0, 1) + (v.model || "").slice(0, 1)) || "VE"}
+                          </span>
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="truncate text-xs sm:text-sm font-bold text-foreground">
+                              {v.brand} {v.model} {v.variant}
+                            </p>
+                            <span className="text-[10px] font-bold text-muted-foreground bg-secondary px-1.5 py-0.5 rounded-md shrink-0">
+                              #{v.inspectionId}
+                            </span>
+                          </div>
+                          <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 truncate">
+                            {v.vehicleNumber} · {v.suggestedPrice ? inr(v.suggestedPrice) : "N/A"}
+                          </p>
+                        </div>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {v.vehicleNumber} · suggested {v.suggestedPrice ? inr(v.suggestedPrice) : "N/A"} · Inspector: {v.inspectorName}
-                      </p>
-                    </div>
-                    {v.status === "DRAFT" || v.status === "IN_PROGRESS" ? (
-                      <Link
-                        to={`/inspector/add-vehicle?id=${v.inspectionId}`}
-                        className="text-xs font-extrabold text-[#FFC700] bg-[#FFC700]/10 border border-[#FFC700]/30 rounded-xl px-3 py-1.5 hover:bg-[#FFC700] hover:text-[#0D0E12] transition-all whitespace-nowrap"
-                      >
-                        Edit Draft
-                      </Link>
-                    ) : (
-                      <StatusChip status={chipStatus} />
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </Panel>
 
-        <Panel title="Activity">
-          {dynamicActivity.length === 0 ? (
-            <div className="flex h-40 flex-col items-center justify-center text-center">
-              <p className="text-xs font-semibold text-muted-foreground">No recent activity.</p>
-            </div>
-          ) : (
-            <ol className="space-y-5">
-              {dynamicActivity.map((a, idx) => {
-                let dotClass = "bg-muted-foreground";
-                if (a.status === "APPROVED") dotClass = "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]";
-                else if (a.status === "REJECTED") dotClass = "bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.4)]";
-                else if (a.status === "SUBMITTED") dotClass = "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)]";
+                      <div className="flex items-center justify-between sm:justify-end gap-2.5 shrink-0 pl-15 sm:pl-0">
+                        {v.status === "DRAFT" || v.status === "IN_PROGRESS" ? (
+                          <Link
+                            to={`/inspector/add-vehicle?id=${v.inspectionId}`}
+                            className="text-xs font-extrabold text-[#FFC700] bg-[#FFC700]/10 border border-[#FFC700]/30 rounded-xl px-3 py-1.5 hover:bg-[#FFC700] hover:text-[#0D0E12] transition-all whitespace-nowrap"
+                          >
+                            Edit Draft
+                          </Link>
+                        ) : (
+                          <StatusChip status={chipStatus} />
+                        )}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </Panel>
 
-                return (
-                  <li key={idx} className="relative pl-6">
-                    <span className={`absolute top-1.5 left-0 size-2 rounded-full ${dotClass}`} />
-                    <p className="text-sm font-extrabold text-foreground">{a.title}</p>
-                    <p className="text-[10px] font-bold text-muted-foreground mt-0.5">{a.time}</p>
-                  </li>
-                );
-              })}
-            </ol>
-          )}
-        </Panel>
+          <Panel title="Activity">
+            {dynamicActivity.length === 0 ? (
+              <div className="flex h-40 flex-col items-center justify-center text-center">
+                <p className="text-xs font-semibold text-muted-foreground">No recent activity.</p>
+              </div>
+            ) : (
+              <ol className="space-y-4">
+                {dynamicActivity.map((a, idx) => {
+                  let dotClass = "bg-muted-foreground";
+                  if (a.status === "APPROVED") dotClass = "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]";
+                  else if (a.status === "REJECTED") dotClass = "bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.4)]";
+                  else if (a.status === "SUBMITTED") dotClass = "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)]";
+
+                  return (
+                    <li key={idx} className="relative pl-5">
+                      <span className={`absolute top-1.5 left-0 size-2 rounded-full ${dotClass}`} />
+                      <p className="text-xs sm:text-sm font-extrabold text-foreground leading-snug">{a.title}</p>
+                      <p className="text-[10px] font-bold text-muted-foreground mt-0.5">{a.time}</p>
+                    </li>
+                  );
+                })}
+              </ol>
+            )}
+          </Panel>
+        </div>
       </div>
-    </div>
-  </AppShell>
-);
+    </AppShell>
+  );
 }

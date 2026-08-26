@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { Menu, X, LogIn, UserPlus, MapPin, Phone, Mail } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -51,7 +51,7 @@ export function LandingPage({ page = "home", initialMode = "login" }: LandingPag
       {/* Dynamic Header Navbar */}
       {!isAuth && (
         <header className="sticky top-0 z-50 w-full border-b border-border/80 bg-background/80 backdrop-blur-xl transition-all">
-          <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-6 lg:px-8">
+          <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
             {/* Brand Logo */}
             <Link to="/" className="flex items-center gap-3 group">
               <span className="relative grid size-11 place-items-center rounded-2xl overflow-hidden bg-[#0D0E12] border border-[#FFC700]/40 shadow-[0_0_20px_rgba(255,199,0,0.15)] group-hover:border-[#FFC700] transition-all">
@@ -67,8 +67,8 @@ export function LandingPage({ page = "home", initialMode = "login" }: LandingPag
               </div>
             </Link>
 
-            {/* Navigation Items (Desktop) */}
-            <nav className="hidden md:flex items-center gap-1.5 bg-secondary/40 p-1.5 rounded-2xl border border-border/60">
+            {/* Navigation Items (Desktop - lg breakpoint: 1024px+) */}
+            <nav className="hidden lg:flex items-center gap-1.5 bg-secondary/40 p-1.5 rounded-2xl border border-border/60">
               {navLinks.map((link) => {
                 const isActive = location.pathname === link.path;
                 return (
@@ -88,8 +88,8 @@ export function LandingPage({ page = "home", initialMode = "login" }: LandingPag
               })}
             </nav>
 
-            {/* Auth Buttons */}
-            <div className="hidden md:flex items-center gap-3">
+            {/* Auth Buttons (Desktop - lg breakpoint: 1024px+) */}
+            <div className="hidden lg:flex items-center gap-3">
               <Link
                 to="/login"
                 className="inline-flex items-center gap-2 rounded-2xl border border-border px-4.5 py-2.5 text-sm font-extrabold text-foreground hover:bg-secondary hover:border-[#FFC700]/50 transition-all cursor-pointer shadow-sm"
@@ -105,10 +105,10 @@ export function LandingPage({ page = "home", initialMode = "login" }: LandingPag
               </Link>
             </div>
 
-            {/* Mobile Menu Toggle Icon */}
+            {/* Mobile & Tablet Menu Toggle Icon (< 1024px) */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2.5 md:hidden text-foreground hover:text-[#FFC700] rounded-2xl border border-border bg-secondary/50"
+              className="p-2.5 lg:hidden text-foreground hover:text-[#FFC700] rounded-2xl border border-border bg-secondary/50 cursor-pointer"
               aria-label="Toggle menu"
             >
               {mobileMenuOpen ? (
@@ -121,41 +121,43 @@ export function LandingPage({ page = "home", initialMode = "login" }: LandingPag
         </header>
       )}
 
-      {/* Mobile Drawer Menu */}
+      {/* Mobile & Tablet Drawer Menu (< 1024px) */}
       {!isAuth && mobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 top-20 z-40 bg-background/95 backdrop-blur-2xl flex flex-col p-6 border-t border-border animate-fade-in">
-          <nav className="flex flex-col gap-4 mb-8">
-            {navLinks.map((link) => (
+        <div className="lg:hidden fixed inset-x-0 top-20 bottom-0 z-40 bg-background/95 backdrop-blur-2xl flex flex-col p-6 sm:p-8 border-t border-border animate-fade-in overflow-y-auto">
+          <div className="mx-auto max-w-2xl w-full flex flex-col justify-between flex-1 py-2">
+            <nav className="flex flex-col gap-3 sm:gap-4 mb-8">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.id}
+                  to={link.path}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={cn(
+                    "text-base sm:text-xl font-extrabold text-left p-3.5 sm:p-4 rounded-2xl transition-all flex items-center justify-between",
+                    location.pathname === link.path
+                      ? "bg-[#FFC700]/15 text-[#FFC700] border border-[#FFC700]/30"
+                      : "text-foreground hover:bg-secondary/80",
+                  )}
+                >
+                  <span>{link.label}</span>
+                </Link>
+              ))}
+            </nav>
+            <div className="flex flex-col sm:flex-row gap-3.5 pt-6 border-t border-border mt-auto">
               <Link
-                key={link.id}
-                to={link.path}
+                to="/login"
                 onClick={() => setMobileMenuOpen(false)}
-                className={cn(
-                  "text-base font-extrabold text-left p-3 rounded-2xl transition-all",
-                  location.pathname === link.path
-                    ? "bg-[#FFC700]/15 text-[#FFC700] border border-[#FFC700]/30"
-                    : "text-foreground hover:bg-secondary",
-                )}
+                className="w-full text-center rounded-2xl border border-border py-3.5 text-sm sm:text-base font-extrabold text-foreground hover:bg-secondary transition-colors"
               >
-                {link.label}
+                Sign In
               </Link>
-            ))}
-          </nav>
-          <div className="flex flex-col gap-3 mt-auto pt-4 border-t border-border">
-            <Link
-              to="/login"
-              onClick={() => setMobileMenuOpen(false)}
-              className="w-full text-center rounded-2xl border border-border py-3.5 text-sm font-extrabold text-foreground hover:bg-secondary transition-colors"
-            >
-              Sign In
-            </Link>
-            <Link
-              to="/register"
-              onClick={() => setMobileMenuOpen(false)}
-              className="w-full text-center rounded-2xl bg-[#FFC700] hover:bg-[#FFD633] text-[#0D0E12] py-3.5 text-sm font-black shadow-md transition-all"
-            >
-              Register
-            </Link>
+              <Link
+                to="/register"
+                onClick={() => setMobileMenuOpen(false)}
+                className="w-full text-center rounded-2xl bg-[#FFC700] hover:bg-[#FFD633] text-[#0D0E12] py-3.5 text-sm sm:text-base font-black shadow-md transition-all"
+              >
+                Register
+              </Link>
+            </div>
           </div>
         </div>
       )}
@@ -181,9 +183,9 @@ export function LandingPage({ page = "home", initialMode = "login" }: LandingPag
 
       {/* Corporate Layout Footer */}
       {!isAuth && (
-        <footer className="border-t border-border bg-[#0D0E12] text-zinc-400 py-12">
-          <div className="mx-auto max-w-7xl px-6 lg:px-8">
-            <div className="grid gap-8 md:grid-cols-4">
+        <footer className="border-t border-border bg-[#0D0E12] text-zinc-400 py-10 sm:py-14">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 sm:gap-10 lg:gap-8">
               <div className="flex flex-col gap-3">
                 <div className="flex items-center gap-2.5">
                   <span className="relative grid size-9 place-items-center rounded-xl overflow-hidden bg-[#0D0E12] border border-[#FFC700]/40 shadow-md">
@@ -235,7 +237,7 @@ export function LandingPage({ page = "home", initialMode = "login" }: LandingPag
                 <ul className="space-y-2.5 text-xs sm:text-sm">
                   <li className="flex items-center gap-2 text-zinc-300">
                     <Mail className="size-4 text-[#FFC700] shrink-0" />
-                    <span>support@caryanamlive.com</span>
+                    <span className="break-all sm:break-normal">support@caryanamlive.com</span>
                   </li>
                   <li className="flex items-center gap-2 text-zinc-300">
                     <Phone className="size-4 text-[#FFC700] shrink-0" />
@@ -272,12 +274,12 @@ export function LandingPage({ page = "home", initialMode = "login" }: LandingPag
               </div>
             </div>
 
-            <div className="mt-12 border-t border-zinc-800 pt-8 flex flex-col md:flex-row items-center justify-between text-xs sm:text-sm text-zinc-400">
+            <div className="mt-10 sm:mt-12 border-t border-zinc-800/80 pt-6 sm:pt-8 flex flex-col sm:flex-row items-center justify-between text-xs sm:text-sm text-zinc-400 gap-3 text-center sm:text-left">
               <p>
                 Developed by Caryanamindia Pvt Ltd
               </p>
-              <p className="mt-2 md:mt-0 font-medium">
-                Ac 2026 Caryanam Bidding. All rights reserved by Caryanamindia Pvt Ltd
+              <p className="font-medium">
+                © 2026 Caryanam Bidding. All rights reserved by Caryanamindia Pvt Ltd
               </p>
             </div>
           </div>

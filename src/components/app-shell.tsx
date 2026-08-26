@@ -550,7 +550,7 @@ export function AppShell({
                 </button>
 
                 {showNotifications && (
-                  <div className="absolute right-0 mt-3 w-80 sm:w-96 rounded-3xl border border-border bg-card/95 backdrop-blur-xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.3)] z-50 animate-in fade-in-50 zoom-in-95 duration-150">
+                  <div className="fixed inset-x-3 top-16 z-50 sm:absolute sm:inset-auto sm:right-0 sm:top-full sm:mt-3 w-auto sm:w-96 max-w-md mx-auto sm:mx-0 rounded-3xl border border-border bg-card/95 backdrop-blur-2xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.35)] animate-in fade-in-50 zoom-in-95 duration-150">
                     <div className="flex items-center justify-between border-b border-border pb-3 px-1">
                       <div className="flex items-center gap-2">
                         <p className="font-extrabold text-sm text-foreground">Notifications</p>
@@ -579,11 +579,11 @@ export function AppShell({
                       </div>
                     </div>
 
-                    <div className="mt-3 max-h-[340px] sm:max-h-[400px] overflow-y-auto space-y-2 pr-1.5 overscroll-contain [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-secondary/30 [&::-webkit-scrollbar-thumb]:bg-[#FFC700]/50 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-[#FFC700]">
+                    <div className="mt-3 max-h-[360px] sm:max-h-[440px] overflow-y-auto space-y-2 pr-1.5 overscroll-contain [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-secondary/30 [&::-webkit-scrollbar-thumb]:bg-[#FFC700]/50 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-[#FFC700]">
                       {notificationItems.length === 0 ? (
                         <div className="py-8 text-center text-muted-foreground">
                           <BellOff className="size-8 mx-auto opacity-30 mb-2" />
-                          <p className="text-xs font-semibold">No recent notifications</p>
+                          <p className="text-xs font-semibold">No notifications</p>
                         </div>
                       ) : (
                         notificationItems.map((n) => {
@@ -598,24 +598,30 @@ export function AppShell({
                           return (
                             <div
                               key={n.id}
-                              onClick={(e) => markSingleAsRead(n.rawId, e)}
+                              onClick={(e) => {
+                                markSingleAsRead(n.rawId, e);
+                                if (n.link) {
+                                  setShowNotifications(false);
+                                  navigate(n.link);
+                                }
+                              }}
                               className={cn(
-                                "group flex items-start gap-3 rounded-2xl p-3 border transition-all cursor-pointer",
+                                "group flex items-start gap-2.5 rounded-2xl p-3 border transition-all cursor-pointer",
                                 isRead
                                   ? "border-transparent hover:bg-secondary/60 opacity-60"
                                   : "border-[#FFC700]/30 bg-[#FFC700]/5 hover:bg-[#FFC700]/10 opacity-100"
                               )}
-                              title={isRead ? "Read notification" : "Click to mark as read"}
+                              title={isRead ? "Read notification" : "Click to view and mark as read"}
                             >
                               <span className={cn("mt-1.5 size-2.5 shrink-0 rounded-full transition-all", dotBg)} />
                               <div className="min-w-0 flex-1">
-                                <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center justify-between gap-1.5">
                                   <p className="truncate text-xs font-extrabold text-foreground group-hover:text-[#FFC700] transition-colors">
                                     {n.title}
                                   </p>
                                   <span className="text-[9px] font-bold text-muted-foreground shrink-0">{n.time}</span>
                                 </div>
-                                <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
+                                <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug line-clamp-2">
                                   {n.meta}
                                 </p>
                               </div>
@@ -659,7 +665,7 @@ export function AppShell({
           </div>
         </header>
 
-        <main className="animate-rise mx-auto max-w-[1440px] space-y-8 px-6 py-8 sm:px-8 sm:py-10">
+        <main className="animate-rise mx-auto max-w-[1440px] space-y-5 sm:space-y-8 px-3.5 sm:px-6 md:px-8 py-4 sm:py-6 md:py-8">
           {children}
         </main>
       </div>
