@@ -63,11 +63,137 @@ export function AdminVehicleDetail() {
     { title: "Bid History", subtitle: "Live auction & bidding telemetry" },
   ];
 
+  const exteriorPanelsOrder = [
+    /* ── Front Side ── */
+    "Front Bonnet Hood",
+    "Front Bumper",
+    "Front Wind Shield",
+
+    /* ── Right Side ── */
+    "Right Side Fender",
+    "Right Side Front Door",
+    "Right Side Front Window",
+    "Right Side Rear Door",
+    "Right Side Quarter Panel",
+    "Right Side Quarter Panel Window",
+    "Right Side A Pillar",
+    "Right Side B Pillar",
+    "Right Side C Pillar",
+    "Right Side Running Board",
+    "Right Side Mirror",
+
+    /* ── Left Side ── */
+    "Left Side Fender",
+    "Left Side Front Door",
+    "Left Side Rear Door",
+    "Left Side Quarter Panel",
+    "Left Side Quarter Panel Window",
+    "Left Side A Pillar",
+    "Left Side B Pillar",
+    "Left Side C Pillar",
+    "Left Side Running Board",
+    "Left Side Mirror",
+
+    /* ── Other (Rear, Roof, Structure & Identification) ── */
+    "Trunk Door (Dicky)",
+    "Rear Bumper",
+    "Rear Wind Shield",
+    "Roof Top",
+    "Chassis Embossing",
+    "VIN Plate",
+    "Under Body Damages",
+  ];
+
+  const sortExteriorPanels = (panels: any[]) => {
+    if (!panels || !Array.isArray(panels)) return [];
+    return [...panels].sort((a, b) => {
+      const nameA = (a.panelName || a.name || "").trim();
+      const nameB = (b.panelName || b.name || "").trim();
+      const idxA = exteriorPanelsOrder.indexOf(nameA);
+      const idxB = exteriorPanelsOrder.indexOf(nameB);
+      if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+      if (idxA !== -1) return -1;
+      if (idxB !== -1) return 1;
+      return nameA.localeCompare(nameB);
+    });
+  };
+
   const formatMediaUrl = (url?: string | null) => {
     if (!url) return "";
     if (url.startsWith("http://") || url.startsWith("https://")) return url;
     const cleanPath = url.startsWith("/") ? url : `/${url}`;
     return `${API_BASE_URL}${cleanPath}`;
+  };
+
+  const slotPhotoTypeMap: Record<string, string[]> = {
+    FRONT_VIEW: ["FRONT_VIEW", "frontSide", "Front", "FRONT SIDE IMAGE"],
+    RIGHT_FRONT_VIEW: ["RIGHT_FRONT_VIEW", "rightSide", "Right", "RIGHT SIDE IMAGE"],
+    LEFT_FRONT_VIEW: ["LEFT_FRONT_VIEW", "leftSide", "Left", "LEFT SIDE IMAGE"],
+    REAR_VIEW: ["REAR_VIEW", "rearSide", "Rear", "REAR SIDE IMAGE"],
+    ROOF_VIEW: ["ROOF_VIEW", "roofTop", "Roof", "ROOF TOP IMAGE"],
+    ENGINE_IMAGE: ["ENGINE_IMAGE", "engineImg", "Engine", "ENGINE / MOTOR IMG", "ENGINE ROOM PHOTO"],
+    BATTERY_IMAGE: ["BATTERY_IMAGE", "batteryImg", "Battery", "BATTERY IMG", "BATTERY BAY PHOTO"],
+    FRONT_RIGHT_TYRE: ["FRONT_RIGHT_TYRE", "rfTyreImg", "Front Right", "RIGHT SIDE FRONT TYRE IMG"],
+    REAR_RIGHT_TYRE: ["REAR_RIGHT_TYRE", "rrTyreImg", "Rear Right", "RIGHT SIDE REAR TYRE IMG"],
+    REAR_LEFT_TYRE: ["REAR_LEFT_TYRE", "lrTyreImg", "Rear Left", "LEFT SIDE REAR TYRE IMG"],
+    FRONT_LEFT_TYRE: ["FRONT_LEFT_TYRE", "lfTyreImg", "Front Left", "LEFT SIDE FRONT TYRE IMG"],
+    SPARE_WHEEL: ["SPARE_WHEEL", "spareWheelImg", "Spare", "SPARE WHEEL IMG"],
+    TYRES_OVERVIEW: ["TYRES_OVERVIEW", "tyresGeneralImg", "Tyres", "TYRES OVERVIEW IMAGE"],
+    ODOMETER_IMAGE: ["ODOMETER_IMAGE", "odometerImg", "Odometer", "ODOMETER IMG", "ODOMETER READING PHOTO"],
+    AC_CONTROL_IMAGE: ["AC_CONTROL_IMAGE", "acImg", "AC Control", "AC IMAGE", "AC CONTROL PANEL PHOTO"],
+  };
+
+  const findSlotPhoto = (slotType: string, photos: any[] = []) => {
+    const allowedKeys = (slotPhotoTypeMap[slotType] || [slotType]).map((k) => k.toUpperCase().replace(/[^A-Z0-9]/g, ""));
+    return (photos || []).find((p: any) => {
+      if (!p) return false;
+      const pType = (p.photoType || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+      const pCat = (p.imageCategory || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+      const pDisp = (p.displayName || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+      return allowedKeys.some((k) => (pType && pType === k) || (pCat && pCat === k) || (pDisp && pDisp === k));
+    });
+  };
+
+  const findChecklistPhoto = (itemName: string, photos: any[] = []) => {
+    if (!itemName) return null;
+    const targetClean = itemName.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+    if (!targetClean) return null;
+
+    return (photos || []).find((p: any) => {
+      if (!p) return false;
+      const pType = (p.photoType || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+      const pCat = (p.imageCategory || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+      const pDisp = (p.displayName || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+
+      if (["INTERIOR", "EXTERIOR", "MECHANICAL", "TYRE", "TYRES", "ELECTRICAL"].includes(pCat)) {
+        return (pDisp && pDisp === targetClean) || (pType && pType === targetClean);
+      }
+
+      return (pCat && pCat === targetClean) || (pDisp && pDisp === targetClean) || (pType && pType === targetClean);
+    });
+  };
+
+  const findNoiseVideo = (inspectionVideos: any[] = [], inspectionPhotos: any[] = []) => {
+    const vid = (inspectionVideos || []).find((v: any) => {
+      if (!v) return false;
+      const url = v.videoUrl || v.url || v.imageUrl;
+      if (!url) return false;
+      const disp = (v.displayName || v.videoType || v.imageCategory || "").toUpperCase();
+      return disp.includes("NOISE") || disp.includes("ENGINE / MOTOR NOISE");
+    });
+    if (vid) return vid.videoUrl || vid.url || vid.imageUrl;
+
+    const photoVid = (inspectionPhotos || []).find((p: any) => {
+      if (!p) return false;
+      const url = p.imageUrl || p.videoUrl || p.url;
+      if (!url) return false;
+      const disp = (p.displayName || p.imageCategory || p.photoType || "").toUpperCase();
+      const isNoise = disp.includes("NOISE") || disp.includes("ENGINE / MOTOR NOISE");
+      return isNoise && (p.videoUrl || /\.(mp4|webm|mov|avi|mkv|3gp|flv|wmv)($|\?)/i.test(url));
+    });
+    if (photoVid) return photoVid.imageUrl || photoVid.videoUrl || photoVid.url;
+
+    return null;
   };
 
   const fetchDetails = async () => {
@@ -490,7 +616,7 @@ export function AdminVehicleDetail() {
               }
             >
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 items-start">
-                {(previewData.exteriorPanelDetails || []).map((p: any, idx: number) => {
+                {sortExteriorPanels(previewData.exteriorPanelDetails || []).map((p: any, idx: number) => {
                   const cond = (p.condition || "OK").toUpperCase();
                   const isNA = cond === "NA" || cond === "N/A";
                   let colorClass = "text-emerald-500 bg-emerald-500/10 border-emerald-500/30";
@@ -502,7 +628,8 @@ export function AdminVehicleDetail() {
                     colorClass = "text-muted-foreground bg-secondary border-border";
                   }
 
-                  const imgUrl = formatMediaUrl(p.imageUrl);
+                  const panelPhoto = p.imageUrl || findChecklistPhoto(p.panelName, previewData.inspectionPhotos)?.imageUrl;
+                  const imgUrl = formatMediaUrl(panelPhoto);
 
                   return (
                     <div key={idx} className="rounded-2xl border border-border bg-card p-3.5 shadow-soft flex flex-col gap-2">
@@ -549,15 +676,11 @@ export function AdminVehicleDetail() {
                 {[
                   { type: "FRONT_VIEW", label: "FRONT SIDE IMAGE" },
                   { type: "RIGHT_FRONT_VIEW", label: "RIGHT SIDE IMAGE" },
-                  { type: "REAR_VIEW", label: "REAR SIDE IMAGE" },
                   { type: "LEFT_FRONT_VIEW", label: "LEFT SIDE IMAGE" },
+                  { type: "REAR_VIEW", label: "REAR SIDE IMAGE" },
                   { type: "ROOF_VIEW", label: "ROOF TOP IMAGE" },
                 ].map((slot) => {
-                  const matchedPhoto = (previewData.inspectionPhotos || []).find(
-                    (p: any) =>
-                      p.photoType?.toUpperCase() === slot.type ||
-                      p.displayName?.toUpperCase().includes(slot.label.split(" ")[0])
-                  );
+                  const matchedPhoto = findSlotPhoto(slot.type, previewData.inspectionPhotos);
                   const imgUrl = formatMediaUrl(matchedPhoto?.imageUrl);
 
                   return (
@@ -578,7 +701,9 @@ export function AdminVehicleDetail() {
                             </div>
                           </>
                         ) : (
-                          <span className="text-xs font-bold text-muted-foreground">No image uploaded</span>
+                          <div className="flex size-full items-center justify-center text-[10px] text-muted-foreground font-bold">
+                            No Image Attached
+                          </div>
                         )}
                       </div>
                     </div>
@@ -637,27 +762,12 @@ export function AdminVehicleDetail() {
                   { label: "Engine / Motor Noise", val: previewData.mechanicalDetails?.engineNoise },
                 ].map((item, idx) => {
                   const valStr = String(item.val || "OK").toUpperCase();
-                  const isNA = valStr === "NA" || valStr === "N/A";
+                  const isNA = valStr === "NA" || valStr === "N/A" || valStr.includes("N/A") || valStr.includes("NOT APPLICABLE");
                   const isNoiseItem = item.label.includes("Noise");
 
-                  const videoObj = isNoiseItem
-                    ? ((previewData.inspectionVideos || []).find((v: any) => v && (v.videoUrl || v.url || v.imageUrl)) ||
-                       (previewData.videoUrl ? { videoUrl: previewData.videoUrl } : null))
-                    : null;
-
-                  const matchedPhoto = isNA
-                    ? null
-                    : (videoObj ||
-                       (previewData.inspectionPhotos || [])
-                        .filter((p: any) => p && (p.imageUrl || p.videoUrl || p.url))
-                        .find(
-                          (p: any) =>
-                            p.photoType?.toUpperCase() === item.label.toUpperCase() ||
-                            p.imageCategory?.toUpperCase() === item.label.toUpperCase() ||
-                            p.displayName?.toUpperCase() === item.label.toUpperCase()
-                        ));
-
-                  const rawUrl = matchedPhoto?.imageUrl || matchedPhoto?.videoUrl || matchedPhoto?.url;
+                  const noiseUrl = isNoiseItem ? findNoiseVideo(previewData.inspectionVideos, previewData.inspectionPhotos) : null;
+                  const matchedPhoto = isNA ? null : (isNoiseItem ? null : findChecklistPhoto(item.label, previewData.inspectionPhotos));
+                  const rawUrl = isNoiseItem ? noiseUrl : matchedPhoto?.imageUrl;
                   const imgUrl = formatMediaUrl(rawUrl);
 
                   const isVideoFile = isNoiseItem || (imgUrl && (
@@ -720,12 +830,7 @@ export function AdminVehicleDetail() {
                   { type: "ENGINE_IMAGE", label: "ENGINE ROOM PHOTO" },
                   { type: "BATTERY_IMAGE", label: "BATTERY BAY PHOTO" },
                 ].map((slot) => {
-                  const matchedPhoto = (previewData.inspectionPhotos || []).find(
-                    (p: any) =>
-                      p.photoType?.toUpperCase() === slot.type ||
-                      (slot.type === "ENGINE_IMAGE" && (p.imageCategory?.toUpperCase().includes("ENGINE") || p.displayName?.toUpperCase().includes("ENGINE"))) ||
-                      (slot.type === "BATTERY_IMAGE" && (p.imageCategory?.toUpperCase().includes("BATTERY") || p.imageCategory?.toUpperCase().includes("INTERIOR") || p.displayName?.toUpperCase().includes("BATTERY")))
-                  );
+                  const matchedPhoto = findSlotPhoto(slot.type, previewData.inspectionPhotos);
                   const imgUrl = formatMediaUrl(matchedPhoto?.imageUrl);
 
                   return (
@@ -808,7 +913,7 @@ export function AdminVehicleDetail() {
               </div>
 
               <h4 className="text-xs font-extrabold uppercase text-muted-foreground mt-6 mb-3">Emergency Toolkit & Equipment</h4>
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs">
+              <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3 text-xs">
                 {[
                   { name: "Jack", present: previewData.tyreDetails?.hasJack },
                   { name: "Handle", present: previewData.tyreDetails?.hasHandle },
@@ -839,17 +944,7 @@ export function AdminVehicleDetail() {
                   { type: "SPARE_WHEEL", label: "SPARE WHEEL IMG" },
                   { type: "TYRES_OVERVIEW", label: "TYRES OVERVIEW IMAGE" },
                 ].map((slot) => {
-                  const matchedPhoto = (previewData.inspectionPhotos || []).find((p: any) => {
-                    if (p.photoType?.toUpperCase() === slot.type) return true;
-                    const cat = (p.imageCategory || p.displayName || "").toUpperCase().replace(/[^A-Z]/g, "");
-                    if (slot.type === "FRONT_RIGHT_TYRE") return cat.includes("FRONTRIGHT") || cat.includes("RFTYRE") || cat === "RF";
-                    if (slot.type === "REAR_RIGHT_TYRE") return cat.includes("REARRIGHT") || cat.includes("RRTYRE") || cat === "RR";
-                    if (slot.type === "FRONT_LEFT_TYRE") return cat.includes("FRONTLEFT") || cat.includes("LFTYRE") || cat === "LF";
-                    if (slot.type === "REAR_LEFT_TYRE") return cat.includes("REARLEFT") || cat.includes("LRTYRE") || cat === "LR";
-                    if (slot.type === "SPARE_WHEEL") return cat.includes("SPARE");
-                    if (slot.type === "TYRES_OVERVIEW") return cat.includes("OVERVIEW") || cat === "TYRES" || cat.includes("GENERAL");
-                    return false;
-                  });
+                  const matchedPhoto = findSlotPhoto(slot.type, previewData.inspectionPhotos);
                   const imgUrl = formatMediaUrl(matchedPhoto?.imageUrl);
 
                   return (
@@ -954,21 +1049,7 @@ export function AdminVehicleDetail() {
                   const valStr = String(item.val || "OK / WORKING").toUpperCase();
                   const isNA = valStr === "NA" || valStr === "N/A" || valStr.includes("N/A") || valStr.includes("NOT APPLICABLE");
 
-                  const itemClean = item.label.toUpperCase().replace(/[^A-Z]/g, "");
-                  const matchedPhoto = isNA ? null : (previewData.inspectionPhotos || []).find((p: any) => {
-                    const pType = (p.photoType || "").toUpperCase().replace(/[^A-Z]/g, "");
-                    const pCat = (p.imageCategory || "").toUpperCase().replace(/[^A-Z]/g, "");
-                    const pDisp = (p.displayName || "").toUpperCase().replace(/[^A-Z]/g, "");
-
-                    if (pCat === itemClean || pDisp === itemClean) return true;
-                    if (pCat === "INTERIOR" || pCat === "EXTERIOR" || pCat === "MECHANICAL" || pCat === "TYRE" || pCat === "TYRES") return false;
-
-                    if (pType && (pType === itemClean || itemClean.includes(pType) || pType.includes(itemClean))) return true;
-                    if (pCat && (pCat.includes(itemClean) || itemClean.includes(pCat))) return true;
-                    if (pDisp && (pDisp.includes(itemClean) || itemClean.includes(pDisp))) return true;
-                    if (itemClean.includes("POWERWINDOW") && (pCat.includes("POWERWINDOW") || pDisp.includes("POWERWINDOW"))) return true;
-                    return false;
-                  });
+                  const matchedPhoto = isNA ? null : findChecklistPhoto(item.label, previewData.inspectionPhotos);
                   const imgUrl = formatMediaUrl(matchedPhoto?.imageUrl);
 
                   return (
@@ -1016,7 +1097,7 @@ export function AdminVehicleDetail() {
             </Panel>
 
             <Panel
-              title="Interior & Cabin Mandatory Photos"
+              title="Interior & Cabin Photos"
               description="Odometer reading and AC panel photos."
             >
               <div className="grid gap-4.5 sm:grid-cols-2 lg:grid-cols-4">
@@ -1024,13 +1105,7 @@ export function AdminVehicleDetail() {
                   { type: "ODOMETER_IMAGE", label: "ODOMETER READING PHOTO" },
                   { type: "AC_CONTROL_IMAGE", label: "AC CONTROL PANEL PHOTO" },
                 ].map((slot) => {
-                  const matchedPhoto = (previewData.inspectionPhotos || []).find((p: any) => {
-                    if (p.photoType?.toUpperCase() === slot.type) return true;
-                    const cat = (p.imageCategory || p.displayName || "").toUpperCase().replace(/[^A-Z]/g, "");
-                    if (slot.type === "ODOMETER_IMAGE") return cat.includes("ODOMETER");
-                    if (slot.type === "AC_CONTROL_IMAGE") return cat.includes("AC");
-                    return false;
-                  });
+                  const matchedPhoto = findSlotPhoto(slot.type, previewData.inspectionPhotos);
                   const imgUrl = formatMediaUrl(matchedPhoto?.imageUrl);
 
                   return (

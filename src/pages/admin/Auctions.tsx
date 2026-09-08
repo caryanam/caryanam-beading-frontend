@@ -153,7 +153,7 @@ export function AdminAuctions() {
 
   const handleGoLive = async (id: number) => {
     try {
-      const duration = activeTab === "freelancer" ? 15 : 10;
+      const duration = activeTab === "freelancer" ? 15 : 30;
       const vehicleTypeLabel = activeTab === "freelancer" ? "Freelancer" : "Inspector";
       toast.info(`Launching live ${duration}-minute auction room...`);
       const res = await startLiveAuction(id, duration);
@@ -284,7 +284,7 @@ export function AdminAuctions() {
           v.vehicleStatus === "SOLD OUT" ||
           v.vehicleStatus === "SOLD" ||
           v.vehicleStatus === "ENDED";
-        const durationSec = (activeTab === "freelancer" ? 15 : 10) * 60;
+        const durationSec = (activeTab === "freelancer" ? 15 : 30) * 60;
 
         if (isLive) {
           const rem = timeLeft(v.auctionEndTime || Date.now() + durationSec * 1000);
@@ -314,7 +314,7 @@ export function AdminAuctions() {
 
         return (
           <span className="text-xs font-bold text-muted-foreground flex items-center gap-1">
-            <Clock className="size-3.5 text-muted-foreground/70" /> {activeTab === "freelancer" ? "15 Mins" : "10 Mins"} (Ready)
+            <Clock className="size-3.5 text-muted-foreground/70" /> {activeTab === "freelancer" ? "15 Mins" : "30 Mins"} (Ready)
           </span>
         );
       },
@@ -493,7 +493,7 @@ export function AdminAuctions() {
               <p className="mt-1 text-xs font-semibold text-muted-foreground">
                 {activeTab === "freelancer"
                   ? "Launch live 15-minute bidding rooms, monitor active freelancer auctions & negotiate with winning dealers"
-                  : "Launch live 10-minute bidding rooms, monitor active inspector auctions & negotiate with winning dealers"}
+                  : "Launch live 30-minute bidding rooms, monitor active inspector auctions & negotiate with winning dealers"}
               </p>
             </div>
 

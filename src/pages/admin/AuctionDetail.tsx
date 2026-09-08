@@ -196,10 +196,12 @@ export function AdminAuctionDetail() {
   const handleGoLive = async () => {
     if (!id) return;
     try {
-      toast.info("Launching live auction room...");
-      const res = await startLiveAuction(Number(id));
+      const isFreelancer = (inspection as any)?.sourceType === "FREELANCER" || (inspection as any)?.inspectorRole === "FREELANCER";
+      const duration = isFreelancer ? 15 : 30;
+      toast.info(`Launching live ${duration}-minute auction room...`);
+      const res = await startLiveAuction(Number(id), duration);
       if (res.success) {
-        toast.success("Auction is now LIVE!");
+        toast.success(`${duration}-Minute Auction is now LIVE!`);
         fetchDetail();
       } else {
         toast.error((res as any).message || "Failed to launch auction.");

@@ -40,7 +40,7 @@ export function Home({ onNavigateToAuth, onNavigateToWhy }: HomeProps) {
             </h1>
 
             <p className="mt-4 sm:mt-5 text-xs xs:text-sm sm:text-base lg:text-lg leading-relaxed text-zinc-300 font-medium max-w-2xl md:max-w-3xl">
-              Access 140+ point digital inspection reports, participate in real-time 10-minute live auctions, and acquire pre-owned vehicles with complete transparency.
+              Access 140+ point digital inspection reports, participate in real-time 30-minute live auctions, and acquire pre-owned vehicles with complete transparency.
             </p>
 
             <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row md:flex-row flex-wrap items-stretch sm:items-center gap-3 sm:gap-3.5 w-full">
@@ -80,7 +80,7 @@ export function Home({ onNavigateToAuth, onNavigateToWhy }: HomeProps) {
             {[
               { val: "25,000+", label: "Inspected Vehicles" },
               { val: "1,500+", label: "Verified Dealers" },
-              { val: "10-Min", label: "Live Auction Windows" },
+              { val: "30-Min", label: "Live Auction Windows" },
               { val: "100%", label: "Inspection Authenticity" },
             ].map((stat, i) => (
               <div

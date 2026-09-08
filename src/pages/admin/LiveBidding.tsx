@@ -65,7 +65,7 @@ export function AdminLiveBidding() {
   const [highestBid, setHighestBid] = useState<number>(0);
   const [highestBidder, setHighestBidder] = useState<string>("No bids placed");
   const [totalBids, setTotalBids] = useState<number>(0);
-  const [endTime, setEndTime] = useState<number>(Date.now() + 600 * 1000);
+  const [endTime, setEndTime] = useState<number>(Date.now() + 30 * 60 * 1000);
   const [status, setStatus] = useState<string>("LIVE");
   const [bidHistory, setBidHistory] = useState<LiveBidRecord[]>([]);
   const [remaining, setRemaining] = useState<string>("");
@@ -236,7 +236,7 @@ useEffect(() => {
     );
     setHighestBidder(selectedRoom.currentHighestBidder || "No bids placed");
     setTotalBids(selectedRoom.totalBids || 0);
-    setEndTime(selectedRoom.auctionEndTime || Date.now() + 600 * 1000);
+    setEndTime(selectedRoom.auctionEndTime || Date.now() + (selectedRoom.sourceType === "FREELANCER" ? 15 : 30) * 60 * 1000);
     setStatus(selectedRoom.vehicleStatus || "LIVE");
 
     const fetchHistory = async () => {
@@ -541,7 +541,7 @@ useEffect(() => {
 
                         <div className="flex items-center gap-1.5 rounded-xl bg-secondary px-2.5 py-1 text-[11px] font-extrabold text-foreground border border-border">
                           <Clock className="size-3 text-[#FFC700]" />
-                          <span>{timeLeft(v.auctionEndTime || Date.now() + 600 * 1000)}</span>
+                          <span>{timeLeft(v.auctionEndTime || Date.now() + (v.sourceType === "FREELANCER" ? 15 : 30) * 60 * 1000)}</span>
                         </div>
                       </div>
                     </div>

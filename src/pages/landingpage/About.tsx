@@ -78,7 +78,7 @@ export function About() {
               </h3>
             </div>
             <p className="text-xs text-muted-foreground font-medium leading-relaxed">
-              Powers 10-minute live auctions with sub-second bid synchronization, countdown timers, and immediate winner determination across dealer devices.
+              Powers 30-minute live auctions with sub-second bid synchronization, countdown timers, and immediate winner determination across dealer devices.
             </p>
           </div>
 

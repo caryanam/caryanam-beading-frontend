@@ -151,7 +151,11 @@ export const importDealersExcel = async (file: File): Promise<{ success: boolean
 };
 
 export const startLiveAuction = async (id: number, durationMinutes?: number): Promise<{ success: boolean }> => {
-  const res = await adminApiClient.put(`/api/admin/inspection/${id}/go-live`, durationMinutes ? { durationMinutes, duration: durationMinutes } : {});
+  const res = await adminApiClient.put(
+    `/api/admin/inspection/${id}/go-live`,
+    durationMinutes ? { durationMinutes, duration: durationMinutes } : {},
+    { params: durationMinutes ? { duration: durationMinutes, durationMinutes } : undefined }
+  );
   return res.data;
 };
 

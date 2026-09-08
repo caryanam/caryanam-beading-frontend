@@ -89,7 +89,8 @@ export function PublicBiddingPage() {
         const t = (v.transmission || "").toLowerCase();
         if (t.includes("auto")) transmissionType = "Automatic";
 
-        const endsAtTime = v.auctionEndTime || Date.now() + 1000 * 60 * 60 * 24;
+        const isFreelancer = (raw.inspector && raw.inspector.role === "FREELANCER") || raw.sourceType === "FREELANCER";
+        const endsAtTime = v.auctionEndTime || Date.now() + 1000 * 60 * (isFreelancer ? 15 : 30);
 
         const r = raw.ratings || {};
         const extR = r.exterior || r.exteriorRating || 0;

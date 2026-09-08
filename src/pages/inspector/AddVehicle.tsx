@@ -41,37 +41,44 @@ const steps = [
 
 /* Exact parameters extracted from Car Tattva Used Car Inspection PDF */
 const exteriorPanels = [
+  /* ── Front Side ── */
+  "Front Bonnet Hood",
+  "Front Bumper",
+  "Front Wind Shield",
+
+  /* ── Right Side ── */
   "Right Side Fender",
   "Right Side Front Door",
+  "Right Side Front Window",
   "Right Side Rear Door",
+  "Right Side Quarter Panel",
   "Right Side Quarter Panel Window",
   "Right Side A Pillar",
   "Right Side B Pillar",
   "Right Side C Pillar",
   "Right Side Running Board",
-  "Trunk Door (Dicky)",
-  "Rear Bumper",
-  "Left Side Rear Door",
+  "Right Side Mirror",
+
+  /* ── Left Side ── */
+  "Left Side Fender",
   "Left Side Front Door",
-  "Left Side Running Board",
+  "Left Side Rear Door",
   "Left Side Quarter Panel",
+  "Left Side Quarter Panel Window",
   "Left Side A Pillar",
   "Left Side B Pillar",
   "Left Side C Pillar",
-  "Left Side Fender",
-  "Right Side Mirror",
+  "Left Side Running Board",
   "Left Side Mirror",
-  "Front Bonnet Hood",
-  "Front Bumper",
-  "Front Wind Shield",
+
+  /* ── Other (Rear, Roof, Structure & Identification) ── */
+  "Trunk Door (Dicky)",
+  "Rear Bumper",
   "Rear Wind Shield",
   "Roof Top",
   "Chassis Embossing",
   "VIN Plate",
   "Under Body Damages",
-  "Right Side Quarter Panel",
-  "Right Side Front Window",
-  "Left Side Quarter Panel Window",
 ];
 
 const mechanicalItems = [
@@ -252,20 +259,20 @@ const imageSlotsConfig = [
       "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=800&q=80",
   },
   {
-    key: "rearSide",
-    label: "REAR SIDE IMAGE",
-    step: 1,
-    pdfSection: "EXTERIOR",
-    sample:
-      "https://images.unsplash.com/photo-1555215695-3004980ad54e?auto=format&fit=crop&w=800&q=80",
-  },
-  {
     key: "leftSide",
     label: "LEFT SIDE IMAGE",
     step: 1,
     pdfSection: "EXTERIOR",
     sample:
       "https://images.unsplash.com/photo-1606664515524-ed2f786a0bd6?auto=format&fit=crop&w=800&q=80",
+  },
+  {
+    key: "rearSide",
+    label: "REAR SIDE IMAGE",
+    step: 1,
+    pdfSection: "EXTERIOR",
+    sample:
+      "https://images.unsplash.com/photo-1555215695-3004980ad54e?auto=format&fit=crop&w=800&q=80",
   },
   {
     key: "roofTop",
@@ -735,7 +742,7 @@ export function InspectorAddVehicle() {
       if (!basicDetails.roadTaxPaid) newErrors.roadTaxPaid = "Road Tax Paid status is required.";
       if (!basicDetails.fitnessUpto) newErrors.fitnessUpto = "Fitness Valid Upto Date is required.";
     } else if (stepIndex === 1) {
-      const extSlots = ["frontSide", "rightSide", "rearSide", "leftSide", "roofTop"];
+      const extSlots = ["frontSide", "rightSide", "leftSide", "rearSide", "roofTop"];
       extSlots.forEach((slot) => {
         if (!partImages[slot]) {
           const config = imageSlotsConfig.find((c) => c.key === slot);
@@ -749,19 +756,7 @@ export function InspectorAddVehicle() {
         }
       });
     } else if (stepIndex === 2) {
-      const mechSlots = ["engineImg", "batteryImg"];
-      mechSlots.forEach((slot) => {
-        if (!partImages[slot]) {
-          const config = imageSlotsConfig.find((c) => c.key === slot);
-          newErrors[slot] = `${config ? config.label : slot} photo is required.`;
-        }
-      });
-      mechanicalItems.forEach((item) => {
-        const cond = mechanicalState[item.name];
-        if (cond !== "NA" && cond !== "N/A" && !panelImages[item.name]) {
-          newErrors[item.name] = `Photo is required for ${item.name}.`;
-        }
-      });
+      // Step 3: Mechanical Health Diagnostics - image uploads are optional
     } else if (stepIndex === 3) {
       const tyreSlots = ["rfTyreImg", "rrTyreImg", "lrTyreImg", "lfTyreImg", "spareWheelImg", "tyresGeneralImg"];
       tyreSlots.forEach((slot) => {
@@ -775,19 +770,7 @@ export function InspectorAddVehicle() {
       if (!electricalState["Full Battery Number"]) newErrors["Full Battery Number"] = "Full Battery Number is required.";
       if (!electricalState["AC"]) newErrors["AC"] = "AC Cooling Performance is required.";
 
-      const intSlots = ["odometerImg", "acImg"];
-      intSlots.forEach((slot) => {
-        if (!partImages[slot]) {
-          const config = imageSlotsConfig.find((c) => c.key === slot);
-          newErrors[slot] = `${config ? config.label : slot} photo is required.`;
-        }
-      });
-      electricalItems.forEach((item) => {
-        const cond = electricalState[item];
-        if (cond !== "NA" && cond !== "N/A" && !panelImages[item]) {
-          newErrors[item] = `Photo is required for ${item}.`;
-        }
-      });
+      // Step 5: Interior & Electrical - image uploads are optional
     }
 
     setErrors(newErrors);
@@ -2245,7 +2228,7 @@ export function InspectorAddVehicle() {
                             {/* Top Info Row */}
                             <div className="flex items-center justify-between gap-2 w-full">
                               <span className="text-xs font-bold text-foreground truncate min-w-0">
-                                {item.name} <span className="text-rose-500">*</span>
+                                {item.name}
                               </span>
                               {item.type === "fluid" ? (
                                 <select
@@ -2338,7 +2321,7 @@ export function InspectorAddVehicle() {
                           <>
                             <div className="flex items-center justify-between gap-2 w-full">
                               <span className="text-xs font-bold text-foreground truncate min-w-0">
-                                {item.name} {value !== "N/A" && value !== "NA" && <span className="text-rose-500">*</span>}
+                                {item.name}
                               </span>
                               <div className="flex items-center gap-2">
                                 {item.type === "fluid" ? (
@@ -2383,7 +2366,7 @@ export function InspectorAddVehicle() {
                                         ? "border-red-500 text-red-500 bg-red-500/10 hover:bg-red-500/20"
                                         : "border-border hover:border-[#FFC700] hover:bg-[#FFC700]/10 text-muted-foreground hover:text-[#FFC700]"
                                     )}
-                                    title={item.name === "Engine / Motor Noise" ? "Upload Video" : "Upload Photo"}
+                                    title={item.name === "Engine / Motor Noise" ? "Upload Video (Optional)" : "Upload Photo (Optional)"}
                                   >
                                     {item.name === "Engine / Motor Noise" ? (
                                       <Video className="size-3.5" />
@@ -2413,7 +2396,7 @@ export function InspectorAddVehicle() {
 
               <Panel
                 title="Under-Bonnet Engine Room Photos"
-                description="Clear views of motor cylinders, fluid caps, and battery mounts."
+                description="Clear views of motor cylinders, fluid caps, and battery mounts (Optional)."
               >
                 <div className="grid gap-4.5 sm:grid-cols-2 lg:grid-cols-3">
                   {imageSlotsConfig
@@ -2568,10 +2551,9 @@ export function InspectorAddVehicle() {
 
           {/* Step 5: Interior diagnostics and final comments */}
           {step === 4 && (
-            <div className="space-y-8">
-              <Panel
+            <div className="space-y-8">              <Panel
                 title="Cabin & Electrical Components"
-                description="Upload odometer and AC control photo slots."
+                description="Upload odometer and AC control photo slots (Optional)."
               >
                 <div className="grid gap-4.5 sm:grid-cols-2 lg:grid-cols-3">
                   {imageSlotsConfig
@@ -2689,7 +2671,7 @@ export function InspectorAddVehicle() {
                             {/* Top Info Row */}
                             <div className="flex items-center justify-between gap-2 w-full">
                               <span className="text-xs font-bold text-foreground truncate min-w-0">
-                                {item} <span className="text-rose-500">*</span>
+                                {item}
                               </span>
                               <select
                                 value={status}
@@ -2742,7 +2724,7 @@ export function InspectorAddVehicle() {
                         ) : (
                           <>                             <div className="flex items-center justify-between gap-2 w-full">
                               <span className="text-xs font-bold text-foreground truncate min-w-0">
-                                {item} {status !== "N/A" && status !== "NA" && <span className="text-rose-500">*</span>}
+                                {item}
                               </span>
                               <div className="flex items-center gap-2">
                                 <select
@@ -2767,7 +2749,7 @@ export function InspectorAddVehicle() {
                                         ? "border-red-500 text-red-500 bg-red-500/10 hover:bg-red-500/20"
                                         : "border-border hover:border-[#FFC700] hover:bg-[#FFC700]/10 text-muted-foreground hover:text-[#FFC700]"
                                     )}
-                                    title="Upload Panel Photo"
+                                    title="Upload Panel Photo (Optional)"
                                   >
                                     <Camera className="size-4" />
                                   </button>

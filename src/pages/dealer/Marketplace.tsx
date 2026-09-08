@@ -94,7 +94,7 @@ export function DealerMarketplace() {
         image:
           v.vehicleImage ||
           "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=400&q=80",
-        endsAt: v.auctionEndTime || Date.now() + 1000 * 60 * 60 * 24 * 2,
+        endsAt: v.auctionEndTime || Date.now() + 1000 * 60 * 30,
         inspector: v.inspectorName || "Certified Inspector",
         location: (v as any).location || (v as any).city || undefined,
         rtoInformation: (v as any).rtoInformation || (v as any).rto || undefined,

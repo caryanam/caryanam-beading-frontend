@@ -53,7 +53,7 @@ export function WhyChoose() {
             {
               icon: Zap,
               title: "Sub-Second WebSocket Live Bids",
-              desc: "Our real-time bidding server synchronizes bids, active room logs, and live 10-minute auction countdown timers instantaneously.",
+              desc: "Our real-time bidding server synchronizes bids, active room logs, and live 30-minute auction countdown timers instantaneously.",
             },
             {
               icon: Trophy,
