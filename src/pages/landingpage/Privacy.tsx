@@ -52,7 +52,7 @@ export function Privacy() {
                 Caryanam India Pvt. Ltd.
               </h2>
               <p className="text-xs text-muted-foreground font-medium leading-relaxed">
-                Caryanam India Pvt. Ltd. ("Caryanam", "we", "our") operates the Caryanam Bidding App. This Privacy Policy explains how we collect and use information when you use our App.
+                Caryanam India Pvt. Ltd. ("Caryanam", "we", "our") operates the Caryanam Live App. This Privacy Policy explains how we collect and use information when you use our App.
               </p>
             </div>
           </div>

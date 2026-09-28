@@ -122,7 +122,7 @@ export function DeleteAccount() {
                 Account Permanently Deleted
               </h2>
               <p className="text-sm sm:text-base font-semibold text-muted-foreground leading-relaxed max-w-lg mx-auto">
-                Your Freelancer, Dealer, or Inspector profile and associated credentials have been completely removed from Caryanam Bidding platform.
+                Your Freelancer, Dealer, or Inspector profile and associated credentials have been completely removed from Caryanam Live platform.
               </p>
             </div>
 

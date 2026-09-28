@@ -50,7 +50,7 @@ export function Terms() {
                 Caryanam India Pvt. Ltd.
               </h2>
               <p className="text-xs text-muted-foreground font-medium leading-relaxed">
-                Caryanam India Pvt. Ltd. operates the Caryanam Bidding App. By using the App, you agree to these Terms.
+                Caryanam India Pvt. Ltd. operates the Caryanam Live App. By using the App, you agree to these Terms.
               </p>
             </div>
           </div>

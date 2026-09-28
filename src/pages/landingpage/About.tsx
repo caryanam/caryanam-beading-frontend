@@ -36,7 +36,7 @@ export function About() {
                 Caryanam India Pvt. Ltd.
               </h2>
               <p className="text-xs sm:text-sm text-muted-foreground font-semibold leading-relaxed">
-                Caryanam Bidding is a technology-driven vehicle remarketing and digital evaluation platform connecting certified automobile inspectors, auction managers, and verified pre-owned car dealers across India.
+                Caryanam Live is a technology-driven vehicle remarketing and digital evaluation platform connecting certified automobile inspectors, auction managers, and verified pre-owned car dealers across India.
               </p>
             </div>
           </div>
@@ -93,7 +93,7 @@ export function About() {
             </h3>
           </div>
           <p className="text-xs text-muted-foreground font-medium leading-relaxed">
-            Whether sourcing pre-owned inventory, conducting 140+ point evaluations, or managing live auction rooms, Caryanam Bidding provides a high-fidelity workspace engineered for performance.
+            Whether sourcing pre-owned inventory, conducting 140+ point evaluations, or managing live auction rooms, Caryanam Live provides a high-fidelity workspace engineered for performance.
           </p>
         </div>
 

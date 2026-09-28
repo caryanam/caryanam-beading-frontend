@@ -484,7 +484,7 @@ export function AdminDashboard() {
       ]);
 
       const csvContent = [
-        "CARYANAM BIDDING - ENTERPRISE OPERATIONS SUMMARY REPORT",
+        "CARYANAM LIVE - ENTERPRISE OPERATIONS SUMMARY REPORT",
         `Generated On: ${formatIndianDateTime(new Date())}`,
         `Total Inventory: ${totalInventory} | Approved: ${approvedCount} | Live Rooms: ${runningAuctions} | Pending Review: ${pendingApprovals} | Registered Dealers: ${totalDealers}`,
         "",

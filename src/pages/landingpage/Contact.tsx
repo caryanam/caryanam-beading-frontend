@@ -61,7 +61,7 @@ export function Contact() {
             Contact Us
           </h1>
           <p className="mt-2 text-xs font-bold text-muted-foreground tracking-widest uppercase">
-            Get in Touch with the Caryanam Bidding Team
+            Get in Touch with the Caryanam Live Team
           </p>
         </div>
 
