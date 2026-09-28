@@ -15,7 +15,7 @@ export function WhyChoose() {
           </div>
           
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-foreground">
-            Why Choose Caryanam Bidding
+            Why Choose Caryanam Live
           </h1>
           
           <p className="mt-2 text-xs font-bold text-muted-foreground tracking-widest uppercase">

@@ -813,10 +813,10 @@ export function Login({
 
                   <div className="flex items-center gap-2 bg-black/40 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/15 shadow-md">
                     <span className="relative grid size-6 place-items-center rounded-lg overflow-hidden bg-[#0D0E12] border border-[#FFC700]/40">
-                      <img src="/logo.png" alt="Caryanam Bidding" className="size-full object-cover" />
+                      <img src="/logo.png" alt="Caryanam Live" className="size-full object-cover" />
                     </span>
                     <p className="text-[11px] font-extrabold tracking-[0.18em] text-[#FFC700] uppercase">
-                      Caryanam Bidding
+                      Caryanam Live
                     </p>
                   </div>
                 </div>
@@ -864,10 +864,10 @@ export function Login({
 
                   <div className="flex items-center gap-2 bg-black/40 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/15 shadow-md">
                     <span className="relative grid size-6 place-items-center rounded-lg overflow-hidden bg-[#0D0E12] border border-[#FFC700]/40">
-                      <img src="/logo.png" alt="Caryanam Bidding" className="size-full object-cover" />
+                      <img src="/logo.png" alt="Caryanam Live" className="size-full object-cover" />
                     </span>
                     <p className="text-[11px] font-extrabold tracking-[0.18em] text-[#FFC700] uppercase">
-                      Caryanam Bidding
+                      Caryanam Live
                     </p>
                   </div>
                 </div>
@@ -878,7 +878,7 @@ export function Login({
                     <img src="/logo.png" alt="Logo" className="size-9 object-contain drop-shadow-md" />
                   </div>
 
-                  <h2 className="text-3xl font-black mb-3 tracking-tight uppercase text-white text-center">Caryanam Bidding</h2>
+                  <h2 className="text-3xl font-black mb-3 tracking-tight uppercase text-white text-center">Caryanam Live</h2>
                   <p className="text-zinc-300 mb-8 text-xs font-semibold leading-relaxed text-center max-w-xs">
                     Access verified digital inspections, live remarketing, and supercar telemetry logs.
                   </p>
@@ -925,10 +925,10 @@ export function Login({
 
           <div className="flex items-center gap-2 bg-[#0D0E12]/80 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/15 shadow-md">
             <span className="relative grid size-6 place-items-center rounded-lg overflow-hidden bg-[#0D0E12] border border-[#FFC700]/40">
-              <img src="/logo.png" alt="Caryanam Bidding" className="size-full object-cover" />
+              <img src="/logo.png" alt="Caryanam Live" className="size-full object-cover" />
             </span>
             <span className="text-[10px] sm:text-[11px] font-black tracking-[0.15em] text-[#FFC700] uppercase">
-              Caryanam Bidding
+              Caryanam Live
             </span>
           </div>
         </div>
@@ -1259,7 +1259,7 @@ export function Login({
 
         {/* Footer info text */}
         <div className="relative z-20 text-center text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 mt-4">
-          © 2026 Caryanam Bidding • Encrypted & Verifiable B2B Telemetry
+          © 2026 Caryanam Live • Encrypted & Verifiable B2B Telemetry
         </div>
       </div>
 

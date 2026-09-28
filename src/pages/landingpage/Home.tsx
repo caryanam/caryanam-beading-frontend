@@ -6,7 +6,7 @@ interface HomeProps {
 }
 
 export function Home({ onNavigateToAuth, onNavigateToWhy }: HomeProps) {
-  const apkDownloadUrl = "https://github.com/caryanam/caryanam-beading-apk/releases/download/v1/CaryanamBidding.apk";
+  const apkDownloadUrl = "https://play.google.com/store/apps/details?id=com.caryanambiddingapp";
 
   return (
     <div className="flex flex-col animate-rise overflow-x-hidden">
@@ -56,7 +56,7 @@ export function Home({ onNavigateToAuth, onNavigateToWhy }: HomeProps) {
                 onClick={onNavigateToWhy}
                 className="w-full sm:w-auto rounded-xl border border-zinc-700/80 bg-zinc-900/80 hover:bg-zinc-800 text-white px-5 sm:px-6 py-3 sm:py-3.5 text-xs sm:text-sm font-extrabold tracking-wide transition-all cursor-pointer text-center"
               >
-                Why Caryanam Bidding
+                Why Caryanam Live
               </button>
 
               <a
@@ -164,11 +164,8 @@ export function Home({ onNavigateToAuth, onNavigateToWhy }: HomeProps) {
             <div className="md:col-span-7 lg:col-span-7 text-left space-y-4">
               <div className="inline-flex items-center gap-2 rounded-full border border-[#FFC700]/40 bg-[#FFC700]/15 px-3 py-1 text-[11px] sm:text-xs font-black text-[#FFC700] shadow-sm max-w-full flex-wrap">
                 <Smartphone className="size-3.5 text-[#FFC700] shrink-0" />
-                <span className="truncate">Caryanam Mobile Bidding App v1.0</span>
-                <span className="flex h-2 w-2 relative shrink-0">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#FFC700] opacity-75" />
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-[#FFC700]" />
-                </span>
+                <span className="truncate">Caryanam Live Mobile App</span>
+                
               </div>
 
               <h2 className="text-xl xs:text-2xl sm:text-3xl md:text-3xl lg:text-4xl font-black tracking-tight leading-tight text-foreground">

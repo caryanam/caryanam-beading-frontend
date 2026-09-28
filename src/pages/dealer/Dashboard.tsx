@@ -399,7 +399,7 @@ export function DealerDashboard() {
                 <p className="font-black text-sm text-foreground">Certified Inspection Reports</p>
               </div>
               <p className="text-xs font-bold text-muted-foreground leading-relaxed">
-                Every vehicle on Caryanam Bidding is thoroughly evaluated by certified engineers with verified structural, engine, and document reports.
+                Every vehicle on Caryanam Live is thoroughly evaluated by certified engineers with verified structural, engine, and document reports.
               </p>
             </div>
           </Panel>

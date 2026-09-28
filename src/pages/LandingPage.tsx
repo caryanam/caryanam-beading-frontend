@@ -55,11 +55,11 @@ export function LandingPage({ page = "home", initialMode = "login" }: LandingPag
             {/* Brand Logo */}
             <Link to="/" className="flex items-center gap-3 group">
               <span className="relative grid size-11 place-items-center rounded-2xl overflow-hidden bg-[#0D0E12] border border-[#FFC700]/40 shadow-[0_0_20px_rgba(255,199,0,0.15)] group-hover:border-[#FFC700] transition-all">
-                <img src="/logo.png" alt="Caryanam Bidding" className="size-full object-cover" />
+                <img src="/logo.png" alt="Caryanam Live" className="size-full object-cover" />
               </span>
               <div className="flex flex-col">
                 <span className="text-base font-black tracking-wider uppercase text-foreground group-hover:text-[#FFC700] transition-colors">
-                  Caryanam Bidding
+                  Caryanam Live
                 </span>
                 <span className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase -mt-0.5">
                   Remarketing Telemetry
@@ -189,10 +189,10 @@ export function LandingPage({ page = "home", initialMode = "login" }: LandingPag
               <div className="flex flex-col gap-3">
                 <div className="flex items-center gap-2.5">
                   <span className="relative grid size-9 place-items-center rounded-xl overflow-hidden bg-[#0D0E12] border border-[#FFC700]/40 shadow-md">
-                    <img src="/logo.png" alt="Caryanam Bidding" className="size-full object-cover" />
+                    <img src="/logo.png" alt="Caryanam Live" className="size-full object-cover" />
                   </span>
                   <span className="text-base font-black tracking-wider uppercase text-white">
-                    Caryanam Bidding
+                    Caryanam Live
                   </span>
                 </div>
                 <p className="text-xs sm:text-sm leading-relaxed text-zinc-400">
@@ -279,7 +279,7 @@ export function LandingPage({ page = "home", initialMode = "login" }: LandingPag
                 Developed by Caryanamindia Pvt Ltd
               </p>
               <p className="font-medium">
-                © 2026 Caryanam Bidding. All rights reserved by Caryanamindia Pvt Ltd
+                © 2026 Caryanam Live. All rights reserved by Caryanamindia Pvt Ltd
               </p>
             </div>
           </div>
