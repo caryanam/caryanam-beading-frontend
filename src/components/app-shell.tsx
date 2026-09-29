@@ -196,13 +196,13 @@ export function AppShell({
 
                 if (vStatus === "AUCTION_LIVE") {
                   notifTitle = `🔥 Live Auction: ${carName}`;
-                  notifMeta = `Bidding is LIVE now for vehicle ${ins.vehicleNumber}! Highest bid: ₹${ins.currentHighestBid || ins.suggestedPrice || 0}`;
+                  notifMeta = `Bidding is LIVE now for ${carName}! Highest bid: ₹${ins.currentHighestBid || ins.suggestedPrice || 0}`;
                 } else if (vStatus === "AUCTION_COMPLETED") {
                   notifTitle = `Auction Closed: ${carName}`;
-                  notifMeta = `Bidding has completed for vehicle ${ins.vehicleNumber}.`;
+                  notifMeta = `Bidding has completed for ${carName}.`;
                 } else {
                   notifTitle = `🚗 New Vehicle: ${carName}`;
-                  notifMeta = `Vehicle ${ins.vehicleNumber} is available for bidding.`;
+                  notifMeta = `${carName} is available for bidding.`;
                 }
                 const timeStr = formatIndianDateTime(ins.submittedAt);
 

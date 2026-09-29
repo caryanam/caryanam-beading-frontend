@@ -24,6 +24,7 @@ export interface Vehicle {
   endsAt?: number;
   inspector: string;
   image: string;
+  userBidStatus?: "top" | "outbid" | "none";
 }
 
 const img = (seed: string) =>

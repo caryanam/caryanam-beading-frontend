@@ -197,7 +197,7 @@ export const getFreelancerProfile = async (): Promise<{ success: boolean; data: 
   return res.data;
 };
 
-export const updateFreelancerProfile = async (data: { fullName: string; mobileNumber: string }): Promise<{ success: boolean; data: FreelancerProfile }> => {
+export const updateFreelancerProfile = async (data: { fullName: string; email?: string; mobileNumber: string }): Promise<{ success: boolean; data: FreelancerProfile }> => {
   const res = await freelancerApiClient.put("/api/freelancer/profile", data);
   return res.data;
 };

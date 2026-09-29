@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import {
   ArrowLeft,
@@ -13,6 +14,11 @@ import {
   X,
   UserCheck,
   Zap,
+  Car,
+  Store,
+  Sparkles,
+  ArrowRight,
+  CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -120,7 +126,10 @@ export function Login({
   const [verifyingOtp, setVerifyingOtp] = useState(false);
   const [sendingOtp, setSendingOtp] = useState(false);
 
-  const { login, registerDealer, registerInspector, registerFreelancer, sendOtp, sendPasswordOtp, verifyOtp, resetPassword, loading } = useAuth();
+  // Dual Role Workspace Selection State
+  const [dualRoleAuthData, setDualRoleAuthData] = useState<any | null>(null);
+
+  const { login, completeLoginWithRole, registerDealer, registerInspector, registerFreelancer, sendOtp, sendPasswordOtp, verifyOtp, resetPassword, loading } = useAuth();
 
   // Forgot Password State
   const [showForgotModal, setShowForgotModal] = useState(false);
@@ -384,7 +393,10 @@ export function Login({
       }
 
       try {
-        await login(input, values.password);
+        const res: any = await login(input, values.password);
+        if (res && res.hasDualRole && res.authData) {
+          setDualRoleAuthData(res.authData);
+        }
       } catch (err) {
         console.error("Login attempt failed:", err);
       }
@@ -1535,6 +1547,119 @@ export function Login({
           </div>
         </div>
       )}
+
+      {/* Dual Role Selection Modal Popup */}
+      {dualRoleAuthData &&
+        createPortal(
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in">
+            <div className="relative w-full max-w-xl rounded-3xl border border-white/15 bg-[#12141C] p-6 sm:p-8 shadow-2xl text-left animate-in zoom-in-95">
+              
+              {/* Close Button */}
+              <button
+                type="button"
+                onClick={() => setDualRoleAuthData(null)}
+                className="absolute top-5 right-5 text-zinc-400 hover:text-white p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-all cursor-pointer"
+              >
+                <X className="size-5" />
+              </button>
+
+              {/* Header */}
+              <div className="flex items-center gap-3.5 mb-6">
+                <div className="flex size-12 items-center justify-center rounded-2xl bg-[#FFC700]/15 border border-[#FFC700]/30 text-[#FFC700] shrink-0 shadow-[0_0_20px_rgba(255,199,0,0.2)]">
+                  <Sparkles className="size-6" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-white tracking-tight">
+                    Select Your Workspace
+                  </h3>
+                  <p className="text-xs font-semibold text-zinc-400 mt-0.5">
+                    Welcome back, <span className="text-[#FFC700] font-bold">{dualRoleAuthData.fullName || "User"}</span>! Choose which portal you want to enter:
+                  </p>
+                </div>
+              </div>
+
+              {/* 2 Workspace Selection Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 my-6">
+                
+                {/* Dealer Portal Card */}
+                <button
+                  type="button"
+                  onClick={() => completeLoginWithRole(dualRoleAuthData, "dealer")}
+                  className="group relative flex flex-col justify-between p-5 rounded-2xl border border-amber-500/30 bg-gradient-to-b from-amber-500/10 to-amber-500/5 hover:from-amber-500/20 hover:to-amber-500/10 hover:border-amber-400 text-left transition-all duration-300 cursor-pointer shadow-lg hover:shadow-[0_8px_30px_rgba(255,199,0,0.2)] hover:-translate-y-1"
+                >
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex size-11 items-center justify-center rounded-xl bg-[#FFC700] text-[#0D0E12] font-black shadow-md">
+                        <Store className="size-6" />
+                      </div>
+                      <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-[#FFC700]/20 text-[#FFC700] border border-[#FFC700]/30">
+                        Marketplace
+                      </span>
+                    </div>
+                    <div>
+                      <h4 className="text-base font-black text-white group-hover:text-[#FFC700] transition-colors flex items-center gap-1.5">
+                        Dealer Portal
+                      </h4>
+                      <p className="text-xs text-zinc-300 font-medium mt-1 leading-relaxed">
+                        Browse verified car inventory, place live bids, negotiate prices & manage won vehicles.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 pt-3 border-t border-white/10 flex items-center justify-between text-xs font-black text-[#FFC700]">
+                    <span>Enter as Dealer</span>
+                    <ArrowRight className="size-4 transform group-hover:translate-x-1 transition-transform" />
+                  </div>
+                </button>
+
+                {/* Freelancer Portal Card */}
+                <button
+                  type="button"
+                  onClick={() => completeLoginWithRole(dualRoleAuthData, "freelancer")}
+                  className="group relative flex flex-col justify-between p-5 rounded-2xl border border-sky-500/30 bg-gradient-to-b from-sky-500/10 to-sky-500/5 hover:from-sky-500/20 hover:to-sky-500/10 hover:border-sky-400 text-left transition-all duration-300 cursor-pointer shadow-lg hover:shadow-[0_8px_30px_rgba(56,189,248,0.2)] hover:-translate-y-1"
+                >
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex size-11 items-center justify-center rounded-xl bg-sky-500 text-white font-black shadow-md">
+                        <Car className="size-6" />
+                      </div>
+                      <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-sky-500/20 text-sky-400 border border-sky-500/30">
+                        Inspections
+                      </span>
+                    </div>
+                    <div>
+                      <h4 className="text-base font-black text-white group-hover:text-sky-400 transition-colors flex items-center gap-1.5">
+                        Freelancer Portal
+                      </h4>
+                      <p className="text-xs text-zinc-300 font-medium mt-1 leading-relaxed">
+                        Upload vehicle specs, photos & videos, submit inspection reports, and track listing status.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 pt-3 border-t border-white/10 flex items-center justify-between text-xs font-black text-sky-400">
+                    <span>Enter as Freelancer</span>
+                    <ArrowRight className="size-4 transform group-hover:translate-x-1 transition-transform" />
+                  </div>
+                </button>
+
+              </div>
+
+              {/* Footer Info */}
+              <div className="text-center pt-2">
+                <button
+                  type="button"
+                  onClick={() => setDualRoleAuthData(null)}
+                  className="text-xs font-semibold text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer"
+                >
+                  Cancel and return to sign in
+                </button>
+              </div>
+
+            </div>
+          </div>,
+          document.body,
+        )}
 
     </div>
   );

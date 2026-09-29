@@ -80,7 +80,15 @@ export const getDealerProfile = async (): Promise<{ success: boolean; data: Deal
   return res.data;
 };
 
-export const updateDealerProfile = async (data: { fullName: string; mobileNumber: string }): Promise<{ success: boolean; data: DealerProfile }> => {
+export const updateDealerProfile = async (data: {
+  dealershipName?: string;
+  fullName?: string;
+  email?: string;
+  mobileNumber?: string;
+  address?: string;
+  area?: string;
+  city?: string;
+}): Promise<{ success: boolean; data: DealerProfile }> => {
   const res = await dealerApiClient.put("/api/dealer/profile", data);
   return res.data;
 };

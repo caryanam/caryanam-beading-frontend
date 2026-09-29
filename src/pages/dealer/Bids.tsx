@@ -26,7 +26,7 @@ interface DealerBidRecord {
 export function DealerBids() {
   const [bids, setBids] = useState<DealerBidRecord[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"all" | "live" | "won" | "lost">("all");
+  const [activeTab, setActiveTab] = useState<"all" | "live" | "negotiable" | "won" | "lost">("all");
 
   useEffect(() => {
     const fetchBids = async () => {
@@ -51,7 +51,11 @@ export function DealerBids() {
     [bids]
   );
   const wonBidsCount = useMemo(
-    () => bids.filter((b) => b.auction !== "live" && b.myBid >= b.highestBid).length,
+    () => bids.filter((b) => b.auction !== "live" && b.myBid >= b.highestBid && (b.status || "").toLowerCase().includes("sold")).length,
+    [bids]
+  );
+  const negotiableBidsCount = useMemo(
+    () => bids.filter((b) => b.auction !== "live" && b.myBid >= b.highestBid && !(b.status || "").toLowerCase().includes("sold")).length,
     [bids]
   );
   const lostBidsCount = useMemo(
@@ -65,8 +69,10 @@ export function DealerBids() {
 
   const filteredBids = useMemo(() => {
     if (activeTab === "live") return bids.filter((b) => b.auction === "live");
+    if (activeTab === "negotiable")
+      return bids.filter((b) => b.auction !== "live" && b.myBid >= b.highestBid && !(b.status || "").toLowerCase().includes("sold"));
     if (activeTab === "won")
-      return bids.filter((b) => b.auction !== "live" && b.myBid >= b.highestBid);
+      return bids.filter((b) => b.auction !== "live" && b.myBid >= b.highestBid && (b.status || "").toLowerCase().includes("sold"));
     if (activeTab === "lost")
       return bids.filter((b) => b.auction !== "live" && b.myBid < b.highestBid);
     return bids;
@@ -122,8 +128,12 @@ export function DealerBids() {
         if (v.auction === "live") {
           return <StatusChip status="live" />;
         }
-        const isWin = v.myBid >= v.highestBid;
-        return <StatusChip status={isWin ? "won" : "lost"} />;
+        const isTopBid = v.myBid >= v.highestBid;
+        if (isTopBid) {
+          const isSold = (v.status || "").toLowerCase().includes("sold");
+          return <StatusChip status={isSold ? "won" : "negotiable"} />;
+        }
+        return <StatusChip status="lost" />;
       },
     },
     {
@@ -154,22 +164,35 @@ export function DealerBids() {
             label="Total Bids Placed"
             value={totalBidsCount}
             icon={Gavel}
-            accent
+            onClick={() => setActiveTab("all")}
+            active={activeTab === "all"}
+            delta="Click to view all bids"
           />
           <StatCard
             label="Active Auctions"
             value={liveBidsCount}
             icon={Zap}
+            onClick={() => setActiveTab("live")}
+            active={activeTab === "live"}
+            delta="Click to view live auctions"
           />
           <StatCard
-            label="Bids Won"
-            value={wonBidsCount}
+            label={negotiableBidsCount > 0 && wonBidsCount === 0 ? "Under Negotiation" : "Bids Won"}
+            value={wonBidsCount > 0 ? wonBidsCount : negotiableBidsCount}
             icon={Trophy}
+            onClick={() => setActiveTab(wonBidsCount > 0 ? "won" : "negotiable")}
+            active={activeTab === "won" || activeTab === "negotiable"}
+            delta={
+              wonBidsCount > 0
+                ? `${wonBidsCount} won ${negotiableBidsCount > 0 ? `(${negotiableBidsCount} negotiable)` : ''}`
+                : `${negotiableBidsCount} awaiting sold out status`
+            }
           />
           <StatCard
             label="Total Bids Value"
             value={inr(totalBidValue)}
             icon={TrendingUp}
+            delta={`${totalBidsCount} bids submitted`}
           />
         </div>
 
@@ -204,6 +227,16 @@ export function DealerBids() {
               }`}
             >
               Live ({liveBidsCount})
+            </button>
+            <button
+              onClick={() => setActiveTab("negotiable")}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                activeTab === "negotiable"
+                  ? "bg-[#0D0E12] text-white dark:bg-[#FFC700] dark:text-black shadow-sm"
+                  : "bg-card text-muted-foreground hover:bg-muted hover:text-foreground border border-border"
+              }`}
+            >
+              Negotiable ({negotiableBidsCount})
             </button>
             <button
               onClick={() => setActiveTab("won")}

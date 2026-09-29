@@ -4,12 +4,14 @@ import { AppShell } from "@/components/app-shell";
 import { dealerNav } from "@/components/nav-config";
 import { VehicleCard } from "@/components/premium";
 import { getFreelancerInspections } from "@/lib/api/freelancer-api";
+import { getDealerBidsHistory } from "@/lib/api/dealer-api";
 import { toast } from "sonner";
 
 const uniq = (list: string[]) => ["All", ...Array.from(new Set(list))];
 
 export function DealerFreelancerVehicles() {
   const [inspections, setInspections] = useState<any[]>([]);
+  const [dealerBids, setDealerBids] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [brand, setBrand] = useState("All");
@@ -20,7 +22,10 @@ export function DealerFreelancerVehicles() {
     const fetchFreelancerVehicles = async () => {
       setLoading(true);
       try {
-        const res = await getFreelancerInspections();
+        const [res, bidsRes] = await Promise.all([
+          getFreelancerInspections(),
+          getDealerBidsHistory().catch(() => ({ success: false, data: [] })),
+        ]);
         if (res.success && res.data) {
           // Filter for only LIVE, APPROVED, SUBMITTED, READY_FOR_AUCTION (exclude DRAFT/IN_PROGRESS)
           const valid = res.data.filter((item: any) => {
@@ -30,6 +35,9 @@ export function DealerFreelancerVehicles() {
           setInspections(valid);
         } else {
           setInspections([]);
+        }
+        if (bidsRes.success && bidsRes.data) {
+          setDealerBids(bidsRes.data);
         }
       } catch (err: any) {
         console.error("Failed to load freelancer marketplace inspections", err);
@@ -51,6 +59,20 @@ export function DealerFreelancerVehicles() {
         v.currentHighestBid && v.currentHighestBid > 0
           ? v.currentHighestBid
           : 0;
+
+      const bidRecord = (dealerBids || []).find(
+        (b: any) => String(b.vehicleId || b.id) === String(insId)
+      );
+      let userBidStatus: "top" | "outbid" | "none" = "none";
+      if (bidRecord) {
+        const myBid = Number(bidRecord.myBid || 0);
+        const topBidVal = Number(highestBid || bidRecord.highestBid || 0);
+        if (myBid > 0 && myBid >= topBidVal) {
+          userBidStatus = "top";
+        } else if (myBid > 0 && myBid < topBidVal) {
+          userBidStatus = "outbid";
+        }
+      }
 
       let fuelType:
         | "Petrol"
@@ -108,9 +130,10 @@ export function DealerFreelancerVehicles() {
         rtoInformation: v.rtoInformation || v.rto || undefined,
         engineRating: v.engineRating || v.overallRating || v.rating || undefined,
         isFreelancer: true,
+        userBidStatus,
       };
     });
-  }, [inspections]);
+  }, [inspections, dealerBids]);
 
   const filtered = useMemo(() => {
     return mappedVehicles.filter(

@@ -151,20 +151,30 @@ export function ProfilePage({ role, nav }: { role: Role; nav: NavItem[] }) {
   const handleSaveChanges = async () => {
     try {
       if (role === "freelancer") {
-        try {
-          const updateRes = await updateFreelancerProfile({ fullName, mobileNumber });
-          if (updateRes.success) {
-            toast.success("Profile details updated successfully.");
-          }
-        } catch {
-          toast.success("Profile details saved.");
+        if (!mobileNumber || !/^[6-9][0-9]{9}$/.test(mobileNumber)) {
+          toast.error("Mobile number must be a 10-digit number starting with 6, 7, 8, or 9.");
+          return;
         }
-        const storedSession = readSession(role);
-        if (storedSession) {
-          storedSession.name = fullName;
-          storedSession.mobileNumber = mobileNumber;
-          localStorage.setItem(getStorageKey(role), JSON.stringify(storedSession));
-          window.dispatchEvent(new Event("storage"));
+        if (email && email.trim()) {
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailRegex.test(email.trim())) {
+            toast.error("Please enter a valid email address.");
+            return;
+          }
+        }
+        const updateRes = await updateFreelancerProfile({ fullName, email: email.trim(), mobileNumber: mobileNumber.trim() });
+        if (updateRes.success) {
+          toast.success("Profile details updated successfully.");
+          const storedSession = readSession(role);
+          if (storedSession) {
+            storedSession.name = fullName;
+            storedSession.email = email.trim();
+            storedSession.mobileNumber = mobileNumber.trim();
+            localStorage.setItem(getStorageKey(role), JSON.stringify(storedSession));
+            window.dispatchEvent(new Event("storage"));
+          }
+        } else {
+          toast.error("Failed to update profile details.");
         }
       } else if (role === "inspector") {
         try {
@@ -183,19 +193,34 @@ export function ProfilePage({ role, nav }: { role: Role; nav: NavItem[] }) {
           window.dispatchEvent(new Event("storage"));
         }
       } else if (role === "dealer") {
+        if (!mobileNumber || !/^[6-9][0-9]{9}$/.test(mobileNumber)) {
+          toast.error("Mobile number must be a 10-digit number starting with 6, 7, 8, or 9.");
+          return;
+        }
+        if (email && email.trim()) {
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailRegex.test(email.trim())) {
+            toast.error("Please enter a valid email address.");
+            return;
+          }
+        }
         const updateRes = await updateDealerProfile({
           dealershipName,
           fullName,
+          email,
           mobileNumber,
           address,
           area,
           city,
-        } as any);
+        });
         if (updateRes.success) {
           toast.success("Dealership profile updated successfully.");
           const storedSession = readSession(role);
           if (storedSession) {
             storedSession.name = fullName;
+            storedSession.email = email;
+            storedSession.mobileNumber = mobileNumber;
+            storedSession.dealershipName = dealershipName;
             localStorage.setItem(getStorageKey(role), JSON.stringify(storedSession));
             window.dispatchEvent(new Event("storage"));
           }
@@ -467,18 +492,26 @@ export function ProfilePage({ role, nav }: { role: Role; nav: NavItem[] }) {
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <label className="text-xs font-bold text-muted-foreground">
-                      Email Address <span className="text-[#FFC700]">*</span>
+                      Email Address {(role === "dealer" || role === "freelancer") ? <span className="text-[#FFC700]">*</span> : ""}
                     </label>
-                    <span className="inline-flex items-center gap-1 text-[10px] font-black text-amber-600 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 px-2 py-0.5 rounded-md">
-                      <Lock className="size-2.5" /> Read-only
-                    </span>
+                    {role !== "dealer" && role !== "freelancer" && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-black text-amber-600 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 px-2 py-0.5 rounded-md">
+                        <Lock className="size-2.5" /> Read-only
+                      </span>
+                    )}
                   </div>
                   <div className="relative">
                     <input
                       type="email"
+                      placeholder="Enter E-mail Address"
                       value={email}
-                      disabled
-                      className="w-full rounded-2xl border border-border bg-secondary/60 pl-11 pr-4 py-3.5 text-sm font-extrabold text-muted-foreground outline-none cursor-not-allowed opacity-80"
+                      onChange={(e) => setEmail(e.target.value)}
+                      disabled={role !== "dealer" && role !== "freelancer"}
+                      className={`w-full rounded-2xl border border-border pl-11 pr-4 py-3.5 text-sm font-extrabold outline-none shadow-soft transition-all ${
+                        role === "dealer" || role === "freelancer"
+                          ? "bg-card text-foreground focus:border-[#FFC700] focus:ring-2 focus:ring-[#FFC700]/30"
+                          : "bg-secondary/60 text-muted-foreground cursor-not-allowed opacity-80"
+                      }`}
                     />
                     <Mail className="size-4 text-muted-foreground absolute left-4 top-4" />
                   </div>
@@ -489,16 +522,27 @@ export function ProfilePage({ role, nav }: { role: Role; nav: NavItem[] }) {
                     <label className="text-xs font-bold text-muted-foreground">
                       Mobile Number <span className="text-[#FFC700]">*</span>
                     </label>
-                    <span className="inline-flex items-center gap-1 text-[10px] font-black text-amber-600 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 px-2 py-0.5 rounded-md">
-                      <Lock className="size-2.5" /> Locked
-                    </span>
+                    {role !== "dealer" && role !== "freelancer" && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-black text-amber-600 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 px-2 py-0.5 rounded-md">
+                        <Lock className="size-2.5" /> Locked
+                      </span>
+                    )}
                   </div>
                   <div className="relative">
                     <input
                       type="text"
+                      placeholder="Enter 10-digit Mobile Number"
                       value={mobileNumber}
-                      disabled
-                      className="w-full rounded-2xl border border-border bg-secondary/60 pl-11 pr-4 py-3.5 text-sm font-extrabold text-muted-foreground outline-none cursor-not-allowed opacity-80"
+                      onChange={(e) => {
+                        const num = e.target.value.replace(/\D/g, "");
+                        setMobileNumber(num.slice(0, 10));
+                      }}
+                      disabled={role !== "dealer" && role !== "freelancer"}
+                      className={`w-full rounded-2xl border border-border pl-11 pr-4 py-3.5 text-sm font-extrabold outline-none shadow-soft transition-all ${
+                        role === "dealer" || role === "freelancer"
+                          ? "bg-card text-foreground focus:border-[#FFC700] focus:ring-2 focus:ring-[#FFC700]/30"
+                          : "bg-secondary/60 text-muted-foreground cursor-not-allowed opacity-80"
+                      }`}
                     />
                     <Phone className="size-4 text-muted-foreground absolute left-4 top-4" />
                   </div>

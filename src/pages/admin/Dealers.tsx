@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
-import { Upload, X, Shield, Building2, User, Phone, Mail, MapPin, Gavel, Trash2, Crown, Trophy, Store } from "lucide-react";
+import { Upload, X, Shield, Building2, User, Phone, Mail, MapPin, Gavel, Trash2, Crown, Trophy, Store, Car, CheckCircle2 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { adminNav } from "@/components/nav-config";
 import { DataTable, type Column } from "@/components/data-table";
@@ -10,6 +10,7 @@ import {
   getRegisteredDealers,
   importDealersExcel,
   deleteAdminDealer,
+  makeDealerFreelancer,
   type AdminDealer,
 } from "@/lib/api/admin-api";
 import { inr } from "@/lib/mock-data";
@@ -19,6 +20,7 @@ export function AdminDealers() {
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [makingFreelancerId, setMakingFreelancerId] = useState<number | null>(null);
 
   // Selected dealer modal state
   const [selectedDealer, setSelectedDealer] = useState<AdminDealer | null>(null);
@@ -93,6 +95,26 @@ export function AdminDealers() {
     }
   };
 
+  const handleMakeFreelancer = async (dealer: AdminDealer) => {
+    setMakingFreelancerId(dealer.id);
+    try {
+      const res = await makeDealerFreelancer(dealer.id);
+      if (res.success) {
+        toast.success(res.message || `${dealer.dealershipName} is now granted Freelancer access!`);
+        if (selectedDealer && selectedDealer.id === dealer.id) {
+          setSelectedDealer((prev) => (prev ? { ...prev, isFreelancer: true } : null));
+        }
+        fetchDealers();
+      } else {
+        toast.error(res.message || "Failed to make freelancer.");
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to grant freelancer access.");
+    } finally {
+      setMakingFreelancerId(null);
+    }
+  };
+
   const columns: Column<AdminDealer>[] = [
     {
       key: "dealershipName",
@@ -102,9 +124,16 @@ export function AdminDealers() {
           <div className="flex size-9 items-center justify-center rounded-xl bg-[#FFC700]/15 border border-[#FFC700]/30 text-[#FFC700] shrink-0">
             <Store className="size-4.5" />
           </div>
-          <span className="font-bold text-sm text-foreground">
-            {r.dealershipName}
-          </span>
+          <div>
+            <span className="font-bold text-sm text-foreground block">
+              {r.dealershipName}
+            </span>
+            {r.isFreelancer && (
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[10px] font-extrabold bg-sky-500/15 text-sky-500 border border-sky-500/30 mt-0.5">
+                <Car className="size-2.5" /> Also Freelancer
+              </span>
+            )}
+          </div>
         </div>
       ),
     },
@@ -123,7 +152,7 @@ export function AdminDealers() {
       header: "Email",
       cell: (r) => (
         <span className="font-semibold text-muted-foreground text-xs">
-          {r.email}
+          {r.email || "N/A"}
         </span>
       ),
     },
@@ -142,24 +171,6 @@ export function AdminDealers() {
       cell: (r) => (
         <span className="font-bold text-xs text-foreground">
           {r.city || "N/A"}
-        </span>
-      ),
-    },
-    {
-      key: "area",
-      header: "Area",
-      cell: (r) => (
-        <span className="font-semibold text-xs text-muted-foreground">
-          {r.area || "N/A"}
-        </span>
-      ),
-    },
-    {
-      key: "address",
-      header: "Address",
-      cell: (r) => (
-        <span className="truncate max-w-[200px] block font-medium text-xs text-muted-foreground" title={r.address}>
-          {r.address || "N/A"}
         </span>
       ),
     },
@@ -191,12 +202,33 @@ export function AdminDealers() {
       key: "actions",
       header: "Actions",
       cell: (r) => (
-        <button
-          onClick={() => openManageModal(r)}
-          className="rounded-xl border border-border px-3.5 py-2 text-xs font-extrabold text-foreground hover:bg-secondary hover:border-[#FFC700] transition-all cursor-pointer shadow-sm"
-        >
-          Manage
-        </button>
+        <div className="flex items-center gap-2">
+          {!r.isFreelancer ? (
+            <button
+              onClick={() => handleMakeFreelancer(r)}
+              disabled={makingFreelancerId === r.id}
+              className="rounded-xl border border-sky-500/40 bg-sky-500/10 hover:bg-sky-500/20 text-sky-600 dark:text-sky-400 px-3 py-1.5 text-xs font-black transition-all cursor-pointer inline-flex items-center gap-1.5 shadow-sm"
+              title="Grant freelancer role to this dealer"
+            >
+              {makingFreelancerId === r.id ? (
+                <span className="size-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+              ) : (
+                <Car className="size-3.5" />
+              )}
+              Make Freelancer
+            </button>
+          ) : (
+            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-sky-600 dark:text-sky-400 px-2 py-1 rounded-lg bg-sky-500/10 border border-sky-500/20">
+              <CheckCircle2 className="size-3" /> Freelancer
+            </span>
+          )}
+          <button
+            onClick={() => openManageModal(r)}
+            className="rounded-xl border border-border px-3.5 py-1.5 text-xs font-extrabold text-foreground hover:bg-secondary hover:border-[#FFC700] transition-all cursor-pointer shadow-sm"
+          >
+            Manage
+          </button>
+        </div>
       ),
     },
   ];
@@ -299,6 +331,45 @@ export function AdminDealers() {
 
                 {/* Dealer Details Card */}
                 <div className="space-y-6">
+                  {/* Freelancer Integration Card */}
+                  <div className="rounded-2xl border border-sky-500/30 bg-sky-500/5 p-4 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="flex size-9 items-center justify-center rounded-xl bg-sky-500/15 text-sky-500 border border-sky-500/30 shrink-0">
+                          <Car className="size-5" />
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-black text-foreground uppercase tracking-wider">
+                            Freelancer Role Access
+                          </h4>
+                          <p className="text-[11px] font-medium text-muted-foreground mt-0.5">
+                            {selectedDealer.isFreelancer
+                              ? "Active: This dealer can log in as Freelancer & upload vehicle inspections."
+                              : "Grant Freelancer access to allow vehicle inspections and car uploads."}
+                          </p>
+                        </div>
+                      </div>
+                      {selectedDealer.isFreelancer ? (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-sky-500/30 bg-sky-500/15 text-xs font-black text-sky-600 dark:text-sky-400">
+                          <CheckCircle2 className="size-4" /> Freelancer Active
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => handleMakeFreelancer(selectedDealer)}
+                          disabled={makingFreelancerId === selectedDealer.id}
+                          className="inline-flex items-center gap-1.5 rounded-xl bg-sky-500 hover:bg-sky-600 text-white px-3.5 py-1.5 text-xs font-black transition-all cursor-pointer shadow-md"
+                        >
+                          {makingFreelancerId === selectedDealer.id ? (
+                            <span className="size-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                          ) : (
+                            <Car className="size-3.5" />
+                          )}
+                          Make Freelancer
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
                   <div className="rounded-2xl border border-border bg-secondary/30 p-4 space-y-3 text-xs">
                     <h4 className="text-xs font-black text-foreground uppercase tracking-wider border-b border-border/60 pb-2 flex items-center gap-2">
                       <User className="size-4 text-[#FFC700]" /> Dealer Information Overview
@@ -312,7 +383,7 @@ export function AdminDealers() {
 
                       <div>
                         <span className="text-[10px] font-bold text-muted-foreground block">Email Address</span>
-                        <span className="font-bold text-foreground">{selectedDealer.email}</span>
+                        <span className="font-bold text-foreground">{selectedDealer.email || "N/A"}</span>
                       </div>
 
                       <div>

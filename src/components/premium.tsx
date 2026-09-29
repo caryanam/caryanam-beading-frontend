@@ -21,7 +21,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { type Vehicle, inr, timeLeft } from "@/lib/mock-data";
 import { readSession } from "@/lib/session";
-import { addToWishlist, removeFromWishlist, getDealerWishlist } from "@/lib/api/dealer-api";
+import { addToWishlist, removeFromWishlist, getDealerWishlist, getDealerBidsHistory } from "@/lib/api/dealer-api";
 
 export function StatCard({
   label,
@@ -29,20 +29,44 @@ export function StatCard({
   delta,
   icon: Icon,
   accent,
+  active,
+  onClick,
+  className,
 }: {
   label: string;
   value: string | number;
   delta?: string;
   icon: any;
   accent?: boolean;
+  active?: boolean;
+  onClick?: () => void;
+  className?: string;
 }) {
+  const isClickable = Boolean(onClick);
   return (
     <div
+      onClick={onClick}
+      role={isClickable ? "button" : undefined}
+      tabIndex={isClickable ? 0 : undefined}
+      onKeyDown={
+        isClickable
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onClick?.();
+              }
+            }
+          : undefined
+      }
       className={cn(
-        "group relative overflow-hidden rounded-2xl sm:rounded-3xl p-4 sm:p-6 transition-all duration-300",
-        accent
+        "group relative overflow-hidden rounded-2xl sm:rounded-3xl p-4 sm:p-6 transition-all duration-300 select-none",
+        isClickable && "cursor-pointer active:scale-[0.98]",
+        active
+          ? "border-2 border-[#FFC700] ring-4 ring-[#FFC700]/20 bg-card shadow-md scale-[1.01]"
+          : accent
           ? "surface-dark border border-[#FFC700]/40 text-white shadow-lift"
-          : "border border-border bg-card shadow-soft hover:border-[#FFC700]/35 hover:shadow-md",
+          : "border border-border bg-card shadow-soft hover:border-[#FFC700]/50 hover:shadow-md",
+        className
       )}
     >
       <div className="flex items-start sm:items-center justify-between gap-2">
@@ -136,6 +160,9 @@ const chipStyles: Record<string, string> = {
   verified: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30 font-bold shadow-xs dark:bg-emerald-950/60 dark:text-emerald-400 dark:border-emerald-700/50",
   live: "bg-emerald-600 text-white border-emerald-600 font-extrabold shadow-sm dark:bg-emerald-500 dark:text-slate-950 dark:border-emerald-400",
   won: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30 font-bold shadow-xs dark:bg-emerald-950/60 dark:text-emerald-400 dark:border-emerald-700/50",
+  negotiable: "bg-amber-500/15 text-amber-700 border-amber-500/30 font-bold shadow-xs dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-700/50",
+  negotiation: "bg-amber-500/15 text-amber-700 border-amber-500/30 font-bold shadow-xs dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-700/50",
+  under_negotiation: "bg-amber-500/15 text-amber-700 border-amber-500/30 font-bold shadow-xs dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-700/50",
   pending: "bg-amber-500/15 text-amber-800 border-amber-500/30 font-bold shadow-xs dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-700/50",
   submitted: "bg-amber-500/15 text-amber-800 border-amber-500/30 font-bold shadow-xs dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-700/50",
   scheduled: "bg-indigo-500/15 text-indigo-700 border-indigo-500/30 font-bold shadow-xs dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-700/50",
@@ -169,6 +196,12 @@ export function StatusChip({ status }: { status: string }) {
     label = "Sold Out";
   } else if (key === "live") {
     label = "LIVE";
+  } else if (key === "negotiable" || key === "negotiation" || key === "under_negotiation") {
+    label = "Negotiable";
+  } else if (key === "won") {
+    label = "Won";
+  } else if (key === "lost") {
+    label = "Lost";
   }
 
   return (
@@ -210,36 +243,70 @@ export function VehicleCard({
   onToggleFavourite?: () => void;
 }) {
   const [isFav, setIsFav] = useState(isFavourite ?? false);
+  const [userBidStatus, setUserBidStatus] = useState<"top" | "outbid" | "none">(
+    vehicle.userBidStatus ?? "none"
+  );
 
   useEffect(() => {
     setIsFav(isFavourite ?? false);
   }, [isFavourite]);
 
   useEffect(() => {
+    if (vehicle.userBidStatus !== undefined) {
+      setUserBidStatus(vehicle.userBidStatus);
+    }
+  }, [vehicle.userBidStatus]);
+
+  useEffect(() => {
     let isMounted = true;
-    const checkWishlist = async () => {
+    const checkBidsAndWishlist = async () => {
       try {
-        const res = await getDealerWishlist();
-        if (isMounted && res.success && res.data) {
-          const inWishlist = res.data.some(
+        const [wRes, bRes] = await Promise.all([
+          getDealerWishlist().catch(() => ({ success: false, data: [] })),
+          getDealerBidsHistory().catch(() => ({ success: false, data: [] })),
+        ]);
+
+        if (isMounted && wRes.success && wRes.data) {
+          const inWishlist = wRes.data.some(
             (item: any) => String(item.inspectionId || item.id) === String(vehicle.id)
           );
           setIsFav(inWishlist);
         }
+
+        if (isMounted && bRes.success && bRes.data) {
+          const bidRecord = bRes.data.find(
+            (b: any) => String(b.vehicleId || b.id) === String(vehicle.id)
+          );
+          if (bidRecord) {
+            const myBid = Number(bidRecord.myBid || 0);
+            const highest = Number(vehicle.highestBid || bidRecord.highestBid || 0);
+            if (myBid > 0 && myBid >= highest) {
+              setUserBidStatus("top");
+            } else if (myBid > 0 && myBid < highest) {
+              setUserBidStatus("outbid");
+            } else {
+              setUserBidStatus("none");
+            }
+          } else if (vehicle.userBidStatus === undefined) {
+            setUserBidStatus("none");
+          }
+        }
       } catch (err) {
-        console.error("Error checking wishlist from API", err);
+        console.error("Error checking wishlist/bids from API", err);
       }
     };
 
-    checkWishlist();
+    checkBidsAndWishlist();
 
-    const handleUpdate = () => checkWishlist();
+    const handleUpdate = () => checkBidsAndWishlist();
     window.addEventListener("wishlist-updated", handleUpdate);
+    window.addEventListener("bids-updated", handleUpdate);
     return () => {
       isMounted = false;
       window.removeEventListener("wishlist-updated", handleUpdate);
+      window.removeEventListener("bids-updated", handleUpdate);
     };
-  }, [vehicle.id, isFavourite]);
+  }, [vehicle.id, vehicle.highestBid, vehicle.userBidStatus]);
 
   const toggleFav = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -441,27 +508,129 @@ export function VehicleCard({
             </span>
           </div>
 
-          {/* 3-Circle Pill Digital Countdown Timer (Matching Image Spec) */}
+          {/* 3-Circle Pill Digital Countdown Timer (Normal: Grey, Top Bid: Green, Outbid: Red) */}
           {isLive ? (
-            <div className="flex items-center gap-1 bg-secondary/90 border border-border/80 p-1 px-2.5 rounded-full shrink-0 shadow-inner">
-              <div className="flex flex-col items-center justify-center bg-card border border-border/50 px-2 py-1 rounded-full min-w-[36px] shadow-xs">
-                <span className="text-[12px] font-black text-foreground leading-none">{timerParts.hours}</span>
-                <span className="text-[7.5px] font-black text-muted-foreground uppercase leading-none mt-0.5">hr</span>
+            <div
+              className={cn(
+                "inline-flex items-center gap-1.5 p-1 px-2 rounded-full border shadow-xs transition-all duration-200",
+                userBidStatus === "top"
+                  ? "bg-emerald-50 border-emerald-300 text-emerald-700 dark:bg-emerald-950/60 dark:border-emerald-700/60 dark:text-emerald-300"
+                  : userBidStatus === "outbid"
+                  ? "bg-rose-50 border-rose-300 text-rose-700 dark:bg-rose-950/60 dark:border-rose-700/60 dark:text-rose-300"
+                  : "bg-slate-100/90 border-slate-200/90 text-slate-700 dark:bg-slate-800/80 dark:border-slate-700/80 dark:text-slate-200"
+              )}
+            >
+              {/* Hours circle */}
+              <div
+                className={cn(
+                  "size-8 rounded-full flex flex-col items-center justify-center border shadow-2xs shrink-0 transition-colors",
+                  userBidStatus === "top"
+                    ? "bg-white border-emerald-200 text-emerald-700 dark:bg-emerald-900/80 dark:border-emerald-600/50 dark:text-emerald-200"
+                    : userBidStatus === "outbid"
+                    ? "bg-white border-rose-200 text-rose-700 dark:bg-rose-900/80 dark:border-rose-600/50 dark:text-rose-200"
+                    : "bg-white border-slate-200/90 text-slate-800 dark:bg-slate-900/90 dark:border-slate-700 dark:text-slate-100"
+                )}
+              >
+                <span className="text-[11px] font-black leading-tight tracking-tight">
+                  {timerParts.hours}
+                </span>
+                <span className={cn(
+                  "text-[7px] font-bold uppercase leading-none tracking-wider",
+                  userBidStatus === "top" ? "text-emerald-600 dark:text-emerald-400" :
+                  userBidStatus === "outbid" ? "text-rose-600 dark:text-rose-400" :
+                  "text-slate-500 dark:text-slate-400"
+                )}>
+                  hr
+                </span>
               </div>
-              <span className="text-xs font-black text-muted-foreground/80 px-0.5">:</span>
-              <div className="flex flex-col items-center justify-center bg-card border border-border/50 px-2 py-1 rounded-full min-w-[36px] shadow-xs">
-                <span className="text-[12px] font-black text-foreground leading-none">{timerParts.minutes}</span>
-                <span className="text-[7.5px] font-black text-muted-foreground uppercase leading-none mt-0.5">min</span>
+
+              {/* Colon separator */}
+              <span
+                className={cn(
+                  "text-xs font-black select-none leading-none",
+                  userBidStatus === "top"
+                    ? "text-emerald-600 dark:text-emerald-400"
+                    : userBidStatus === "outbid"
+                    ? "text-rose-600 dark:text-rose-400"
+                    : "text-slate-400 dark:text-slate-500"
+                )}
+              >
+                :
+              </span>
+
+              {/* Minutes circle */}
+              <div
+                className={cn(
+                  "size-8 rounded-full flex flex-col items-center justify-center border shadow-2xs shrink-0 transition-colors",
+                  userBidStatus === "top"
+                    ? "bg-white border-emerald-200 text-emerald-700 dark:bg-emerald-900/80 dark:border-emerald-600/50 dark:text-emerald-200"
+                    : userBidStatus === "outbid"
+                    ? "bg-white border-rose-200 text-rose-700 dark:bg-rose-900/80 dark:border-rose-600/50 dark:text-rose-200"
+                    : "bg-white border-slate-200/90 text-slate-800 dark:bg-slate-900/90 dark:border-slate-700 dark:text-slate-100"
+                )}
+              >
+                <span className="text-[11px] font-black leading-tight tracking-tight">
+                  {timerParts.minutes}
+                </span>
+                <span className={cn(
+                  "text-[7px] font-bold uppercase leading-none tracking-wider",
+                  userBidStatus === "top" ? "text-emerald-600 dark:text-emerald-400" :
+                  userBidStatus === "outbid" ? "text-rose-600 dark:text-rose-400" :
+                  "text-slate-500 dark:text-slate-400"
+                )}>
+                  min
+                </span>
               </div>
-              <span className="text-xs font-black text-muted-foreground/80 px-0.5">:</span>
-              <div className="flex flex-col items-center justify-center bg-[#FFC700]/20 border border-[#FFC700]/60 px-2 py-1 rounded-full min-w-[36px] shadow-xs animate-pulse">
-                <span className="text-[12px] font-black text-[#FFC700] leading-none">{timerParts.seconds}</span>
-                <span className="text-[7.5px] font-black text-[#FFC700] uppercase leading-none mt-0.5">sec</span>
+
+              {/* Colon separator */}
+              <span
+                className={cn(
+                  "text-xs font-black select-none leading-none",
+                  userBidStatus === "top"
+                    ? "text-emerald-600 dark:text-emerald-400"
+                    : userBidStatus === "outbid"
+                    ? "text-rose-600 dark:text-rose-400"
+                    : "text-slate-400 dark:text-slate-500"
+                )}
+              >
+                :
+              </span>
+
+              {/* Seconds circle */}
+              <div
+                className={cn(
+                  "size-8 rounded-full flex flex-col items-center justify-center border shadow-2xs shrink-0 transition-colors",
+                  userBidStatus === "top"
+                    ? "bg-white border-emerald-200 text-emerald-700 dark:bg-emerald-900/80 dark:border-emerald-600/50 dark:text-emerald-200"
+                    : userBidStatus === "outbid"
+                    ? "bg-white border-rose-200 text-rose-700 dark:bg-rose-900/80 dark:border-rose-600/50 dark:text-rose-200"
+                    : "bg-white border-slate-200/90 text-slate-800 dark:bg-slate-900/90 dark:border-slate-700 dark:text-slate-100"
+                )}
+              >
+                <span className="text-[11px] font-black leading-tight tracking-tight">
+                  {timerParts.seconds}
+                </span>
+                <span className={cn(
+                  "text-[7px] font-bold uppercase leading-none tracking-wider",
+                  userBidStatus === "top" ? "text-emerald-600 dark:text-emerald-400" :
+                  userBidStatus === "outbid" ? "text-rose-600 dark:text-rose-400" :
+                  "text-slate-500 dark:text-slate-400"
+                )}>
+                  sec
+                </span>
               </div>
             </div>
           ) : (
             <div className="shrink-0">
-              <StatusChip status={vehicle.auction} />
+              <StatusChip
+                status={
+                  vehicle.auction === "sold out" || vehicle.auction === "sold"
+                    ? (userBidStatus === "top" ? "won" : "sold out")
+                    : userBidStatus === "top"
+                    ? "negotiable"
+                    : vehicle.auction
+                }
+              />
             </div>
           )}
         </div>

@@ -22,6 +22,28 @@ export function useAuth() {
     setUser(readSession());
   }, []);
 
+  const completeLoginWithRole = (authData: any, chosenRole: import("@/lib/mock-data").Role) => {
+    const token = authData.token;
+    const decoded = decodeToken(token);
+
+    const newSession: Session = {
+      id: authData.id,
+      dealerId: authData.id,
+      name: authData.fullName || decoded?.fullName || (authData.email ? authData.email.split("@")[0] : authData.mobileNumber || "User"),
+      dealershipName: authData.dealershipName || authData.fullName,
+      email: authData.email || "",
+      role: chosenRole,
+      mobileNumber: authData.mobileNumber,
+      token: token,
+    };
+
+    saveSession(newSession);
+    setUser(newSession);
+    toast.success(`Welcome back! Logged in as ${chosenRole === "dealer" ? "Dealer" : "Freelancer"}.`);
+    navigate(homeFor(chosenRole), { replace: true });
+    return newSession;
+  };
+
   const login = async (email: string, password: string) => {
     setLoading(true);
     setError(null);
@@ -36,15 +58,28 @@ export function useAuth() {
         const decoded = decodeToken(token);
         console.log("Decoded Token Claims:", decoded);
 
+        const hasDual = Boolean(
+          authData.hasDualRole === true ||
+          (Array.isArray(authData.roles) && authData.roles.length > 1)
+        );
+
+        if (hasDual) {
+          return {
+            hasDualRole: true,
+            authData,
+            roles: authData.roles || ["DEALER", "FREELANCER"],
+          };
+        }
+
         const rawRole = decoded?.role || authData.role;
         const role = normalizeRole(rawRole);
 
         const newSession: Session = {
           id: authData.id,
           dealerId: authData.id,
-          name: authData.fullName || decoded?.fullName || authData.email.split("@")[0],
+          name: authData.fullName || decoded?.fullName || (authData.email ? authData.email.split("@")[0] : authData.mobileNumber || "Dealer"),
           dealershipName: authData.dealershipName || authData.fullName,
-          email: authData.email,
+          email: authData.email || "",
           role: role,
           mobileNumber: authData.mobileNumber,
           token: token,
@@ -55,7 +90,7 @@ export function useAuth() {
         toast.success(apiResponse.message || "Login successful!");
         
         navigate(homeFor(role), { replace: true });
-        return newSession;
+        return { hasDualRole: false, session: newSession };
       } else {
         throw new Error(apiResponse.message || "Invalid credentials.");
       }
@@ -72,7 +107,7 @@ export function useAuth() {
   const registerDealer = async (data: {
     dealershipName: string;
     ownerName: string;
-    email: string;
+    email?: string;
     mobile: string;
     password: string;
     address?: string;
@@ -306,6 +341,7 @@ export function useAuth() {
     loading,
     error,
     login,
+    completeLoginWithRole,
     registerDealer,
     registerInspector,
     registerFreelancer,

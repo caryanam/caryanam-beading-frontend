@@ -5,6 +5,7 @@ import { dealerNav } from "@/components/nav-config";
 import { VehicleCard } from "@/components/premium";
 import {
   getMarketplaceInspections,
+  getDealerBidsHistory,
   type DealerInspectionSummary,
 } from "@/lib/api/dealer-api";
 import { toast } from "sonner";
@@ -13,6 +14,7 @@ const uniq = (list: string[]) => ["All", ...Array.from(new Set(list))];
 
 export function DealerMarketplace() {
   const [inspections, setInspections] = useState<DealerInspectionSummary[]>([]);
+  const [dealerBids, setDealerBids] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [brand, setBrand] = useState("All");
@@ -23,9 +25,15 @@ export function DealerMarketplace() {
     const fetchMarketplace = async () => {
       setLoading(true);
       try {
-        const res = await getMarketplaceInspections();
+        const [res, bidsRes] = await Promise.all([
+          getMarketplaceInspections(),
+          getDealerBidsHistory().catch(() => ({ success: false, data: [] })),
+        ]);
         if (res.success && res.data) {
           setInspections(res.data);
+        }
+        if (bidsRes.success && bidsRes.data) {
+          setDealerBids(bidsRes.data);
         }
       } catch (err: any) {
         console.error("Failed to load marketplace inspections", err);
@@ -46,6 +54,20 @@ export function DealerMarketplace() {
         v.currentHighestBid && v.currentHighestBid > 0
           ? v.currentHighestBid
           : 0;
+
+      const bidRecord = (dealerBids || []).find(
+        (b: any) => String(b.vehicleId || b.id) === String(v.inspectionId)
+      );
+      let userBidStatus: "top" | "outbid" | "none" = "none";
+      if (bidRecord) {
+        const myBid = Number(bidRecord.myBid || 0);
+        const topBidVal = Number(highestBid || bidRecord.highestBid || 0);
+        if (myBid > 0 && myBid >= topBidVal) {
+          userBidStatus = "top";
+        } else if (myBid > 0 && myBid < topBidVal) {
+          userBidStatus = "outbid";
+        }
+      }
 
       let fuelType:
         | "Petrol"
@@ -99,9 +121,10 @@ export function DealerMarketplace() {
         location: (v as any).location || (v as any).city || undefined,
         rtoInformation: (v as any).rtoInformation || (v as any).rto || undefined,
         engineRating: (v as any).engineRating || (v as any).overallRating || (v as any).rating || undefined,
+        userBidStatus,
       };
     });
-  }, [inspections]);
+  }, [inspections, dealerBids]);
 
   const filtered = useMemo(() => {
     return mappedVehicles.filter(

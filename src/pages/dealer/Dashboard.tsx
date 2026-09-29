@@ -18,6 +18,7 @@ import { formatIndianDateTime, maskDealerName } from "@/lib/utils";
 
 export function DealerDashboard() {
   const [inspections, setInspections] = useState<DealerInspectionSummary[]>([]);
+  const [dealerBids, setDealerBids] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [bidsCount, setBidsCount] = useState(0);
   const [favCount, setFavCount] = useState(0);
@@ -35,6 +36,7 @@ export function DealerDashboard() {
         ]);
         if (bidsRes.success && bidsRes.data) {
           setBidsCount(bidsRes.data.length);
+          setDealerBids(bidsRes.data);
         }
         if (profileRes.success && profileRes.data) {
           setWonBidsCount((profileRes.data as any).wonBidsCount || 0);
@@ -110,6 +112,20 @@ export function DealerDashboard() {
       const t = (v.transmission || "").toLowerCase();
       if (t.includes("auto")) transmissionType = "Automatic";
 
+      const bidRecord = (dealerBids || []).find(
+        (b: any) => String(b.vehicleId || b.id) === String(v.inspectionId)
+      );
+      let userBidStatus: "top" | "outbid" | "none" = "none";
+      if (bidRecord) {
+        const myBid = Number(bidRecord.myBid || 0);
+        const topBidVal = Number(highestBid || bidRecord.highestBid || 0);
+        if (myBid > 0 && myBid >= topBidVal) {
+          userBidStatus = "top";
+        } else if (myBid > 0 && myBid < topBidVal) {
+          userBidStatus = "outbid";
+        }
+      }
+
       return {
         id: String(v.inspectionId),
         regNo: v.vehicleNumber,
@@ -137,9 +153,10 @@ export function DealerDashboard() {
           "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=400&q=80",
         endsAt: v.auctionEndTime || undefined,
         inspector: v.inspectorName || "Certified Inspector",
+        userBidStatus,
       };
     });
-  }, [inspections]);
+  }, [inspections, dealerBids]);
 
   const live = useMemo(
     () => mappedVehicles.filter((v) => v.auction === "live"),

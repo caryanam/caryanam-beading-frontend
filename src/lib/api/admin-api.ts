@@ -122,6 +122,7 @@ export interface AdminDealer {
   totalBids?: number;
   wonBidsCount?: number;
   wonBids?: DealerWonBid[];
+  isFreelancer?: boolean;
 }
 
 export const getRegisteredDealers = async (): Promise<{ success: boolean; data: AdminDealer[] }> => {
@@ -131,6 +132,11 @@ export const getRegisteredDealers = async (): Promise<{ success: boolean; data: 
 
 export const updateAdminDealer = async (id: number, data: Partial<AdminDealer>): Promise<{ success: boolean; data?: AdminDealer; message?: string }> => {
   const res = await adminApiClient.put(`/api/admin/dealer/${id}`, data);
+  return res.data;
+};
+
+export const makeDealerFreelancer = async (id: number): Promise<{ success: boolean; data?: AdminDealer; message?: string }> => {
+  const res = await adminApiClient.post(`/api/admin/dealer/${id}/make-freelancer`);
   return res.data;
 };
 
@@ -150,7 +156,7 @@ export const importDealersExcel = async (file: File): Promise<{ success: boolean
   return res.data;
 };
 
-export const startLiveAuction = async (id: number, durationMinutes?: number): Promise<{ success: boolean }> => {
+export const startLiveAuction = async (id: number, durationMinutes?: number): Promise<{ success: boolean; data?: any; message?: string }> => {
   const res = await adminApiClient.put(
     `/api/admin/inspection/${id}/go-live`,
     durationMinutes ? { durationMinutes, duration: durationMinutes } : {},
@@ -159,7 +165,7 @@ export const startLiveAuction = async (id: number, durationMinutes?: number): Pr
   return res.data;
 };
 
-export const stopLiveAuction = async (id: number): Promise<{ success: boolean }> => {
+export const stopLiveAuction = async (id: number): Promise<{ success: boolean; data?: any; message?: string }> => {
   try {
     const res = await adminApiClient.put(`/api/admin/inspection/${id}/stop-auction`);
     return res.data;

@@ -40,6 +40,8 @@ export function AdminAuctions() {
   const [inspections, setInspections] = useState<AdminInspectionSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
+  const [actionType, setActionType] = useState<"live" | "sold" | null>(null);
   const [, setNow] = useState(Date.now());
   const [stopModal, setStopModal] = useState<{
     isOpen: boolean;
@@ -53,19 +55,12 @@ export function AdminAuctions() {
     loading: false,
   });
 
-  const handleMarkAsSoldOut = async (id: number, vehicleName: string) => {
-    const res = await updateInspectionVehicleStatus(id, "SOLD OUT");
-    if (res.success) {
-      toast.success(`Vehicle ${vehicleName} status manually updated to SOLD OUT!`);
-      fetchAuctions();
-    } else {
-      toast.error("Failed to update status.");
-    }
-  };
+  const fetchAuctions = async (options?: { showToast?: boolean; silent?: boolean }) => {
+    const isSilent = options?.silent ?? false;
+    const showToast = options?.showToast ?? false;
 
-  const fetchAuctions = async (showToast = false) => {
     if (showToast) setRefreshing(true);
-    setLoading(true);
+    if (!isSilent) setLoading(true);
     try {
       if (activeTab === "inspector") {
         const res = await getSubmittedInspections();
@@ -131,11 +126,41 @@ export function AdminAuctions() {
       }
     } catch (err: any) {
       console.error(`Failed to load ${activeTab} approved auctions list`, err);
-      toast.error(`Could not load ${activeTab} auctions list.`);
-      setInspections([]);
+      if (!isSilent) toast.error(`Could not load ${activeTab} auctions list.`);
+      if (!isSilent) setInspections([]);
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (!isSilent) setLoading(false);
+      if (showToast) setRefreshing(false);
+    }
+  };
+
+  const handleMarkAsSoldOut = async (id: number, vehicleName: string) => {
+    try {
+      setActionLoadingId(id);
+      setActionType("sold");
+      const res = await updateInspectionVehicleStatus(id, "SOLD OUT");
+      if (res.success) {
+        toast.success(`Vehicle ${vehicleName} status manually updated to SOLD OUT!`);
+        setInspections((prev) =>
+          prev.map((item) =>
+            item.inspectionId === id
+              ? {
+                  ...item,
+                  vehicleStatus: "SOLD OUT",
+                  status: "SOLD OUT",
+                }
+              : item
+          )
+        );
+        fetchAuctions({ silent: true });
+      } else {
+        toast.error("Failed to update status.");
+      }
+    } catch {
+      toast.error("Failed to update status.");
+    } finally {
+      setActionLoadingId(null);
+      setActionType(null);
     }
   };
 
@@ -153,19 +178,39 @@ export function AdminAuctions() {
 
   const handleGoLive = async (id: number) => {
     try {
+      setActionLoadingId(id);
+      setActionType("live");
       const duration = activeTab === "freelancer" ? 15 : 30;
       const vehicleTypeLabel = activeTab === "freelancer" ? "Freelancer" : "Inspector";
       toast.info(`Launching live ${duration}-minute auction room...`);
       const res = await startLiveAuction(id, duration);
       if (res.success) {
         toast.success(`${duration}-Minute Live Auction Started for ${vehicleTypeLabel} Vehicle #${id}!`);
-        fetchAuctions();
+        const endTime = res.data?.auctionEndTime || Date.now() + duration * 60 * 1000;
+        // Instantly update the vehicle in the list smoothly without reloading/flickering
+        setInspections((prev) =>
+          prev.map((item) =>
+            item.inspectionId === id
+              ? {
+                  ...item,
+                  vehicleStatus: "LIVE",
+                  status: "LIVE",
+                  auctionEndTime: endTime,
+                }
+              : item
+          )
+        );
+        // Refresh silently in the background
+        fetchAuctions({ silent: true });
       } else {
         toast.error("Failed to start auction.");
       }
     } catch (err: any) {
       console.error("Error setting auction to live", err);
       toast.error("Error setting auction to live.");
+    } finally {
+      setActionLoadingId(null);
+      setActionType(null);
     }
   };
 
@@ -180,13 +225,25 @@ export function AdminAuctions() {
 
   const handleConfirmStopAuction = async () => {
     if (!stopModal.auctionId) return;
+    const targetId = stopModal.auctionId;
     setStopModal((prev) => ({ ...prev, loading: true }));
     try {
       toast.info(`Stopping auction for ${stopModal.vehicleName}...`);
-      const res = await stopLiveAuction(stopModal.auctionId);
+      const res = await stopLiveAuction(targetId);
       if (res.success) {
         toast.success(`Auction stopped for ${stopModal.vehicleName}.`);
-        fetchAuctions();
+        setInspections((prev) =>
+          prev.map((item) =>
+            item.inspectionId === targetId
+              ? {
+                  ...item,
+                  vehicleStatus: "ENDED",
+                  status: "ENDED",
+                }
+              : item
+          )
+        );
+        fetchAuctions({ silent: true });
       } else {
         toast.error("Failed to stop auction.");
       }
@@ -415,17 +472,37 @@ export function AdminAuctions() {
             {!isLive && !isSold && (
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => handleGoLive(v.inspectionId)}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-[#FFC700] hover:bg-[#FFD633] px-3.5 py-1.5 text-xs font-extrabold text-[#0D0E12] transition-all cursor-pointer shadow-sm"
+                  type="button"
+                  disabled={actionLoadingId === v.inspectionId}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleGoLive(v.inspectionId);
+                  }}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-[#FFC700] hover:bg-[#FFD633] px-3.5 py-1.5 text-xs font-extrabold text-[#0D0E12] transition-all cursor-pointer shadow-sm disabled:opacity-60"
                 >
-                  <PlayCircle className="size-3.5" /> Go Live
+                  {actionLoadingId === v.inspectionId && actionType === "live" ? (
+                    <span className="size-3.5 animate-spin rounded-full border-2 border-black border-t-transparent" />
+                  ) : (
+                    <PlayCircle className="size-3.5" />
+                  )}
+                  {actionLoadingId === v.inspectionId && actionType === "live" ? "Launching..." : "Go Live"}
                 </button>
                 <button
-                  onClick={() => handleMarkAsSoldOut(v.inspectionId, `${v.brand} ${v.model}`)}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 text-xs font-extrabold text-white transition-all cursor-pointer shadow-sm"
+                  type="button"
+                  disabled={actionLoadingId === v.inspectionId}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleMarkAsSoldOut(v.inspectionId, `${v.brand} ${v.model}`);
+                  }}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 text-xs font-extrabold text-white transition-all cursor-pointer shadow-sm disabled:opacity-60"
                   title="Manually Change Status to SOLD OUT"
                 >
-                  <CheckCircle2 className="size-3.5" /> Mark SOLD OUT
+                  {actionLoadingId === v.inspectionId && actionType === "sold" ? (
+                    <span className="size-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  ) : (
+                    <CheckCircle2 className="size-3.5" />
+                  )}
+                  {actionLoadingId === v.inspectionId && actionType === "sold" ? "Updating..." : "Mark SOLD OUT"}
                 </button>
               </div>
             )}
@@ -498,7 +575,7 @@ export function AdminAuctions() {
             </div>
 
             <button
-              onClick={() => fetchAuctions(true)}
+              onClick={() => fetchAuctions({ showToast: true })}
               disabled={refreshing}
               className="inline-flex items-center gap-2 rounded-2xl border border-border bg-card px-4 py-2.5 text-xs font-extrabold text-foreground shadow-soft transition-all hover:border-[#FFC700]/60 hover:bg-secondary disabled:opacity-50 cursor-pointer"
             >
