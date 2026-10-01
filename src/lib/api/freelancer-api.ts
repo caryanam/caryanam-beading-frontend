@@ -13,7 +13,8 @@ export const freelancerApiClient = axios.create({
 
 freelancerApiClient.interceptors.request.use(
   (config) => {
-    const session = readSession("freelancer") || readSession();
+    const isUnderAdmin = typeof window !== "undefined" && window.location.pathname.startsWith("/admin");
+    const session = isUnderAdmin ? (readSession("admin") || readSession()) : (readSession("freelancer") || readSession());
     if (session?.token && config.headers) {
       config.headers.Authorization = `Bearer ${session.token}`;
     }

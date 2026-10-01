@@ -25,6 +25,7 @@ import {
 import { formatIndianDateTime } from "@/lib/utils";
 import {
   getSubmittedInspections,
+  getAdminFreelancerInspections,
   approveInspection,
   rejectInspection,
   startLiveAuction,
@@ -97,10 +98,15 @@ export function AdminVehicles() {
           setInspections([]);
         }
       } else {
-        // Fetch Freelancer Inspections API (/api/freelancer/inspection)
-        const res = await getFreelancerInspections({ all: true });
+        // Fetch Freelancer Inspections API (/api/admin/freelancer-inspections)
+        let res: any;
+        try {
+          res = await getAdminFreelancerInspections();
+        } catch {
+          res = await getFreelancerInspections({ all: true });
+        }
         let apiList: AdminInspectionSummary[] = [];
-        if (res.success && res.data) {
+        if (res && res.success && res.data) {
           apiList = res.data
             .filter((item: any) => {
               const s = String(item.status || item.vehicleStatus || "").toUpperCase();
@@ -117,7 +123,8 @@ export function AdminVehicles() {
               suggestedPrice: item.suggestedPrice || item.price || 0,
               submittedAt: item.submittedAt || item.createdAt || null,
               inspectorName: item.freelancerName || item.inspectorName || item.inspector?.fullName || (item.inspectorId ? `Freelancer #${item.inspectorId}` : "N/A"),
-              status: item.status || item.vehicleStatus || "SUBMITTED",
+              status: item.status || "SUBMITTED",
+              vehicleStatus: item.vehicleStatus || null,
             }));
         }
 
@@ -265,20 +272,38 @@ export function AdminVehicles() {
       key: "status",
       header: "Status",
       cell: (v) => {
-        const s = (v.status || v.vehicleStatus || "").toUpperCase();
+        const vs = (v.vehicleStatus || "").toUpperCase();
+        const s = (v.status || "").toUpperCase();
+
+        if (vs === "LIVE") {
+          return (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 px-3 py-1 text-xs font-black text-emerald-500 animate-pulse">
+              <ArrowUpRight className="size-3.5" /> Live
+            </span>
+          );
+        }
+
+        if (vs === "SOLD OUT" || vs === "SOLD") {
+          return (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-500/15 border border-rose-500/30 px-3 py-1 text-xs font-black text-rose-500">
+              Sold Out
+            </span>
+          );
+        }
+
+        if (vs === "ENDED" || vs === "AUCTION ENDED" || vs === "AUCTION_ENDED" || vs === "COMPLETED") {
+          return (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-muted border border-border px-3 py-1 text-xs font-black text-muted-foreground">
+              Auction Ended
+            </span>
+          );
+        }
+
         let chipStatus = "draft";
         if (s === "APPROVED" || s === "READY_FOR_AUCTION") chipStatus = "approved";
         else if (s === "REJECTED") chipStatus = "rejected";
         else if (s === "SUBMITTED" || s === "PENDING" || s === "PENDING_APPROVAL") chipStatus = "submitted";
         else if (s === "DRAFT" || s === "IN_PROGRESS") chipStatus = "draft";
-
-        if (s === "LIVE") {
-          return (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 px-3 py-1 text-xs font-black text-emerald-500 animate-pulse">
-              <ArrowUpRight className="size-3.5" /> 15-Min Live
-            </span>
-          );
-        }
 
         return (
           <div className="flex flex-col gap-1">
@@ -362,12 +387,13 @@ export function AdminVehicles() {
       if (!insName.includes(q)) return false;
     }
     if (statusFilter === "All") return true;
-    const s = (ins.status || ins.vehicleStatus || "").toUpperCase();
+    const s = (ins.status || "").toUpperCase();
+    const vs = (ins.vehicleStatus || "").toUpperCase();
     if (statusFilter === "Submitted" || statusFilter === "Pending") {
-      return s === "SUBMITTED" || s === "PENDING" || s === "PENDING_APPROVAL";
+      return (s === "SUBMITTED" || s === "PENDING" || s === "PENDING_APPROVAL") && vs !== "SOLD OUT" && vs !== "ENDED";
     }
     if (statusFilter === "Approved") {
-      return s === "APPROVED" || s === "READY_FOR_AUCTION";
+      return s === "APPROVED" || s === "READY_FOR_AUCTION" || vs === "LIVE" || vs === "SOLD OUT" || vs === "ENDED";
     }
     if (statusFilter === "Rejected") {
       return s === "REJECTED";
@@ -378,11 +404,12 @@ export function AdminVehicles() {
   const getStatusCount = (status: string) => {
     if (status === "All") return inspections.length;
     return inspections.filter((v) => {
-      const s = (v.status || v.vehicleStatus || "").toUpperCase();
+      const s = (v.status || "").toUpperCase();
+      const vs = (v.vehicleStatus || "").toUpperCase();
       if (status === "Submitted" || status === "Pending") {
-        return s === "SUBMITTED" || s === "PENDING" || s === "PENDING_APPROVAL";
+        return (s === "SUBMITTED" || s === "PENDING" || s === "PENDING_APPROVAL") && vs !== "SOLD OUT" && vs !== "ENDED";
       }
-      if (status === "Approved") return s === "APPROVED" || s === "READY_FOR_AUCTION";
+      if (status === "Approved") return s === "APPROVED" || s === "READY_FOR_AUCTION" || vs === "LIVE" || vs === "SOLD OUT" || vs === "ENDED";
       if (status === "Rejected") return s === "REJECTED";
       return false;
     }).length;
@@ -424,8 +451,8 @@ export function AdminVehicles() {
                 key={status}
                 onClick={() => setStatusFilter(status)}
                 className={`rounded-2xl border px-3.5 py-2 text-xs font-extrabold transition-all cursor-pointer flex items-center gap-2 ${active
-                    ? "bg-[#FFC700] border-[#FFC700] text-[#0D0E12] shadow-sm"
-                    : "border-border bg-card text-foreground hover:bg-secondary"
+                  ? "bg-[#FFC700] border-[#FFC700] text-[#0D0E12] shadow-sm"
+                  : "border-border bg-card text-foreground hover:bg-secondary"
                   }`}
               >
                 <span>{status}</span>
@@ -464,8 +491,8 @@ export function AdminVehicles() {
                 setStatusFilter("All");
               }}
               className={`rounded-xl px-5 py-2 text-xs font-black transition-all cursor-pointer flex items-center gap-2 ${activeTab === "inspector"
-                  ? "bg-[#FFC700] text-black shadow-md"
-                  : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                ? "bg-[#FFC700] text-black shadow-md"
+                : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
                 }`}
             >
               <UserCheck className="size-4" /> Inspector Submissions
@@ -479,8 +506,8 @@ export function AdminVehicles() {
                 setStatusFilter("All");
               }}
               className={`rounded-xl px-5 py-2 text-xs font-black transition-all cursor-pointer flex items-center gap-2 ${activeTab === "freelancer"
-                  ? "bg-[#FFC700] text-black shadow-md"
-                  : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                ? "bg-[#FFC700] text-black shadow-md"
+                : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
                 }`}
             >
               <User className="size-4" /> Freelancer Submissions
@@ -528,19 +555,19 @@ export function AdminVehicles() {
             {/* Modal Header */}
             <div
               className={`flex items-start justify-between p-6 border-b border-border ${modalAction.type === "approve"
-                  ? "bg-emerald-500/10 border-emerald-500/20"
-                  : modalAction.type === "go-live"
-                    ? "bg-amber-500/10 border-amber-500/20"
-                    : "bg-rose-500/10 border-rose-500/20"
+                ? "bg-emerald-500/10 border-emerald-500/20"
+                : modalAction.type === "go-live"
+                  ? "bg-amber-500/10 border-amber-500/20"
+                  : "bg-rose-500/10 border-rose-500/20"
                 }`}
             >
               <div className="flex items-center gap-3">
                 <div
                   className={`p-3 rounded-2xl ${modalAction.type === "approve"
-                      ? "bg-emerald-500/20 text-emerald-600"
-                      : modalAction.type === "go-live"
-                        ? "bg-amber-500/20 text-amber-600"
-                        : "bg-rose-500/20 text-rose-500"
+                    ? "bg-emerald-500/20 text-emerald-600"
+                    : modalAction.type === "go-live"
+                      ? "bg-amber-500/20 text-amber-600"
+                      : "bg-rose-500/20 text-rose-500"
                     }`}
                 >
                   {modalAction.type === "approve" ? (
@@ -625,10 +652,10 @@ export function AdminVehicles() {
                 onClick={handleConfirmAction}
                 disabled={actionLoading}
                 className={`inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-xs font-black shadow-md transition-all cursor-pointer disabled:opacity-50 ${modalAction.type === "approve"
-                    ? "bg-[#FFC700] hover:bg-[#FFD633] text-[#0D0E12]"
-                    : modalAction.type === "go-live"
-                      ? "bg-[#FFC700] hover:bg-[#FFD633] text-black"
-                      : "bg-rose-500 hover:bg-rose-600 text-white"
+                  ? "bg-[#FFC700] hover:bg-[#FFD633] text-[#0D0E12]"
+                  : modalAction.type === "go-live"
+                    ? "bg-[#FFC700] hover:bg-[#FFD633] text-black"
+                    : "bg-rose-500 hover:bg-rose-600 text-white"
                   }`}
               >
                 {actionLoading && <Loader2 className="size-4 animate-spin" />}

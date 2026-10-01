@@ -65,6 +65,11 @@ export const getSubmittedInspections = async () => {
   return res.data;
 };
 
+export const getAdminFreelancerInspections = async () => {
+  const res = await adminApiClient.get<any>("/api/admin/freelancer-inspections");
+  return res.data;
+};
+
 export const getInspectionById = async (id: number) => {
   const res = await adminApiClient.get<any>(`/api/admin/inspection/${id}`);
   return res.data;

@@ -5,6 +5,7 @@ import { adminNav } from "@/components/nav-config";
 import { StatusChip } from "@/components/premium";
 import {
   getSubmittedInspections,
+  getAdminFreelancerInspections,
   getAdminBidHistory,
   updateInspectionVehicleStatus,
   sendAdminDealerMessage,
@@ -128,7 +129,7 @@ export function AdminLiveBidding() {
     try {
       const [insRes, freeRes] = await Promise.allSettled([
         getSubmittedInspections(),
-        getFreelancerInspections({ all: true }),
+        getAdminFreelancerInspections(),
       ]);
 
       let inspectorList: any[] = [];
