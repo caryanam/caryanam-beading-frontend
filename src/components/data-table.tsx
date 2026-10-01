@@ -3,7 +3,7 @@ import { Download, Printer, Search, SlidersHorizontal } from "lucide-react";
 
 export interface Column<T> {
   key: string;
-  header: string;
+  header: string | ReactNode;
   cell: (row: T, index: number) => ReactNode;
   className?: string;
 }

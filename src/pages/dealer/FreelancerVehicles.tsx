@@ -23,7 +23,7 @@ export function DealerFreelancerVehicles() {
       setLoading(true);
       try {
         const [res, bidsRes] = await Promise.all([
-          getFreelancerInspections(),
+          getFreelancerInspections({ all: true }),
           getDealerBidsHistory().catch(() => ({ success: false, data: [] })),
         ]);
         if (res.success && res.data) {
@@ -132,6 +132,16 @@ export function DealerFreelancerVehicles() {
         isFreelancer: true,
         userBidStatus,
       };
+    }).filter((v) => {
+      const isEndedOrSold =
+        v.auction === "sold out" ||
+        v.auction === "ended" ||
+        (v.endsAt && Number(v.endsAt) <= Date.now());
+      if (isEndedOrSold) {
+        // If auction has ended or vehicle is sold out, only display to the winning dealer
+        return v.userBidStatus === "top";
+      }
+      return true;
     });
   }, [inspections, dealerBids]);
 
@@ -226,7 +236,7 @@ export function DealerFreelancerVehicles() {
           </p>
         </div>
       ) : (
-        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3 mt-6">
+        <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 mt-6">
           {filtered.map((v) => (
             <VehicleCard key={v.id} vehicle={v} />
           ))}

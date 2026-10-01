@@ -117,12 +117,23 @@ export function DealerMarketplace() {
           v.vehicleImage ||
           "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=400&q=80",
         endsAt: v.auctionEndTime || Date.now() + 1000 * 60 * 30,
-        inspector: v.inspectorName || "Certified Inspector",
+        inspector: v.freelancerName || v.inspectorName || "Certified Inspector",
+        isFreelancer: v.isFreelancer || !!v.freelancerName,
         location: (v as any).location || (v as any).city || undefined,
         rtoInformation: (v as any).rtoInformation || (v as any).rto || undefined,
         engineRating: (v as any).engineRating || (v as any).overallRating || (v as any).rating || undefined,
         userBidStatus,
       };
+    }).filter((v) => {
+      const isEndedOrSold =
+        v.auction === "sold out" ||
+        v.auction === "ended" ||
+        (v.endsAt && Number(v.endsAt) <= Date.now());
+      if (isEndedOrSold) {
+        // If auction has ended or vehicle is sold out, only display to the winning dealer
+        return v.userBidStatus === "top";
+      }
+      return true;
     });
   }, [inspections, dealerBids]);
 
@@ -217,7 +228,7 @@ export function DealerMarketplace() {
           </p>
         </div>
       ) : (
-        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3 mt-6">
+        <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 mt-6">
           {filtered.map((v) => (
             <VehicleCard key={v.id} vehicle={v} />
           ))}

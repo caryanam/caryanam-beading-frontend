@@ -145,7 +145,29 @@ export const deleteAdminDealer = async (id: number): Promise<{ success: boolean;
   return res.data;
 };
 
-export const importDealersExcel = async (file: File): Promise<{ success: boolean; message?: string }> => {
+export interface DealerBulkDeleteResult {
+  totalRequested: number;
+  deletedCount: number;
+  skippedCount: number;
+  deletedIds: number[];
+  skippedReasons: string[];
+}
+
+export const deleteMultipleAdminDealers = async (
+  ids: number[]
+): Promise<{ success: boolean; message?: string; data?: DealerBulkDeleteResult }> => {
+  const res = await adminApiClient.post("/api/admin/dealers/delete-multiple", { ids });
+  return res.data;
+};
+
+export interface DealerImportResult {
+  totalRows: number;
+  importedCount: number;
+  skippedCount: number;
+  issues: string[];
+}
+
+export const importDealersExcel = async (file: File): Promise<{ success: boolean; message?: string; data?: DealerImportResult }> => {
   const formData = new FormData();
   formData.append("file", file);
   const res = await adminApiClient.post("/api/admin/dealers/import", formData, {

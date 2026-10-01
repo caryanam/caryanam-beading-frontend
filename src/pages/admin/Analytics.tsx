@@ -40,7 +40,7 @@ export function AdminAnalytics() {
         const [dealRes, insRes, freeRes] = await Promise.allSettled([
           getRegisteredDealers(),
           getSubmittedInspections(),
-          getFreelancerInspections(),
+          getFreelancerInspections({ all: true }),
         ]);
 
         if (dealRes.status === "fulfilled" && dealRes.value?.success && dealRes.value?.data) {

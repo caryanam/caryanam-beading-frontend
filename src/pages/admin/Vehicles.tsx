@@ -98,7 +98,7 @@ export function AdminVehicles() {
         }
       } else {
         // Fetch Freelancer Inspections API (/api/freelancer/inspection)
-        const res = await getFreelancerInspections();
+        const res = await getFreelancerInspections({ all: true });
         let apiList: AdminInspectionSummary[] = [];
         if (res.success && res.data) {
           apiList = res.data

@@ -128,7 +128,7 @@ export function AdminLiveBidding() {
     try {
       const [insRes, freeRes] = await Promise.allSettled([
         getSubmittedInspections(),
-        getFreelancerInspections(),
+        getFreelancerInspections({ all: true }),
       ]);
 
       let inspectorList: any[] = [];

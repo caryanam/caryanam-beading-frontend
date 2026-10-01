@@ -13,7 +13,7 @@ export const freelancerApiClient = axios.create({
 
 freelancerApiClient.interceptors.request.use(
   (config) => {
-    const session = readSession("freelancer");
+    const session = readSession("freelancer") || readSession();
     if (session?.token && config.headers) {
       config.headers.Authorization = `Bearer ${session.token}`;
     }
@@ -27,7 +27,7 @@ freelancerApiClient.interceptors.request.use(
 freelancerApiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 && readSession("freelancer")) {
       window.dispatchEvent(new CustomEvent("session-expired", { detail: { role: "freelancer" } }));
     }
     return Promise.reject(error);
@@ -35,14 +35,36 @@ freelancerApiClient.interceptors.response.use(
 );
 
 // Dedicated Freelancer API Endpoints (/api/freelancer/*)
-export const getFreelancerInspections = async (): Promise<{ success: boolean; data: InspectionSummary[] }> => {
+export const getFreelancerInspections = async (
+  params?: { freelancerId?: number | string; all?: boolean; scope?: string } | number | string
+): Promise<{ success: boolean; data: InspectionSummary[] }> => {
   try {
-    const res = await freelancerApiClient.get("/api/freelancer/inspection");
+    let queryString = "";
+    if (typeof params === "object" && params !== null) {
+      const q = new URLSearchParams();
+      if (params.freelancerId) q.append("freelancerId", String(params.freelancerId));
+      if (params.all) q.append("all", "true");
+      if (params.scope) q.append("scope", params.scope);
+      queryString = q.toString() ? `?${q.toString()}` : "";
+    } else if (params !== undefined && params !== null) {
+      queryString = `?freelancerId=${params}`;
+    }
+
+    const res = await freelancerApiClient.get(`/api/freelancer/inspection${queryString}`);
     return res.data;
   } catch (err: any) {
     if (err.response?.status === 404 || err.response?.status === 403) {
       try {
-        const altRes = await freelancerApiClient.get("/api/freelancer/vehicles");
+        let altQuery = "";
+        if (typeof params === "object" && params !== null) {
+          const q = new URLSearchParams();
+          if (params.freelancerId) q.append("freelancerId", String(params.freelancerId));
+          if (params.all) q.append("all", "true");
+          altQuery = q.toString() ? `?${q.toString()}` : "";
+        } else if (params !== undefined && params !== null) {
+          altQuery = `?freelancerId=${params}`;
+        }
+        const altRes = await freelancerApiClient.get(`/api/freelancer/vehicles${altQuery}`);
         return altRes.data;
       } catch {
         return { success: true, data: [] };

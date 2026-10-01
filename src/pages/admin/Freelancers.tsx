@@ -28,7 +28,7 @@ export function AdminFreelancers() {
           const list = res.data.map((item) => ({
             id: item.id,
             name: item.fullName || "N/A",
-            email: item.email || "N/A",
+            email: (!item.email || item.email.trim() === "" || item.email.endsWith("@caryanam.com")) ? "N/A" : item.email,
             mobile: item.mobileNumber || "N/A",
             uploads: item.uploads ?? 0,
             status: "active",

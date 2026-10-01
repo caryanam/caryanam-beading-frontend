@@ -21,7 +21,8 @@ export function FreelancerDashboard() {
   const loadDashboardData = async () => {
     setLoading(true);
     try {
-      const res = await getFreelancerInspections();
+      const freelancerId = (user as any)?.freelancerId || user?.id;
+      const res = await getFreelancerInspections(freelancerId ? { freelancerId } : undefined);
       let list: any[] = [];
       if (res.success && res.data) {
         list = res.data;

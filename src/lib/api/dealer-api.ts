@@ -43,6 +43,8 @@ export interface DealerInspectionSummary {
   status: string;
   submittedAt: string | null;
   inspectorName: string;
+  freelancerName?: string;
+  isFreelancer?: boolean;
   suggestedPrice?: number;
   rejectionReason?: string;
   vehicleImage?: string;
@@ -52,6 +54,8 @@ export interface DealerInspectionSummary {
   odometer?: number;
   vehicleStatus?: string;
   currentHighestBid?: number;
+  currentHighestBidder?: string;
+  currentHighestBidderId?: number;
   auctionEndTime?: number;
   totalBids?: number;
 }

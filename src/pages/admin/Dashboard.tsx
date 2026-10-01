@@ -340,7 +340,7 @@ export function AdminDashboard() {
       try {
         const [insRes, freeRes, dealRes, freeUsersRes, inspUsersRes] = await Promise.allSettled([
           getSubmittedInspections(),
-          getFreelancerInspections(),
+          getFreelancerInspections({ all: true }),
           getRegisteredDealers(),
           getRegisteredFreelancers(),
           getRegisteredInspectors(),

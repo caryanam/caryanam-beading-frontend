@@ -11,6 +11,7 @@ export interface Session {
   email: string;
   token?: string;
   id?: number;
+  freelancerId?: number;
   dealerId?: number;
   dealershipName?: string;
   mobileNumber?: string;

@@ -35,6 +35,7 @@ import {
   getFreelancerInspectionDetails,
   deleteFreelancerInspectionDraft,
 } from "@/lib/api/freelancer-api";
+import { useAuth } from "@/hooks/use-auth";
 
 export interface FreelancerVehicle {
   id: string | number;
@@ -78,6 +79,7 @@ export interface FreelancerVehicle {
 }
 
 export function FreelancerVehicles() {
+  const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [vehicles, setVehicles] = useState<FreelancerVehicle[]>([]);
   const [loading, setLoading] = useState(true);
@@ -91,7 +93,8 @@ export function FreelancerVehicles() {
   const fetchVehicles = async () => {
     setLoading(true);
     try {
-      const res = await getFreelancerInspections();
+      const freelancerId = (user as any)?.freelancerId || user?.id;
+      const res = await getFreelancerInspections(freelancerId ? { freelancerId } : undefined);
       let list: FreelancerVehicle[] = [];
       if (res.success && res.data) {
         list = res.data.map((item: any) => ({
@@ -111,7 +114,7 @@ export function FreelancerVehicles() {
 
   useEffect(() => {
     fetchVehicles();
-  }, []);
+  }, [user?.id]);
 
   const previewParam = searchParams.get("id") || searchParams.get("preview");
 

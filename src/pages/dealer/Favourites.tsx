@@ -94,7 +94,7 @@ export function DealerFavourites() {
           <p className="text-xs text-muted-foreground mt-1">Tap the heart button on any vehicle details page to save it here.</p>
         </div>
       ) : (
-        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3">
           {favourites.map((v) => (
             <VehicleCard
               key={v.id}

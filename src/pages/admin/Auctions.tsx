@@ -82,7 +82,7 @@ export function AdminAuctions() {
           setInspections([]);
         }
       } else {
-        const res = await getFreelancerInspections();
+        const res = await getFreelancerInspections({ all: true });
         if (res.success && res.data) {
           const processed = res.data
             .filter((ins: any) => {

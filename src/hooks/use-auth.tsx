@@ -28,6 +28,7 @@ export function useAuth() {
 
     const newSession: Session = {
       id: authData.id,
+      freelancerId: authData.freelancerId || (chosenRole === "freelancer" ? authData.id : undefined),
       dealerId: authData.id,
       name: authData.fullName || decoded?.fullName || (authData.email ? authData.email.split("@")[0] : authData.mobileNumber || "User"),
       dealershipName: authData.dealershipName || authData.fullName,
@@ -76,6 +77,7 @@ export function useAuth() {
 
         const newSession: Session = {
           id: authData.id,
+          freelancerId: authData.freelancerId || (role === "freelancer" ? authData.id : undefined),
           dealerId: authData.id,
           name: authData.fullName || decoded?.fullName || (authData.email ? authData.email.split("@")[0] : authData.mobileNumber || "Dealer"),
           dealershipName: authData.dealershipName || authData.fullName,
