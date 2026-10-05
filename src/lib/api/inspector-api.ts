@@ -155,6 +155,8 @@ export interface InspectionDraftRequest {
 
 export interface InspectionSummary {
   inspectionId: number;
+  id?: number;
+  vehicleId?: number;
   vehicleNumber: string;
   ownerName: string;
   brand: string;
@@ -209,6 +211,11 @@ export const submitInspectionReport = async (id: number | string): Promise<{ suc
 
 export const deleteInspectionDraft = async (id: number | string): Promise<{ success: boolean }> => {
   const res = await inspectorApiClient.delete(`/api/inspector/inspection/${id}`);
+  return res.data;
+};
+
+export const deleteVehicle = async (vehicleId: number | string): Promise<{ success: boolean; message?: string }> => {
+  const res = await inspectorApiClient.delete(`/api/vehicles/${vehicleId}`);
   return res.data;
 };
 

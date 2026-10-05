@@ -9,7 +9,7 @@ import { cn, formatIndianDateTime } from "@/lib/utils";
 import {
   getMyInspections,
   getInspectionDetails,
-  deleteInspectionDraft,
+  deleteVehicle,
   downloadInspectorInspectionPdf,
   type InspectionSummary,
 } from "@/lib/api/inspector-api";
@@ -250,19 +250,31 @@ export function InspectorVehicles() {
   };
 
   const handleDelete = async () => {
-    if (!deleteTargetId) return;
+    if (deleteTargetId === null || deleteTargetId === undefined) return;
     setDeleting(true);
     try {
-      const res = await deleteInspectionDraft(deleteTargetId);
-      if (res.success) {
-        toast.success("Inspection draft deleted successfully.");
+      const res = await deleteVehicle(deleteTargetId);
+      if (res?.success !== false) {
+        toast.success("Vehicle deleted successfully.");
+        setInspections((prev) =>
+          prev.filter((v) => {
+            const vid = v.id ?? v.vehicleId ?? v.inspectionId;
+            return vid !== deleteTargetId;
+          })
+        );
         fetchInspections();
+        setDeleteTargetId(null);
+      } else {
+        toast.error(res?.message || "Failed to delete vehicle. Please try again.");
       }
     } catch (err: any) {
-      toast.error(err.response?.data?.message || "Failed to delete draft.");
+      console.error("Failed to delete vehicle", err);
+      const msg =
+        err?.response?.data?.message ||
+        "Failed to delete vehicle. Please try again.";
+      toast.error(msg);
     } finally {
       setDeleting(false);
-      setDeleteTargetId(null);
     }
   };
 
@@ -325,13 +337,14 @@ export function InspectorVehicles() {
       key: "actions" as any,
       header: "Actions",
       cell: (v) => {
-        const canEdit = v.status !== "APPROVED"; 
-        const canDelete = v.status === "DRAFT" || v.status === "REJECTED";
+        const vehicleId = (v.id ?? v.vehicleId ?? v.inspectionId) as number;
+        const canEdit = v.status !== "APPROVED";
+        const isCurrentlyDeleting = deleting && deleteTargetId === vehicleId;
 
         return (
           <div className="flex items-center gap-1.5">
             <button
-              onClick={() => openPreview(v.inspectionId)}
+              onClick={() => openPreview(vehicleId)}
               className="grid size-8 place-items-center rounded-xl bg-card border border-border text-foreground hover:border-[#FFC700] hover:text-[#FFC700] transition-colors shadow-soft cursor-pointer"
               title="Preview Inspection Report"
             >
@@ -340,7 +353,7 @@ export function InspectorVehicles() {
 
             {canEdit && (
               <Link
-                to={`/inspector/add-vehicle?id=${v.inspectionId}`}
+                to={`/inspector/add-vehicle?id=${vehicleId}`}
                 className="grid size-8 place-items-center rounded-xl bg-card border border-border text-foreground hover:border-[#FFC700] hover:text-[#FFC700] transition-colors shadow-soft"
                 title={v.status === "REJECTED" ? "Correct & Resubmit Report" : "Edit Inspection"}
               >
@@ -350,27 +363,31 @@ export function InspectorVehicles() {
 
             <button
               type="button"
-              disabled={downloadingPdfId === v.inspectionId}
-              onClick={() => handleDownloadPdf(v.inspectionId)}
+              disabled={downloadingPdfId === vehicleId}
+              onClick={() => handleDownloadPdf(vehicleId)}
               className="flex items-center gap-1 rounded-xl border border-border bg-card px-2.5 py-1.5 text-xs font-extrabold text-foreground hover:border-[#FFC700] hover:text-[#FFC700] transition-colors shadow-soft cursor-pointer disabled:opacity-50"
               title="Download PDF Report"
             >
-              {downloadingPdfId === v.inspectionId ? (
+              {downloadingPdfId === vehicleId ? (
                 <Loader2 className="size-3.5 animate-spin text-[#FFC700]" />
               ) : (
                 <Download className="size-3.5" />
               )}
             </button>
 
-            {canDelete && (
-              <button
-                onClick={() => setDeleteTargetId(v.inspectionId)}
-                className="grid size-8 place-items-center rounded-xl bg-card border border-border text-rose-500 hover:border-rose-500/50 hover:bg-rose-500/10 transition-colors shadow-soft cursor-pointer"
-                title="Delete Draft"
-              >
+            <button
+              type="button"
+              disabled={deleting}
+              onClick={() => setDeleteTargetId(vehicleId)}
+              className="grid size-8 place-items-center rounded-xl bg-card border border-border text-rose-500 hover:border-rose-500/50 hover:bg-rose-500/10 transition-colors shadow-soft cursor-pointer disabled:opacity-50"
+              title="Delete Vehicle"
+            >
+              {isCurrentlyDeleting ? (
+                <Loader2 className="size-3.5 animate-spin text-rose-500" />
+              ) : (
                 <Trash2 className="size-3.5" />
-              </button>
-            )}
+              )}
+            </button>
           </div>
         );
       },
@@ -1385,11 +1402,13 @@ export function InspectorVehicles() {
 
       <ConfirmModal
         isOpen={deleteTargetId !== null}
-        onClose={() => setDeleteTargetId(null)}
+        onClose={() => {
+          if (!deleting) setDeleteTargetId(null);
+        }}
         onConfirm={handleDelete}
-        title="Delete Inspection Draft"
-        description="Are you sure you want to delete this inspection draft? This action is permanent and cannot be undone."
-        confirmText="Delete Draft"
+        title="Delete Vehicle?"
+        description="Are you sure you want to delete this vehicle? This action cannot be undone."
+        confirmText="Delete"
         cancelText="Cancel"
         variant="danger"
         loading={deleting}
