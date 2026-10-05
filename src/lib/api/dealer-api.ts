@@ -46,6 +46,7 @@ export interface DealerInspectionSummary {
   freelancerName?: string;
   isFreelancer?: boolean;
   suggestedPrice?: number;
+  refurbishedCost?: number;
   rejectionReason?: string;
   vehicleImage?: string;
   year?: number;

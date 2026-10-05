@@ -812,6 +812,10 @@ export function InspectorVehicles() {
                         <span className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">Suggested Price Valuation</span>
                         <span className="font-black text-[#FFC700] text-sm">{previewData.vehicleDetails?.suggestedPrice ? inr(previewData.vehicleDetails.suggestedPrice) : "N/A"}</span>
                       </div>
+                      <div className="rounded-2xl border border-border bg-secondary/30 p-4">
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">Refurbished Cost (Approx.)</span>
+                        <span className="font-black text-[#FFC700] text-sm">{previewData.vehicleDetails?.refurbishedCost !== undefined && previewData.vehicleDetails?.refurbishedCost !== null ? inr(previewData.vehicleDetails.refurbishedCost) : "N/A"}</span>
+                      </div>
                     </div>
                   </Panel>
                 </div>

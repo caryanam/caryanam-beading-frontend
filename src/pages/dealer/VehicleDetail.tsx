@@ -916,6 +916,7 @@ export function DealerVehicleDetail() {
             score: calculatedScore,
             basePrice,
             highestBid,
+            refurbishedCost: v.refurbishedCost !== undefined && v.refurbishedCost !== null ? v.refurbishedCost : (raw.refurbishedCost !== undefined && raw.refurbishedCost !== null ? raw.refurbishedCost : undefined),
             highestBidder,
             bids: bidCount,
             status: "approved",
@@ -1666,6 +1667,14 @@ export function DealerVehicleDetail() {
               icon: TrendingUp,
               color: "text-[#FFC700] bg-[#FFC700]/15",
             },
+            {
+              label: "REFURBISHED COST (APPROX.)",
+              value: vehicle.refurbishedCost !== undefined && vehicle.refurbishedCost !== null
+                ? inr(vehicle.refurbishedCost)
+                : "Not Available",
+              icon: TrendingUp,
+              color: "text-amber-500 bg-amber-500/15",
+            },
           ].map((item, idx) => {
             const IconComp = item.icon;
             return (
@@ -1955,6 +1964,12 @@ export function DealerVehicleDetail() {
                     { label: "Mismatch in RC", value: vehicle.mismatchInRc || "N/A" },
                     { label: "Road Tax Paid Status", value: vehicle.roadTaxPaid || "N/A" },
                     { label: "Fitness Valid Upto Date", value: vehicle.fitnessUpto || "N/A", isDate: true },
+                    {
+                      label: "Refurbished Cost (Approx.)",
+                      value: vehicle.refurbishedCost !== undefined && vehicle.refurbishedCost !== null
+                        ? inr(vehicle.refurbishedCost)
+                        : "Not Available",
+                    },
                   ].map((doc) => (
                     <div
                       key={doc.label}
@@ -3086,6 +3101,14 @@ export function DealerVehicleDetail() {
                     </p>
                     <p className="mt-1 text-xs font-bold text-white/80">
                       {inr(vehicle.basePrice)}
+                    </p>
+                    <p className="mt-2 text-[10px] font-bold text-white/50 uppercase">
+                      Refurbished Cost (Approx.)
+                    </p>
+                    <p className="mt-0.5 text-xs font-black text-[#FFC700]">
+                      {vehicle.refurbishedCost !== undefined && vehicle.refurbishedCost !== null
+                        ? inr(vehicle.refurbishedCost)
+                        : "Not Available"}
                     </p>
                   </div>
                 </div>

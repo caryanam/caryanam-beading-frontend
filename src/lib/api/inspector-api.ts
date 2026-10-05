@@ -50,6 +50,7 @@ export interface VehicleDraft {
   insuranceStatus?: string;
   inspectorCode?: string;
   suggestedPrice?: number;
+  refurbishedCost?: number;
   location?: string;
   rtoInformation?: string;
   rsAvailability?: string;
@@ -166,6 +167,7 @@ export interface InspectionSummary {
   submittedAt: string | null;
   inspectorName: string;
   suggestedPrice?: number;
+  refurbishedCost?: number;
   vehicleName?: string;
   rejectionReason?: string;
   vehicleImage?: string;

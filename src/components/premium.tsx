@@ -494,8 +494,18 @@ export function VehicleCard({
             .join(" • ")}
         </p>
 
+        {/* Refurbished Cost Info Row */}
+        <div className="flex items-center justify-between text-[11px] font-bold text-muted-foreground pt-1.5 border-t border-border/60">
+          <span>Refurbished Cost (Approx.)</span>
+          <span className="font-extrabold text-foreground">
+            {vehicle.refurbishedCost !== undefined && vehicle.refurbishedCost !== null
+              ? inr(vehicle.refurbishedCost)
+              : "Not Available"}
+          </span>
+        </div>
+
         {/* Dashed Separator Line */}
-        <div className="my-3 border-t border-dashed border-border/80" />
+        <div className="my-2.5 border-t border-dashed border-border/80" />
 
         {/* Bottom Pricing & Digital Countdown Timer Row */}
         <div className="flex items-center justify-between gap-3 pt-0.5">

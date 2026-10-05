@@ -140,6 +140,7 @@ export function DealerDashboard() {
         score: 88 + (v.inspectionId % 10),
         basePrice,
         highestBid,
+        refurbishedCost: v.refurbishedCost !== undefined && v.refurbishedCost !== null ? v.refurbishedCost : (v as any).refurbishedCost,
         bids: bidCount,
         status: "approved" as const,
         auction:
@@ -328,6 +329,20 @@ export function DealerDashboard() {
                     <p className="mt-2 text-sm font-bold text-white/80">
                       {featured.brand} {featured.model} {featured.variant}
                     </p>
+                    <div className="mt-3 flex flex-wrap items-center gap-3 text-xs font-bold text-white/80">
+                      <span className="rounded-xl bg-white/10 px-3 py-1 border border-white/15">
+                        <span className="text-white/60">Base Price: </span>
+                        {inr(featured.basePrice)}
+                      </span>
+                      <span className="rounded-xl bg-white/10 px-3 py-1 border border-white/15">
+                        <span className="text-white/60">Refurbished Cost (Approx.): </span>
+                        <span className="text-[#FFC700] font-black">
+                          {featured.refurbishedCost !== undefined && featured.refurbishedCost !== null
+                            ? inr(featured.refurbishedCost)
+                            : "Not Available"}
+                        </span>
+                      </span>
+                    </div>
                   </div>
                   {featured.auction === "live" && featured.endsAt && (
                     <div className="shrink-0 rounded-2xl border border-[#FFC700]/40 bg-[#FFC700]/10 px-4 py-3 text-center shadow-sm">

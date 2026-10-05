@@ -110,6 +110,7 @@ export function DealerFreelancerVehicles() {
         score: 88 + (insId % 10),
         basePrice,
         highestBid,
+        refurbishedCost: v.refurbishedCost !== undefined && v.refurbishedCost !== null ? v.refurbishedCost : (v as any).refurbishedCost,
         bids: bidCount,
         status: "approved" as const,
         auction:

@@ -43,6 +43,7 @@ export function DealerFavourites() {
             score: 88 + (item.inspectionId % 10),
             basePrice,
             highestBid,
+            refurbishedCost: item.refurbishedCost !== undefined && item.refurbishedCost !== null ? item.refurbishedCost : (item as any).refurbishedCost,
             bids: bidCount,
             status: "approved" as const,
             auction:

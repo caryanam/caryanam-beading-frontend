@@ -682,6 +682,7 @@ export function InspectorAddVehicle() {
 
   const [comments, setComments] = useState("");
   const [suggestedPrice, setSuggestedPrice] = useState("");
+  const [refurbishedCost, setRefurbishedCost] = useState("");
 
   const [partImages, setPartImages] = useState<Record<string, string>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -731,6 +732,11 @@ export function InspectorAddVehicle() {
         newErrors.suggestedPrice = "Suggested Price is required.";
       } else if (isNaN(Number(suggestedPrice.replace(/,/g, "")))) {
         newErrors.suggestedPrice = "Please enter a valid numeric price.";
+      }
+      if (refurbishedCost === "" || refurbishedCost === undefined || refurbishedCost === null) {
+        newErrors.refurbishedCost = "Refurbished Cost (Approx.) is required.";
+      } else if (isNaN(Number(refurbishedCost.replace(/,/g, ""))) || Number(refurbishedCost.replace(/,/g, "")) < 0) {
+        newErrors.refurbishedCost = "Please enter a valid amount (0 or positive).";
       }
       if (!basicDetails.location) newErrors.location = "Location is required.";
       if (!basicDetails.rtoInformation) newErrors.rtoInformation = "RTO Information is required.";
@@ -830,6 +836,11 @@ export function InspectorAddVehicle() {
           });
           setSuggestedPrice(
             v.suggestedPrice ? v.suggestedPrice.toLocaleString("en-IN") : "",
+          );
+          setRefurbishedCost(
+            v.refurbishedCost !== undefined && v.refurbishedCost !== null
+              ? v.refurbishedCost.toString()
+              : "",
           );
         }
 
@@ -1054,6 +1065,10 @@ export function InspectorAddVehicle() {
           inspectorCode: basicDetails.evaluator || "",
           suggestedPrice:
             parseFloat(suggestedPrice.replace(/,/g, "")) || undefined,
+          refurbishedCost:
+            refurbishedCost !== "" && !isNaN(Number(refurbishedCost.replace(/,/g, "")))
+              ? Number(refurbishedCost.replace(/,/g, ""))
+              : undefined,
           location: basicDetails.location,
           rtoInformation: basicDetails.rtoInformation,
           rsAvailability: basicDetails.rsAvailability,
@@ -1363,6 +1378,25 @@ export function InspectorAddVehicle() {
       setErrors((prev) => {
         const copy = { ...prev };
         delete copy.suggestedPrice;
+        return copy;
+      });
+    }
+  };
+
+  const handleRefurbishedCostChange = (val: string) => {
+    // Block alphabetic & special characters - allow only digits and single optional decimal point
+    const cleaned = val.replace(/[^0-9.]/g, "");
+    const parts = cleaned.split(".");
+    let formattedVal = parts[0];
+    if (parts.length > 1) {
+      formattedVal += "." + parts.slice(1).join("");
+    }
+
+    setRefurbishedCost(formattedVal);
+    if (errors.refurbishedCost) {
+      setErrors((prev) => {
+        const copy = { ...prev };
+        delete copy.refurbishedCost;
         return copy;
       });
     }
@@ -1805,6 +1839,34 @@ export function InspectorAddVehicle() {
                   />
                   {errors.suggestedPrice && (
                     <span className="mt-1 block text-xs font-bold text-red-500 px-1">{errors.suggestedPrice}</span>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-foreground mb-1.5">
+                    Refurbished Cost (Approx.) <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    value={refurbishedCost}
+                    onChange={(e) => handleRefurbishedCostChange(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (["-", "+", "e", "E"].includes(e.key)) {
+                        e.preventDefault();
+                      }
+                    }}
+                    placeholder="e.g. ₹50,000"
+                    className={cn(
+                      "w-full rounded-2xl border bg-card px-4 py-3.5 text-sm font-extrabold text-foreground outline-none transition-all focus:ring-2 shadow-soft",
+                      errors.refurbishedCost
+                        ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
+                        : "border-border hover:border-[#FFC700]/60 focus:border-[#FFC700] focus:ring-[#FFC700]/30",
+                    )}
+                  />
+                  {errors.refurbishedCost && (
+                    <span className="mt-1 block text-xs font-bold text-red-500 px-1">{errors.refurbishedCost}</span>
                   )}
                 </div>
 

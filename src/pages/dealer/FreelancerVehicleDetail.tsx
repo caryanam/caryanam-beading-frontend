@@ -299,6 +299,7 @@ export function DealerFreelancerVehicleDetail() {
             score: 90,
             basePrice,
             highestBid,
+            refurbishedCost: v.refurbishedCost !== undefined && v.refurbishedCost !== null ? v.refurbishedCost : (raw.refurbishedCost !== undefined && raw.refurbishedCost !== null ? raw.refurbishedCost : undefined),
             highestBidder,
             bids: bidCount,
             status: "approved",
@@ -654,6 +655,14 @@ export function DealerFreelancerVehicleDetail() {
             { label: "INSURANCE STATUS", value: vehicle.insuranceStatus || "Valid", icon: ShieldCheck, color: "text-teal-500 bg-teal-500/15" },
             { label: "LOCATION", value: vehicle.location || "N/A", icon: MapPin, color: "text-rose-500 bg-rose-500/15" },
             { label: "BASE PRICE", value: inr(vehicle.basePrice), icon: TrendingUp, color: "text-[#FFC700] bg-[#FFC700]/15" },
+            {
+              label: "REFURBISHED COST (APPROX.)",
+              value: vehicle.refurbishedCost !== undefined && vehicle.refurbishedCost !== null
+                ? inr(vehicle.refurbishedCost)
+                : "Not Available",
+              icon: TrendingUp,
+              color: "text-amber-500 bg-amber-500/15",
+            },
           ].map((item, idx) => {
             const IconComp = item.icon;
             return (
@@ -761,6 +770,12 @@ export function DealerFreelancerVehicleDetail() {
                     { label: "Insurance Status & Validity", value: vehicle.insuranceStatus || "Valid" },
                     { label: "Under Hypothecation", value: vehicle.underHypothecation || "No" },
                     { label: "Accidental History", value: vehicle.accidental || "No" },
+                    {
+                      label: "Refurbished Cost (Approx.)",
+                      value: vehicle.refurbishedCost !== undefined && vehicle.refurbishedCost !== null
+                        ? inr(vehicle.refurbishedCost)
+                        : "Not Available",
+                    },
                   ].map((doc) => (
                     <div key={doc.label} className="rounded-2xl border border-border bg-card p-4 shadow-soft flex flex-col justify-between gap-2">
                       <span className="text-xs font-extrabold text-muted-foreground uppercase">{doc.label}</span>
@@ -823,6 +838,12 @@ export function DealerFreelancerVehicleDetail() {
                   <div className="text-right">
                     <p className="text-[10px] font-bold text-white/50 uppercase">Base Price</p>
                     <p className="mt-1 text-xs font-bold text-white/80">{inr(vehicle.basePrice)}</p>
+                    <p className="mt-2 text-[10px] font-bold text-white/50 uppercase">Refurbished Cost (Approx.)</p>
+                    <p className="mt-0.5 text-xs font-black text-[#FFC700]">
+                      {vehicle.refurbishedCost !== undefined && vehicle.refurbishedCost !== null
+                        ? inr(vehicle.refurbishedCost)
+                        : "Not Available"}
+                    </p>
                   </div>
                 </div>
 

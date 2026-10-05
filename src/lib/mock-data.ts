@@ -18,6 +18,7 @@ export interface Vehicle {
   score: number;
   basePrice: number;
   highestBid: number;
+  refurbishedCost?: number;
   bids: number;
   status: VehicleStatus;
   auction: "live" | "scheduled" | "completed" | "sold out" | "sold" | "ended";
